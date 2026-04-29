@@ -316,7 +316,6 @@ function GlassPanel({ children, delay = 0, className = "" }: { children: React.R
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function HomePage() {
   const [inputs, setInputs] = useState<CalculatorInputs>(defaultInputs);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
   const results = useMemo(() => calcular(inputs), [inputs]);
@@ -572,50 +571,6 @@ export default function HomePage() {
                     <span className="text-sm font-black" style={{ color: "oklch(0.65 0.22 25)", fontFamily: "'Geist Mono', monospace" }}>{formatCurrency(results.totalDespesasFixas)}</span>
                   </div>
 
-                  {/* Custos Airbnb — expansível */}
-                  <button
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="w-full flex items-center justify-between py-2 text-xs font-semibold transition-colors rounded-lg px-1"
-                    style={{ color: showAdvanced ? "oklch(0.78 0.12 210)" : "oklch(0.5 0.01 240)" }}
-                  >
-                    <span>Custos Airbnb & Gestão</span>
-                    {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </button>
-
-                  <AnimatePresence>
-                    {showAdvanced && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden space-y-3"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 240)" }}>Taxa Airbnb</label>
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: "oklch(0.78 0.18 70 / 0.1)", color: "oklch(0.78 0.18 70)", fontFamily: "'Geist Mono', monospace" }}>
-                              {formatPercent(inputs.taxaPlataforma * 100, 0)}
-                            </span>
-                          </div>
-                          <Slider min={0} max={15} step={0.5} value={[inputs.taxaPlataforma * 100]} onValueChange={([v]) => set("taxaPlataforma")(v / 100)} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <InputField label="Limpeza / check-in" value={inputs.custoLimpeza} onChange={set("custoLimpeza")} prefix="R$" step={10} tooltip="Custo por check-in" />
-                          <InputField label="Check-ins / mês" value={inputs.checkInsMes} onChange={set("checkInsMes")} step={1} integer tooltip="Média de check-ins" />
-                        </div>
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 240)" }}>Property Manager</label>
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: "oklch(0.78 0.18 70 / 0.1)", color: "oklch(0.78 0.18 70)", fontFamily: "'Geist Mono', monospace" }}>
-                              {formatPercent(inputs.taxaGestao * 100, 0)}
-                            </span>
-                          </div>
-                          <Slider min={0} max={30} step={1} value={[inputs.taxaGestao * 100]} onValueChange={([v]) => set("taxaGestao")(v / 100)} />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               </GlassPanel>
             </div>
