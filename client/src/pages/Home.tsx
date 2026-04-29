@@ -14,6 +14,7 @@ import {
   defaultInputs,
   type CalculatorInputs,
 } from "@/lib/calculator";
+import { useFluxo } from "@/contexts/FluxoContext";
 import {
   Building2,
   TrendingUp,
@@ -318,7 +319,22 @@ export default function HomePage() {
   const [inputs, setInputs] = useState<CalculatorInputs>(defaultInputs);
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const results = useMemo(() => calcular(inputs), [inputs]);
+  // Sincroniza Fluxo de Pagamento → Calculadora
+  const { results: fluxoResults, syncValorImovel } = useFluxo();
+
+  // Quando o valor do imóvel muda na calculadora, sincroniza com o fluxo
+  useEffect(() => {
+    syncValorImovel(inputs.valorImovel);
+  }, [inputs.valorImovel, syncValorImovel]);
+
+  // Quando o fluxo tem valores, sobrescreve capitalProprio e saldoFinanciar
+  const inputsComFluxo = useMemo(() => ({
+    ...inputs,
+    capitalProprio: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
+    saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
+  }), [inputs, fluxoResults]);
+
+  const results = useMemo(() => calcular(inputsComFluxo), [inputsComFluxo]);
   const set = useCallback((key: keyof CalculatorInputs) => (value: number) => {
     setInputs((prev) => ({ ...prev, [key]: value }));
   }, []);
@@ -326,97 +342,8 @@ export default function HomePage() {
   const isPositive = results.rendaMensalLiquida > 0;
   const rentAccent = results.rentabilidadeAnual >= 15 ? "green" : results.rentabilidadeAnual >= 8 ? "amber" : "red";
 
-  // Cursor/touch glow — fica ATRÁS de todos os elementos (z-index: -1)
-  const { springX, springY, springOpacity } = useCursorGlow();
-
   return (
-    <div
-      className="min-h-screen w-full relative overflow-x-hidden"
-      style={{ background: "#000", fontFamily: "'Geist', sans-serif" }}
-    >
-      {/* ══════════════════════════════════════════════════════════════════════
-          CAMADA DE FUNDO — z-index negativo, ATRÁS de todos os elementos
-          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0, pointerEvents: "none" }}>
-
-        {/* Glow que segue cursor/toque */}
-        <motion.div
-          style={{
-            position: "absolute",
-            width: 700,
-            height: 700,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, oklch(0.72 0.16 210 / 0.22) 0%, oklch(0.72 0.16 210 / 0.08) 40%, transparent 70%)",
-            x: springX,
-            y: springY,
-            translateX: "-50%",
-            translateY: "-50%",
-            opacity: springOpacity,
-            filter: "blur(4px)",
-          }}
-        />
-
-        {/* Glow ambiente estático — canto superior esquerdo */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-20%",
-            left: "-10%",
-            width: "60%",
-            height: "60%",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, oklch(0.72 0.14 210 / 0.07) 0%, transparent 70%)",
-            filter: "blur(60px)",
-          }}
-        />
-
-        {/* Glow ambiente estático — canto inferior direito */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-10%",
-            right: "-10%",
-            width: "50%",
-            height: "50%",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, oklch(0.65 0.12 260 / 0.05) 0%, transparent 70%)",
-            filter: "blur(80px)",
-          }}
-        />
-
-        {/* Noise texture */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.03,
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            backgroundSize: "128px 128px",
-          }}
-        />
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          CONTEÚDO — z-index positivo, SOBRE o fundo
-          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="relative" style={{ zIndex: 1 }}>
-
-        {/* ── NAVBAR ── */}
-        <nav
-          className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-6 py-3 md:py-4"
-          style={{ background: "oklch(0 0 0 / 0.75)", backdropFilter: "blur(24px)", borderBottom: "1px solid oklch(1 0 0 / 0.06)" }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center" style={{ background: "oklch(0.78 0.12 210 / 0.15)", border: "1px solid oklch(0.78 0.12 210 / 0.3)" }}>
-              <Calculator size={14} style={{ color: "oklch(0.78 0.12 210)" }} />
-            </div>
-            <span className="text-sm font-bold" style={{ color: "oklch(0.95 0 0)" }}>Short Stay</span>
-            <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "oklch(0.78 0.12 210 / 0.1)", color: "oklch(0.78 0.12 210)", border: "1px solid oklch(0.78 0.12 210 / 0.2)" }}>
-              Calculadora
-            </span>
-          </div>
-          <span className="hidden md:block text-xs" style={{ color: "oklch(0.4 0.01 240)" }}>Rentabilidade Imobiliária</span>
-        </nav>
+    <div className="w-full" style={{ fontFamily: "'Geist', sans-serif" }}>
 
         {/* ── HERO ── */}
         <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
@@ -704,7 +631,6 @@ export default function HomePage() {
             Calculadora de rentabilidade para locação de curta temporada. Os valores são estimativas e não constituem assessoria financeira.
           </p>
         </footer>
-      </div>
     </div>
   );
 }
