@@ -1,12 +1,11 @@
 /**
  * Home.tsx — Calculadora de Rentabilidade Short Stay
- * Design: Dark Cosmos — inspirado no Halo template
- * Efeito de luz APENAS no fundo (z-index negativo, atrás de todos os elementos)
- * Custos fixos: IPTU | Wi-Fi | Água | Luz | Condomínio | Adm+Seguro | Financiamento
+ * Dual theme: Dark Cosmos / Slate Premium
+ * Cores adaptativas via useTheme() — sem oklch hardcoded
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   calcular,
   formatCurrency,
@@ -15,82 +14,24 @@ import {
   type CalculatorInputs,
 } from "@/lib/calculator";
 import { useFluxo } from "@/contexts/FluxoContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
-  Building2,
-  TrendingUp,
-  DollarSign,
-  Percent,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  Home,
-  Zap,
-  BarChart3,
-  Shield,
-  User,
-  Minus,
-  Calculator,
-  Wifi,
-  Droplets,
-  Bolt,
+  Building2, TrendingUp, DollarSign, Percent,
+  ChevronDown, ChevronUp, Info, Home, Zap, BarChart3,
+  Shield, User, Minus, Calculator, Wifi, Droplets, Bolt,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-// ─── Cursor Glow Hook ─────────────────────────────────────────────────────────
-// O glow fica ATRÁS de tudo via z-index: -1 no container
-function useCursorGlow() {
-  const mouseX = useMotionValue(-1000);
-  const mouseY = useMotionValue(-1000);
-  const springX = useSpring(mouseX, { stiffness: 60, damping: 18 });
-  const springY = useSpring(mouseY, { stiffness: 60, damping: 18 });
-  const opacity = useMotionValue(0);
-  const springOpacity = useSpring(opacity, { stiffness: 50, damping: 20 });
-
-  useEffect(() => {
-    let fadeTimeout: ReturnType<typeof setTimeout>;
-
-    const handleMove = (x: number, y: number) => {
-      mouseX.set(x);
-      mouseY.set(y);
-      opacity.set(1);
-      clearTimeout(fadeTimeout);
-      fadeTimeout = setTimeout(() => opacity.set(0), 2500);
-    };
-
-    const onMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
-    const onTouchMove = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (t) handleMove(t.clientX, t.clientY);
-    };
-    const onTouchEnd = () => {
-      fadeTimeout = setTimeout(() => opacity.set(0), 1000);
-    };
-
-    window.addEventListener("mousemove", onMouseMove, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-      clearTimeout(fadeTimeout);
-    };
-  }, [mouseX, mouseY, opacity]);
-
-  return { springX, springY, springOpacity };
-}
-
-// ─── Animated Number Hook ────────────────────────────────────────────────────
-function useAnimatedNumber(value: number, duration = 400) {
+// ─── Animated Number ──────────────────────────────────────────────────────────
+function useAnimatedNumber(value: number, duration = 500) {
   const [displayed, setDisplayed] = useState(value);
   const prevRef = useRef(value);
   const rafRef = useRef<number>(0);
-
   useEffect(() => {
     const start = prevRef.current;
     const end = value;
+    if (start === end) return;
     const startTime = performance.now();
     const animate = (now: number) => {
       const elapsed = now - startTime;
@@ -104,54 +45,84 @@ function useAnimatedNumber(value: number, duration = 400) {
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
   }, [value, duration]);
-
   return displayed;
 }
 
-// ─── Input Field Component ────────────────────────────────────────────────────
-interface InputFieldProps {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  prefix?: string;
-  suffix?: string;
-  min?: number;
-  step?: number;
-  tooltip?: string;
-  integer?: boolean;
-  icon?: React.ReactNode;
+// ─── Theme-aware color tokens ─────────────────────────────────────────────────
+function useColors(isDark: boolean) {
+  return useMemo(() => ({
+    // Surfaces
+    surface: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(1 0 0)",
+    surfaceHover: isDark ? "oklch(1 0 0 / 0.07)" : "oklch(0.98 0.003 80)",
+    border: isDark ? "oklch(1 0 0 / 0.08)" : "oklch(0.88 0.008 240)",
+    borderFocus: isDark ? "oklch(0.78 0.12 210 / 0.5)" : "oklch(0.52 0.22 250 / 0.6)",
+    inputBg: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(0.97 0.004 240)",
+    inputBgFocus: isDark ? "oklch(1 0 0 / 0.07)" : "oklch(1 0 0)",
+    // Text hierarchy
+    text1: isDark ? "oklch(0.97 0 0)" : "oklch(0.18 0.01 260)",      // heading
+    text2: isDark ? "oklch(0.75 0 0)" : "oklch(0.35 0.01 260)",      // subheading
+    text3: isDark ? "oklch(0.55 0.01 240)" : "oklch(0.52 0.01 260)", // label
+    text4: isDark ? "oklch(0.38 0.01 240)" : "oklch(0.65 0.01 260)", // caption
+    // Accents
+    blue: isDark ? "oklch(0.78 0.12 210)" : "oklch(0.52 0.22 250)",
+    blueGlow: isDark ? "oklch(0.78 0.12 210 / 0.15)" : "oklch(0.52 0.22 250 / 0.08)",
+    blueBorder: isDark ? "oklch(0.78 0.12 210 / 0.2)" : "oklch(0.52 0.22 250 / 0.25)",
+    blueBg: isDark ? "oklch(0.78 0.12 210 / 0.06)" : "oklch(0.52 0.22 250 / 0.06)",
+    blueIconBg: isDark ? "oklch(0.78 0.12 210 / 0.12)" : "oklch(0.52 0.22 250 / 0.1)",
+    green: isDark ? "oklch(0.72 0.18 145)" : "oklch(0.48 0.18 145)",
+    greenGlow: isDark ? "oklch(0.72 0.18 145 / 0.15)" : "oklch(0.48 0.18 145 / 0.08)",
+    greenBorder: isDark ? "oklch(0.72 0.18 145 / 0.2)" : "oklch(0.48 0.18 145 / 0.25)",
+    greenBg: isDark ? "oklch(0.72 0.18 145 / 0.06)" : "oklch(0.48 0.18 145 / 0.06)",
+    greenIconBg: isDark ? "oklch(0.72 0.18 145 / 0.12)" : "oklch(0.48 0.18 145 / 0.1)",
+    amber: isDark ? "oklch(0.78 0.18 70)" : "oklch(0.6 0.18 70)",
+    amberGlow: isDark ? "oklch(0.78 0.18 70 / 0.15)" : "oklch(0.6 0.18 70 / 0.08)",
+    amberBorder: isDark ? "oklch(0.78 0.18 70 / 0.2)" : "oklch(0.6 0.18 70 / 0.25)",
+    amberBg: isDark ? "oklch(0.78 0.18 70 / 0.06)" : "oklch(0.6 0.18 70 / 0.06)",
+    amberIconBg: isDark ? "oklch(0.78 0.18 70 / 0.12)" : "oklch(0.6 0.18 70 / 0.1)",
+    red: isDark ? "oklch(0.65 0.22 25)" : "oklch(0.52 0.22 25)",
+    redGlow: isDark ? "oklch(0.65 0.22 25 / 0.15)" : "oklch(0.52 0.22 25 / 0.08)",
+    redBorder: isDark ? "oklch(0.65 0.22 25 / 0.2)" : "oklch(0.52 0.22 25 / 0.25)",
+    redBg: isDark ? "oklch(0.65 0.22 25 / 0.06)" : "oklch(0.52 0.22 25 / 0.06)",
+    // Divider
+    divider: isDark ? "oklch(1 0 0 / 0.06)" : "oklch(0.88 0.008 240)",
+    // Shadow
+    cardShadow: isDark ? "none" : "0 1px 3px oklch(0 0 0 / 0.06), 0 4px 16px oklch(0 0 0 / 0.05)",
+    cardShadowHover: isDark ? "none" : "0 2px 8px oklch(0 0 0 / 0.08), 0 8px 32px oklch(0 0 0 / 0.08)",
+    inputShadow: isDark ? "none" : "inset 0 1px 2px oklch(0 0 0 / 0.04)",
+    focusShadow: isDark ? "0 0 0 3px oklch(0.78 0.12 210 / 0.1)" : "0 0 0 3px oklch(0.52 0.22 250 / 0.12)",
+    // Mono font color
+    mono: isDark ? "oklch(0.95 0 0)" : "oklch(0.18 0.01 260)",
+  }), [isDark]);
 }
 
-function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1, tooltip, integer = false, icon }: InputFieldProps) {
+// ─── Input Field ──────────────────────────────────────────────────────────────
+interface InputFieldProps {
+  label: string; value: number; onChange: (v: number) => void;
+  prefix?: string; suffix?: string; min?: number; step?: number;
+  tooltip?: string; integer?: boolean; icon?: React.ReactNode;
+  isDark: boolean; colors: ReturnType<typeof useColors>;
+}
+function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1, tooltip, integer = false, icon, isDark, colors }: InputFieldProps) {
   const [focused, setFocused] = useState(false);
   const [raw, setRaw] = useState("");
-
   const displayValue = focused
     ? raw
     : integer
     ? Math.round(value).toString()
     : value.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
-  const handleFocus = () => { setFocused(true); setRaw(value.toString().replace(".", ",")); };
-  const handleBlur = () => {
-    setFocused(false);
-    const parsed = parseFloat(raw.replace(/\./g, "").replace(",", "."));
-    if (!isNaN(parsed) && parsed >= min) onChange(parsed);
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5">
-          {icon && <span style={{ color: "oklch(0.55 0.01 240)" }}>{icon}</span>}
-          <label className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 240)" }}>{label}</label>
+          {icon && <span style={{ color: colors.text3 }}>{icon}</span>}
+          <label className="text-xs font-medium" style={{ color: colors.text3 }}>{label}</label>
         </div>
         {tooltip && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info size={11} className="cursor-help" style={{ color: "oklch(0.38 0.01 240)" }} />
+              <Info size={11} className="cursor-help" style={{ color: colors.text4 }} />
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-48 text-xs" style={{ background: "oklch(0.12 0.005 240)", border: "1px solid oklch(1 0 0 / 0.12)", color: "oklch(0.85 0 0)" }}>
+            <TooltipContent side="top" className="max-w-48 text-xs">
               {tooltip}
             </TooltipContent>
           </Tooltip>
@@ -160,28 +131,30 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
       <div
         className="flex items-center rounded-xl transition-all duration-200"
         style={{
-          background: focused ? "oklch(1 0 0 / 0.07)" : "oklch(1 0 0 / 0.04)",
-          border: `1px solid ${focused ? "oklch(0.78 0.12 210 / 0.5)" : "oklch(1 0 0 / 0.08)"}`,
-          boxShadow: focused ? "0 0 0 3px oklch(0.78 0.12 210 / 0.1)" : "none",
+          background: focused ? colors.inputBgFocus : colors.inputBg,
+          border: `1px solid ${focused ? colors.borderFocus : colors.border}`,
+          boxShadow: focused ? colors.focusShadow : colors.inputShadow,
         }}
       >
-        {prefix && <span className="pl-3 text-sm font-medium select-none" style={{ color: "oklch(0.5 0.01 240)" }}>{prefix}</span>}
+        {prefix && <span className="pl-3 text-sm font-medium select-none" style={{ color: colors.text3 }}>{prefix}</span>}
         <input
-          type="text"
-          inputMode="decimal"
-          value={displayValue}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          type="text" inputMode="decimal" value={displayValue}
+          onFocus={() => { setFocused(true); setRaw(value.toString().replace(".", ",")); }}
+          onBlur={() => {
+            setFocused(false);
+            const parsed = parseFloat(raw.replace(/\./g, "").replace(",", "."));
+            if (!isNaN(parsed) && parsed >= min) onChange(parsed);
+          }}
           onChange={(e) => setRaw(e.target.value)}
           className="flex-1 bg-transparent px-3 py-3 text-sm font-medium outline-none min-w-0"
-          style={{ color: "oklch(0.95 0 0)", fontFamily: "'Geist Mono', monospace" }}
+          style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
         />
-        {suffix && <span className="pr-2 text-xs select-none" style={{ color: "oklch(0.5 0.01 240)" }}>{suffix}</span>}
-        <div className="flex flex-col border-l" style={{ borderColor: "oklch(1 0 0 / 0.06)" }}>
-          <button onClick={() => onChange(Math.max(min, value + step))} className="px-2.5 py-2 transition-colors hover:bg-white/5 rounded-tr-xl active:bg-white/10" style={{ color: "oklch(0.5 0.01 240)" }}>
+        {suffix && <span className="pr-2 text-xs select-none" style={{ color: colors.text3 }}>{suffix}</span>}
+        <div className="flex flex-col border-l" style={{ borderColor: colors.divider }}>
+          <button onClick={() => onChange(Math.max(min, value + step))} className="px-2.5 py-2 transition-colors rounded-tr-xl" style={{ color: colors.text3 }}>
             <ChevronUp size={13} />
           </button>
-          <button onClick={() => onChange(Math.max(min, value - step))} className="px-2.5 py-2 transition-colors hover:bg-white/5 rounded-br-xl active:bg-white/10" style={{ color: "oklch(0.5 0.01 240)" }}>
+          <button onClick={() => onChange(Math.max(min, value - step))} className="px-2.5 py-2 transition-colors rounded-br-xl" style={{ color: colors.text3 }}>
             <ChevronDown size={13} />
           </button>
         </div>
@@ -190,71 +163,69 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
   );
 }
 
-// ─── Accent colors ────────────────────────────────────────────────────────────
-const accentColors = {
-  blue:  { text: "oklch(0.78 0.12 210)", glow: "oklch(0.78 0.12 210 / 0.15)", border: "oklch(0.78 0.12 210 / 0.2)", bg: "oklch(0.78 0.12 210 / 0.06)", iconBg: "oklch(0.78 0.12 210 / 0.12)" },
-  green: { text: "oklch(0.72 0.18 145)", glow: "oklch(0.72 0.18 145 / 0.15)", border: "oklch(0.72 0.18 145 / 0.2)", bg: "oklch(0.72 0.18 145 / 0.06)", iconBg: "oklch(0.72 0.18 145 / 0.12)" },
-  amber: { text: "oklch(0.78 0.18 70)",  glow: "oklch(0.78 0.18 70 / 0.15)",  border: "oklch(0.78 0.18 70 / 0.2)",  bg: "oklch(0.78 0.18 70 / 0.06)",  iconBg: "oklch(0.78 0.18 70 / 0.12)"  },
-  red:   { text: "oklch(0.65 0.22 25)",  glow: "oklch(0.65 0.22 25 / 0.15)",  border: "oklch(0.65 0.22 25 / 0.2)",  bg: "oklch(0.65 0.22 25 / 0.06)",  iconBg: "oklch(0.65 0.22 25 / 0.12)"  },
-};
-
 // ─── Metric Card ──────────────────────────────────────────────────────────────
-function MetricCard({ label, value, formatter, icon, accent = "blue", size = "sm", delay = 0 }: {
-  label: string; value: number; formatter: (v: number) => string;
-  icon: React.ReactNode; accent?: keyof typeof accentColors; size?: "sm" | "lg"; delay?: number;
+function MetricCard({ value, label, formatter, icon, accent, size = "md", isDark, colors }: {
+  value: number; label: string; formatter: (v: number) => string;
+  icon: React.ReactNode; accent: "blue" | "green" | "amber" | "red";
+  size?: "md" | "lg"; isDark: boolean; colors: ReturnType<typeof useColors>;
 }) {
-  const colors = accentColors[accent];
   const animated = useAnimatedNumber(value);
+  const accentColor = colors[accent as keyof typeof colors] as string;
+  const accentGlow = colors[`${accent}Glow` as keyof typeof colors] as string;
+  const accentIconBg = colors[`${accent}IconBg` as keyof typeof colors] as string;
+  const accentBorder = colors[`${accent}Border` as keyof typeof colors] as string;
+  const accentBg = colors[`${accent}Bg` as keyof typeof colors] as string;
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5"
-      style={{ background: colors.bg, border: `1px solid ${colors.border}`, boxShadow: `0 4px 24px ${colors.glow}` }}
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl p-3 md:p-4 flex flex-col gap-1.5"
+      style={{
+        background: accentBg,
+        border: `1px solid ${accentBorder}`,
+        boxShadow: isDark ? `0 4px 32px ${accentGlow}` : `0 2px 12px ${accentGlow}`,
+      }}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: colors.iconBg, color: colors.text }}>{icon}</div>
+      <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: accentIconBg, color: accentColor }}>
+        {icon}
       </div>
-      <div className={`font-black tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`} style={{ color: colors.text, fontFamily: "'Geist', sans-serif", textShadow: `0 0 24px ${colors.glow}` }}>
+      <div className={`font-black tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`}
+        style={{ color: accentColor, fontFamily: "'Geist', sans-serif", textShadow: isDark ? `0 0 24px ${accentGlow}` : "none" }}>
         {formatter(animated)}
       </div>
-      <div className="text-xs mt-1 font-medium" style={{ color: "oklch(0.55 0.01 240)" }}>{label}</div>
+      <div className="text-xs mt-0.5 font-medium" style={{ color: colors.text3 }}>{label}</div>
     </motion.div>
   );
 }
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
+function SectionHeader({ icon, label, colors }: { icon: React.ReactNode; label: string; colors: ReturnType<typeof useColors> }) {
   return (
     <div className="flex items-center gap-2 mb-4">
-      <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "oklch(0.78 0.12 210 / 0.12)", color: "oklch(0.78 0.12 210)" }}>{icon}</div>
-      <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "oklch(0.78 0.12 210)" }}>{label}</span>
+      <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: colors.blueIconBg, color: colors.blue }}>{icon}</div>
+      <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>{label}</span>
     </div>
   );
 }
 
 // ─── Waterfall Bar ────────────────────────────────────────────────────────────
-function WaterfallBar({ label, value, total, color, isNegative = false }: {
-  label: string; value: number; total: number; color: string; isNegative?: boolean;
+function WaterfallBar({ label, value, total, color, isNegative = false, colors }: {
+  label: string; value: number; total: number; color: string; isNegative?: boolean; colors: ReturnType<typeof useColors>;
 }) {
   const pct = total > 0 ? Math.min((Math.abs(value) / total) * 100, 100) : 0;
   return (
     <div className="flex items-center gap-2 md:gap-3">
       <div className="w-24 md:w-32 text-right shrink-0">
-        <span className="text-xs" style={{ color: "oklch(0.55 0.01 240)" }}>{label}</span>
+        <span className="text-xs" style={{ color: colors.text3 }}>{label}</span>
       </div>
-      <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: "oklch(1 0 0 / 0.04)" }}>
+      <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
         <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
+          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
           transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="h-full rounded-full"
-          style={{ background: color }}
+          className="h-full rounded-full" style={{ background: color }}
         />
       </div>
       <div className="w-20 md:w-24 shrink-0 text-right">
-        <span className="text-xs font-semibold" style={{ color: isNegative ? "oklch(0.65 0.22 25)" : color, fontFamily: "'Geist Mono', monospace" }}>
+        <span className="text-xs font-semibold" style={{ color: isNegative ? colors.red : color, fontFamily: "'Geist Mono', monospace" }}>
           {isNegative ? "−" : ""}{formatCurrency(Math.abs(value))}
         </span>
       </div>
@@ -263,51 +234,59 @@ function WaterfallBar({ label, value, total, color, isNegative = false }: {
 }
 
 // ─── Fiscal Card ──────────────────────────────────────────────────────────────
-function FiscalCard({ label, renda, rentabilidade, icon, accent, isHighlight = false }: {
+function FiscalCard({ label, renda, rentabilidade, icon, accent, isHighlight = false, isDark, colors }: {
   label: string; renda: number; rentabilidade: number;
   icon: React.ReactNode; accent: "blue" | "green" | "amber"; isHighlight?: boolean;
+  isDark: boolean; colors: ReturnType<typeof useColors>;
 }) {
-  const colors = accentColors[accent];
+  const accentColor = colors[accent as keyof typeof colors] as string;
+  const accentGlow = colors[`${accent}Glow` as keyof typeof colors] as string;
+  const accentBorder = colors[`${accent}Border` as keyof typeof colors] as string;
+  const accentBg = colors[`${accent}Bg` as keyof typeof colors] as string;
+  const accentIconBg = colors[`${accent}IconBg` as keyof typeof colors] as string;
   const animRenda = useAnimatedNumber(renda);
   const animRent = useAnimatedNumber(rentabilidade);
   return (
     <div
       className="rounded-2xl p-3 md:p-4 flex flex-col gap-2 transition-all duration-300"
       style={{
-        background: isHighlight ? colors.bg : "oklch(1 0 0 / 0.03)",
-        border: `1px solid ${isHighlight ? colors.border : "oklch(1 0 0 / 0.07)"}`,
-        boxShadow: isHighlight ? `0 4px 32px ${colors.glow}` : "none",
+        background: isHighlight ? accentBg : colors.surface,
+        border: `1px solid ${isHighlight ? accentBorder : colors.border}`,
+        boxShadow: isHighlight
+          ? isDark ? `0 4px 32px ${accentGlow}` : `0 2px 16px ${accentGlow}`
+          : colors.cardShadow,
       }}
     >
       <div className="flex items-center gap-1.5">
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: colors.iconBg, color: colors.text }}>{icon}</div>
-        <span className="text-xs font-bold tracking-wider uppercase" style={{ color: colors.text }}>{label}</span>
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: accentIconBg, color: accentColor }}>{icon}</div>
+        <span className="text-xs font-bold tracking-wider uppercase" style={{ color: accentColor }}>{label}</span>
       </div>
       <div>
-        <div className="text-lg md:text-2xl font-black" style={{ color: colors.text, fontFamily: "'Geist', sans-serif", textShadow: `0 0 20px ${colors.glow}` }}>
+        <div className="text-lg md:text-2xl font-black" style={{ color: accentColor, fontFamily: "'Geist', sans-serif", textShadow: isDark ? `0 0 20px ${accentGlow}` : "none" }}>
           {formatCurrency(animRenda)}
         </div>
-        <div className="text-xs mt-0.5" style={{ color: "oklch(0.5 0.01 240)" }}>renda / mês</div>
+        <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>renda / mês</div>
       </div>
-      <div className="pt-2 border-t" style={{ borderColor: "oklch(1 0 0 / 0.06)" }}>
-        <div className="text-base md:text-lg font-bold" style={{ color: colors.text, fontFamily: "'Geist Mono', monospace" }}>
+      <div className="pt-2 border-t" style={{ borderColor: colors.divider }}>
+        <div className="text-base md:text-lg font-bold" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
           {formatPercent(animRent)} a.a.
         </div>
-        <div className="text-xs mt-0.5" style={{ color: "oklch(0.5 0.01 240)" }}>rentabilidade anual</div>
+        <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rentabilidade anual</div>
       </div>
     </div>
   );
 }
 
 // ─── Glass Panel ──────────────────────────────────────────────────────────────
-function GlassPanel({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+function GlassPanel({ children, delay = 0, className = "", colors }: {
+  children: React.ReactNode; delay?: number; className?: string; colors: ReturnType<typeof useColors>;
+}) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={`rounded-2xl p-4 md:p-5 ${className}`}
-      style={{ background: "oklch(1 0 0 / 0.03)", border: "1px solid oklch(1 0 0 / 0.08)", backdropFilter: "blur(16px)" }}
+      style={{ background: colors.surface, border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}
     >
       {children}
     </motion.div>
@@ -316,18 +295,19 @@ function GlassPanel({ children, delay = 0, className = "" }: { children: React.R
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function HomePage() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const colors = useColors(isDark);
+
   const [inputs, setInputs] = useState<CalculatorInputs>(defaultInputs);
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  // Sincroniza Fluxo de Pagamento → Calculadora
   const { results: fluxoResults, syncValorImovel } = useFluxo();
 
-  // Quando o valor do imóvel muda na calculadora, sincroniza com o fluxo
   useEffect(() => {
     syncValorImovel(inputs.valorImovel);
   }, [inputs.valorImovel, syncValorImovel]);
 
-  // Quando o fluxo tem valores, sobrescreve capitalProprio e saldoFinanciar
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
     capitalProprio: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
@@ -341,296 +321,322 @@ export default function HomePage() {
 
   const isPositive = results.rendaMensalLiquida > 0;
   const rentAccent = results.rentabilidadeAnual >= 15 ? "green" : results.rentabilidadeAnual >= 8 ? "amber" : "red";
+  const rentColor = rentAccent === "green" ? colors.green : rentAccent === "amber" ? colors.amber : colors.red;
+
+  const iF = (key: keyof CalculatorInputs) => ({ isDark, colors, value: inputs[key] as number, onChange: set(key) });
 
   return (
     <div className="w-full" style={{ fontFamily: "'Geist', sans-serif" }}>
 
-        {/* ── HERO ── */}
-        <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ background: "oklch(0.78 0.12 210 / 0.08)", border: "1px solid oklch(0.78 0.12 210 / 0.2)", color: "oklch(0.78 0.12 210)" }}>
-              <Zap size={11} />
-              Análise em tempo real
-            </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none mb-4" style={{ color: "#ffffff" }}>
-              Calcule sua{" "}
-              <span style={{ color: "oklch(0.78 0.15 210)", textShadow: "0 0 60px oklch(0.78 0.15 210 / 0.7), 0 0 120px oklch(0.78 0.15 210 / 0.3)" }}>
-                rentabilidade
-              </span>
-            </h1>
-            <p className="text-sm md:text-base font-light max-w-xl mx-auto" style={{ color: "oklch(0.72 0.01 240)" }}>
-              Simule o retorno do seu imóvel em locação de curta temporada.
-              Análise completa com variantes fiscais e métricas de investimento.
-            </p>
-          </motion.div>
-        </section>
-
-        {/* ── MOBILE: KPIs sempre visíveis ── */}
-        <div className="lg:hidden px-4 mb-4">
-          <div className="grid grid-cols-2 gap-2">
-            <MetricCard label="Renda líquida / mês" value={results.rendaMensalLiquida} formatter={formatCurrency} icon={<TrendingUp size={14} />} accent={isPositive ? "green" : "red"} size="lg" delay={0.05} />
-            <MetricCard label="Rentabilidade anual" value={results.rentabilidadeAnual} formatter={(v) => formatPercent(v) + " a.a."} icon={<Percent size={14} />} accent={rentAccent as "green" | "amber" | "red"} size="lg" delay={0.1} />
+      {/* ── HERO ── */}
+      <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5"
+            style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}>
+            <Zap size={11} /> Análise em tempo real
           </div>
-        </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none mb-4" style={{ color: colors.text1 }}>
+            Calcule sua{" "}
+            <span style={{ color: colors.blue, textShadow: isDark ? `0 0 40px ${colors.blueGlow}` : "none" }}>
+              rentabilidade
+            </span>
+          </h1>
+          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto" style={{ color: colors.text2 }}>
+            Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
+          </p>
+        </motion.div>
+      </section>
 
-        {/* ── MOBILE TABS ── */}
-        <div className="lg:hidden flex mx-4 mb-4 rounded-xl overflow-hidden" style={{ border: "1px solid oklch(1 0 0 / 0.1)" }}>
+      {/* ── MOBILE KPIs ── */}
+      <div className="md:hidden px-4 mb-4 grid grid-cols-2 gap-2">
+        <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
+          formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="md" isDark={isDark} colors={colors} />
+        <MetricCard value={results.rentabilidadeAnual} label="Rentabilidade anual"
+          formatter={(v) => `${formatPercent(v)} a.a.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="md" isDark={isDark} colors={colors} />
+      </div>
+
+      {/* ── MOBILE TABS ── */}
+      <div className="md:hidden px-4 mb-4">
+        <div className="flex rounded-xl p-1 gap-1" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
           {(["inputs", "results"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className="flex-1 py-3 text-sm font-semibold transition-all"
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all"
               style={{
-                background: activeTab === tab ? "oklch(0.78 0.12 210 / 0.12)" : "transparent",
-                color: activeTab === tab ? "oklch(0.78 0.12 210)" : "oklch(0.5 0.01 240)",
-                borderBottom: activeTab === tab ? "2px solid oklch(0.78 0.12 210)" : "2px solid transparent",
-              }}
-            >
-              {tab === "inputs" ? "📊 Dados" : "📈 Resultados"}
+                background: activeTab === tab ? colors.blue : "transparent",
+                color: activeTab === tab ? "oklch(0.99 0 0)" : colors.text3,
+                boxShadow: activeTab === tab && !isDark ? "0 1px 4px oklch(0 0 0 / 0.12)" : "none",
+              }}>
+              {tab === "inputs" ? "Configurar" : "Resultados"}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* ── MAIN LAYOUT ── */}
-        <div className="max-w-7xl mx-auto px-4 md:px-6 pb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] xl:grid-cols-[440px_1fr] gap-4 md:gap-5">
+      {/* ── MAIN LAYOUT ── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
+        <div className="md:grid md:grid-cols-[380px_1fr] md:gap-5">
 
-            {/* ════ LEFT — INPUTS ════ */}
-            <div className={`space-y-3 md:space-y-4 ${activeTab === "results" ? "hidden lg:block" : ""}`}>
+          {/* ── LEFT: INPUTS ── */}
+          <div className={`space-y-3 ${activeTab === "results" ? "hidden md:block" : ""}`}>
 
-              {/* Ficha Técnica */}
-              <GlassPanel delay={0.1}>
-                <SectionHeader icon={<Building2 size={13} />} label="Ficha Técnica" />
-                <div className="space-y-3">
-                  <InputField label="Área do imóvel" value={inputs.areaM2} onChange={set("areaM2")} suffix="m²" step={1} integer tooltip="Área privativa em m²" />
-                  <InputField label="Valor do imóvel" value={inputs.valorImovel} onChange={set("valorImovel")} prefix="R$" step={5000} tooltip="Valor de aquisição" />
-                  <InputField label="Mobília e decoração" value={inputs.mobilia} onChange={set("mobilia")} prefix="R$" step={1000} tooltip="Investimento em mobília" />
-                  <div className="grid grid-cols-2 gap-2 pt-2 mt-1" style={{ borderTop: "1px solid oklch(1 0 0 / 0.06)" }}>
-                    {[{ label: "Valor por m²", value: results.valorPorM2 }, { label: "Total da unidade", value: results.totalUnidade }].map(({ label, value }) => (
-                      <div key={label} className="rounded-xl p-2.5" style={{ background: "oklch(1 0 0 / 0.03)" }}>
-                        <div className="text-xs mb-1" style={{ color: "oklch(0.5 0.01 240)" }}>{label}</div>
-                        <div className="text-sm font-bold" style={{ color: "oklch(0.78 0.12 210)", fontFamily: "'Geist Mono', monospace" }}>{formatCurrency(value)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </GlassPanel>
-
-              {/* Ocupação & Receita */}
-              <GlassPanel delay={0.15}>
-                <SectionHeader icon={<Home size={13} />} label="Ocupação & Receita" />
-                <div className="space-y-3">
-                  <InputField label="Valor da diária" value={inputs.diaria} onChange={set("diaria")} prefix="R$" step={10} tooltip="Diária média no Airbnb" />
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 240)" }}>Dias ocupados / mês</label>
-                      <span className="text-sm font-bold px-2 py-0.5 rounded-lg" style={{ background: "oklch(0.78 0.12 210 / 0.1)", color: "oklch(0.78 0.12 210)", fontFamily: "'Geist Mono', monospace" }}>
-                        {inputs.diasOcupacao} dias
-                      </span>
-                    </div>
-                    <Slider min={1} max={30} step={1} value={[inputs.diasOcupacao]} onValueChange={([v]) => set("diasOcupacao")(v)} />
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs" style={{ color: "oklch(0.35 0.01 240)" }}>1</span>
-                      <span className="text-xs" style={{ color: "oklch(0.35 0.01 240)" }}>30</span>
+            {/* Ficha Técnica */}
+            <GlassPanel delay={0.05} colors={colors}>
+              <SectionHeader icon={<Building2 size={13} />} label="Ficha Técnica" colors={colors} />
+              <div className="space-y-3">
+                <InputField label="Área do imóvel" suffix="m²" min={10} step={1} integer tooltip="Área privativa do imóvel em metros quadrados"
+                  {...iF("areaM2")} />
+                <InputField label="Valor do imóvel" prefix="R$" min={50000} step={1000} tooltip="Valor de compra ou avaliação do imóvel"
+                  {...iF("valorImovel")} />
+                <InputField label="Mobília e decoração" prefix="R$" min={0} step={500} tooltip="Custo de mobiliário e decoração (não incluso no valor do imóvel)"
+                  {...iF("mobilia")} />
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
+                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Valor por m²</div>
+                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      {formatCurrency(results.valorPorM2)}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: "oklch(0.78 0.12 210 / 0.06)", border: "1px solid oklch(0.78 0.12 210 / 0.15)" }}>
-                    <span className="text-xs font-medium" style={{ color: "oklch(0.65 0.08 210)" }}>Receita bruta mensal</span>
-                    <span className="text-sm font-black" style={{ color: "oklch(0.78 0.12 210)", fontFamily: "'Geist Mono', monospace" }}>{formatCurrency(results.receitaBrutaMensal)}</span>
-                  </div>
-                </div>
-              </GlassPanel>
-
-              {/* Investimento */}
-              <GlassPanel delay={0.2}>
-                <SectionHeader icon={<DollarSign size={13} />} label="Investimento" />
-                <div className="space-y-3">
-                  <InputField label="Capital próprio" value={inputs.capitalProprio} onChange={set("capitalProprio")} prefix="R$" step={5000} tooltip="Base do Cash-on-Cash Return" />
-                  <InputField label="Saldo a financiar" value={inputs.saldoFinanciar} onChange={set("saldoFinanciar")} prefix="R$" step={5000} tooltip="Zero = sem financiamento" />
-                  {inputs.saldoFinanciar > 0 && (
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        <InputField label="Taxa mensal" value={inputs.taxaJurosMensal * 100} onChange={(v) => set("taxaJurosMensal")(v / 100)} suffix="%" step={0.1} tooltip="Taxa de juros mensal" />
-                        <InputField label="Prazo" value={inputs.prazoMeses} onChange={set("prazoMeses")} suffix="meses" step={12} integer tooltip="Prazo em meses" />
-                      </div>
-                      <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: "oklch(0.65 0.22 25 / 0.06)", border: "1px solid oklch(0.65 0.22 25 / 0.15)" }}>
-                        <span className="text-xs font-medium" style={{ color: "oklch(0.65 0.22 25 / 0.8)" }}>Parcela mensal (Price)</span>
-                        <span className="text-sm font-black" style={{ color: "oklch(0.65 0.22 25)", fontFamily: "'Geist Mono', monospace" }}>{formatCurrency(results.parcelaFinanciamento)}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </GlassPanel>
-
-              {/* Despesas Fixas */}
-              <GlassPanel delay={0.25}>
-                <SectionHeader icon={<BarChart3 size={13} />} label="Custos Fixos Mensais" />
-                <div className="space-y-3">
-                  {/* Grid 2 colunas para os custos de utilidades */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <InputField label="Condomínio" value={inputs.condominio} onChange={set("condominio")} prefix="R$" step={50} />
-                    <InputField label="IPTU" value={inputs.iptuMensal} onChange={set("iptuMensal")} prefix="R$" step={10} tooltip="IPTU mensal (valor anual ÷ 12)" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <InputField label="Wi-Fi" value={inputs.wifi} onChange={set("wifi")} prefix="R$" step={10} icon={<Wifi size={11} />} />
-                    <InputField label="Água" value={inputs.agua} onChange={set("agua")} prefix="R$" step={10} icon={<Droplets size={11} />} />
-                    <InputField label="Luz" value={inputs.luz} onChange={set("luz")} prefix="R$" step={10} icon={<Bolt size={11} />} />
-                  </div>
-
-                  {/* Administração + Seguro */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-medium" style={{ color: "oklch(0.6 0.01 240)" }}>Administração + Seguro</label>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ background: "oklch(0.78 0.18 70 / 0.1)", color: "oklch(0.78 0.18 70)", fontFamily: "'Geist Mono', monospace" }}>
-                        {formatPercent(inputs.taxaAdminSeguro * 100, 0)} da receita
-                      </span>
-                    </div>
-                    <Slider min={0} max={20} step={0.5} value={[inputs.taxaAdminSeguro * 100]} onValueChange={([v]) => set("taxaAdminSeguro")(v / 100)} />
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs" style={{ color: "oklch(0.35 0.01 240)" }}>0%</span>
-                      <span className="text-xs" style={{ color: "oklch(0.35 0.01 240)" }}>20%</span>
+                  <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
+                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Total da unidade</div>
+                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      {formatCurrency(results.totalUnidade)}
                     </div>
                   </div>
-
-                  {/* Resumo dos custos fixos */}
-                  <div className="flex items-center justify-between rounded-xl px-3 py-2.5 mt-1" style={{ background: "oklch(0.65 0.22 25 / 0.05)", border: "1px solid oklch(0.65 0.22 25 / 0.12)" }}>
-                    <span className="text-xs font-medium" style={{ color: "oklch(0.65 0.22 25 / 0.8)" }}>Total custos fixos</span>
-                    <span className="text-sm font-black" style={{ color: "oklch(0.65 0.22 25)", fontFamily: "'Geist Mono', monospace" }}>{formatCurrency(results.totalDespesasFixas)}</span>
-                  </div>
-
                 </div>
-              </GlassPanel>
+              </div>
+            </GlassPanel>
+
+            {/* Ocupação & Receita */}
+            <GlassPanel delay={0.1} colors={colors}>
+              <SectionHeader icon={<DollarSign size={13} />} label="Ocupação & Receita" colors={colors} />
+              <div className="space-y-3">
+                <InputField label="Valor da diária" prefix="R$" min={50} step={10} tooltip="Diária média cobrada no Airbnb"
+                  {...iF("diaria")} />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium" style={{ color: colors.text3 }}>Dias ocupados / mês</label>
+                    <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      {inputs.diasOcupacao} dias
+                    </span>
+                  </div>
+                  <Slider min={1} max={30} step={1} value={[inputs.diasOcupacao]} onValueChange={([v]) => set("diasOcupacao")(v)} />
+                  <div className="flex justify-between text-xs mt-1" style={{ color: colors.text4 }}>
+                    <span>1</span><span>30</span>
+                  </div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Receita bruta mensal</div>
+                  <div className="text-xl font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                    {formatCurrency(results.receitaBrutaMensal)}
+                  </div>
+                </div>
+              </div>
+            </GlassPanel>
+
+            {/* Investimento */}
+            <GlassPanel delay={0.15} colors={colors}>
+              <SectionHeader icon={<Percent size={13} />} label="Investimento" colors={colors} />
+              <div className="space-y-3">
+                {fluxoResults.totalInvestido > 0 ? (
+                  <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
+                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio (via Fluxo)</div>
+                    <div className="text-base font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                      {formatCurrency(fluxoResults.totalInvestido)}
+                    </div>
+                    <div className="text-xs mt-1" style={{ color: colors.text4 }}>Sincronizado do Fluxo de Pagamento</div>
+                  </div>
+                ) : (
+                  <InputField label="Capital próprio" prefix="R$" min={0} step={1000} tooltip="Valor investido do próprio bolso (base do ROI)"
+                    {...iF("capitalProprio")} />
+                )}
+                {fluxoResults.financiamento > 0 ? (
+                  <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
+                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Saldo a financiar (via Fluxo)</div>
+                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      {formatCurrency(fluxoResults.financiamento)}
+                    </div>
+                  </div>
+                ) : (
+                  <InputField label="Saldo a financiar" prefix="R$" min={0} step={1000} tooltip="Valor financiado pelo banco"
+                    {...iF("saldoFinanciar")} />
+                )}
+                <InputField label="Taxa mensal" suffix="%" min={0.1} step={0.05} tooltip="Taxa de juros mensal do financiamento"
+                  {...iF("taxaJurosMensal")} />
+                <InputField label="Prazo" suffix="meses" min={12} step={12} integer tooltip="Prazo total do financiamento em meses"
+                  {...iF("prazoMeses")} />
+                <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Parcela mensal (Price)</div>
+                  <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    {formatCurrency(results.parcelaFinanciamento)}
+                  </div>
+                </div>
+              </div>
+            </GlassPanel>
+
+            {/* Custos Fixos */}
+            <GlassPanel delay={0.2} colors={colors}>
+              <SectionHeader icon={<Home size={13} />} label="Custos Fixos Mensais" colors={colors} />
+              <div className="space-y-3">
+                <InputField label="Condomínio" prefix="R$" min={0} step={50} {...iF("condominio")} isDark={isDark} colors={colors} />
+                <InputField label="IPTU" prefix="R$" min={0} step={10} tooltip="Valor mensal do IPTU (total anual ÷ 12)" {...iF("iptuMensal")} isDark={isDark} colors={colors} />
+                <div className="grid grid-cols-3 gap-2">
+                  <InputField label="Wi-Fi" prefix="R$" min={0} step={10} icon={<Wifi size={11} />} {...iF("wifi")} isDark={isDark} colors={colors} />
+                  <InputField label="Água" prefix="R$" min={0} step={10} icon={<Droplets size={11} />} {...iF("agua")} isDark={isDark} colors={colors} />
+                  <InputField label="Luz" prefix="R$" min={0} step={10} icon={<Bolt size={11} />} {...iF("luz")} isDark={isDark} colors={colors} />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium" style={{ color: colors.text3 }}>Administração + Seguro</label>
+                    <span className="text-xs font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      {(inputs.taxaAdminSeguro * 100).toFixed(0)}% da receita
+                    </span>
+                  </div>
+                  <Slider min={0} max={0.2} step={0.01} value={[inputs.taxaAdminSeguro]} onValueChange={([v]) => set("taxaAdminSeguro")(v)} />
+                  <div className="flex justify-between text-xs mt-1" style={{ color: colors.text4 }}>
+                    <span>0%</span><span>20%</span>
+                  </div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Total custos fixos</div>
+                  <div className="text-base font-black" style={{ color: colors.red, fontFamily: "'Geist Mono', monospace" }}>
+                    {formatCurrency(results.totalDespesas)}
+                  </div>
+                </div>
+              </div>
+            </GlassPanel>
+          </div>
+
+          {/* ── RIGHT: RESULTS ── */}
+          <div className={`space-y-3 ${activeTab === "inputs" ? "hidden md:block" : ""}`}>
+
+            {/* KPI Grid — desktop only */}
+            <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
+                formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
+              <MetricCard value={results.rentabilidadeAnual} label="Rentabilidade anual"
+                formatter={(v) => `${formatPercent(v)} a.a.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="lg" isDark={isDark} colors={colors} />
+              <MetricCard value={results.receitaBrutaMensal} label="Receita bruta / mês"
+                formatter={formatCurrency} icon={<DollarSign size={14} />} accent="blue" isDark={isDark} colors={colors} />
+              <MetricCard value={results.totalDespesas} label="Total de despesas"
+                formatter={formatCurrency} icon={<Minus size={14} />} accent="red" isDark={isDark} colors={colors} />
             </div>
 
-            {/* ════ RIGHT — RESULTS ════ */}
-            <div className={`space-y-3 md:space-y-4 ${activeTab === "inputs" ? "hidden lg:block" : ""}`}>
-
-              {/* KPIs — desktop */}
-              <div className="hidden lg:grid grid-cols-2 xl:grid-cols-4 gap-3">
-                <MetricCard label="Renda líquida / mês" value={results.rendaMensalLiquida} formatter={formatCurrency} icon={<TrendingUp size={14} />} accent={isPositive ? "green" : "red"} size="lg" delay={0.1} />
-                <MetricCard label="Rentabilidade anual" value={results.rentabilidadeAnual} formatter={(v) => formatPercent(v) + " a.a."} icon={<Percent size={14} />} accent={rentAccent as "green" | "amber" | "red"} size="lg" delay={0.15} />
-                <MetricCard label="Receita bruta / mês" value={results.receitaBrutaMensal} formatter={formatCurrency} icon={<DollarSign size={14} />} accent="blue" delay={0.2} />
-                <MetricCard label="Total de despesas" value={results.totalDespesas} formatter={formatCurrency} icon={<Minus size={14} />} accent="red" delay={0.25} />
+            {/* Composição da renda */}
+            <GlassPanel delay={0.1} colors={colors}>
+              <SectionHeader icon={<BarChart3 size={13} />} label="Composição da Renda" colors={colors} />
+              <div className="space-y-2">
+                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
+                <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="Wi-Fi/Água/Luz" value={inputs.wifi + inputs.agua + inputs.luz} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                <div className="h-px my-2" style={{ background: colors.divider }} />
+                <WaterfallBar label="Renda líquida" value={results.rendaMensalLiquida} total={results.receitaBrutaMensal}
+                  color={isPositive ? colors.green : colors.red} colors={colors} />
               </div>
+            </GlassPanel>
 
-              {/* Waterfall */}
-              <GlassPanel delay={0.2}>
-                <SectionHeader icon={<BarChart3 size={13} />} label="Composição da Renda" />
-                <div className="space-y-2">
-                  <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color="oklch(0.78 0.12 210)" />
-                  {inputs.condominio > 0 && <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {inputs.iptuMensal > 0 && <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {inputs.wifi > 0 && <WaterfallBar label="Wi-Fi" value={inputs.wifi} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {inputs.agua > 0 && <WaterfallBar label="Água" value={inputs.agua} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {inputs.luz > 0 && <WaterfallBar label="Luz" value={inputs.luz} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {results.adminSeguro > 0 && <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {results.taxaPlataformaValor > 0 && <WaterfallBar label="Taxa Airbnb" value={results.taxaPlataformaValor} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {results.custoLimpezaMensal > 0 && <WaterfallBar label="Limpeza" value={results.custoLimpezaMensal} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {results.gestaoValor > 0 && <WaterfallBar label="Gestão" value={results.gestaoValor} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  {results.parcelaFinanciamento > 0 && <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color="oklch(0.65 0.22 25)" isNegative />}
-                  <div className="pt-2 mt-1" style={{ borderTop: "1px solid oklch(1 0 0 / 0.08)" }}>
-                    <WaterfallBar label="Renda líquida" value={Math.max(0, results.rendaMensalLiquida)} total={results.receitaBrutaMensal} color={isPositive ? "oklch(0.72 0.18 145)" : "oklch(0.65 0.22 25)"} />
+            {/* Variantes fiscais */}
+            <GlassPanel delay={0.15} colors={colors}>
+              <SectionHeader icon={<Shield size={13} />} label="Variantes Fiscais" colors={colors} />
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
+                <FiscalCard label="Bruto" renda={results.rendaMensalLiquida}
+                  rentabilidade={results.rentabilidadeAnual} icon={<DollarSign size={13} />}
+                  accent="blue" isHighlight isDark={isDark} colors={colors} />
+                <FiscalCard label="Holding" renda={results.rendaHolding}
+                  rentabilidade={results.rentabilidadeHoldingAnual} icon={<Shield size={13} />}
+                  accent="green" isDark={isDark} colors={colors} />
+                <FiscalCard label="PF" renda={results.rendaPF}
+                  rentabilidade={results.rentabilidadePFAnual} icon={<User size={13} />}
+                  accent="amber" isDark={isDark} colors={colors} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: colors.text4 }}>
+                <div className="rounded-lg px-3 py-2" style={{ background: colors.inputBg }}>
+                  <span style={{ color: colors.green }}>Holding</span>: desconto de 6% sobre renda bruta
+                </div>
+                <div className="rounded-lg px-3 py-2" style={{ background: colors.inputBg }}>
+                  <span style={{ color: colors.amber }}>PF</span>: desconto de 27% sobre renda bruta
+                </div>
+              </div>
+            </GlassPanel>
+
+            {/* Breakeven + Resumo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <GlassPanel delay={0.2} colors={colors}>
+                <SectionHeader icon={<Calculator size={13} />} label="Breakeven" colors={colors} />
+                <div className="mb-3">
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Dias mínimos p/ cobrir despesas</div>
+                  <div className="text-3xl font-black" style={{
+                    color: results.diasBreakeven <= inputs.diasOcupacao ? colors.green : colors.red,
+                    fontFamily: "'Geist', sans-serif",
+                  }}>
+                    {results.diasBreakeven} dias
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { label: "Ocupação atual", days: inputs.diasOcupacao, color: colors.blue },
+                    { label: "Breakeven", days: results.diasBreakeven, color: colors.red },
+                  ].map(({ label, days, color }) => (
+                    <div key={label}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span style={{ color: colors.text3 }}>{label}</span>
+                        <span style={{ color, fontFamily: "'Geist Mono', monospace" }}>{days} dias ({((days / 30) * 100).toFixed(0)}%)</span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
+                        <motion.div
+                          initial={{ width: 0 }} animate={{ width: `${Math.min((days / 30) * 100, 100)}%` }}
+                          transition={{ duration: 0.8 }} className="h-full rounded-full" style={{ background: color }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </GlassPanel>
 
-              {/* Fiscal Comparison */}
-              <GlassPanel delay={0.25}>
-                <SectionHeader icon={<Shield size={13} />} label="Comparativo Fiscal" />
-                <div className="grid grid-cols-3 gap-2 md:gap-3">
-                  <FiscalCard label="Bruto" renda={results.rendaMensalLiquida} rentabilidade={results.rentabilidadeAnual} icon={<DollarSign size={13} />} accent="blue" isHighlight />
-                  <FiscalCard label="Holding" renda={results.rendaHolding} rentabilidade={results.rentabilidadeHoldingAnual} icon={<Building2 size={13} />} accent="green" />
-                  <FiscalCard label="PF" renda={results.rendaPF} rentabilidade={results.rentabilidadePFAnual} icon={<User size={13} />} accent="amber" />
+              <GlassPanel delay={0.25} colors={colors}>
+                <SectionHeader icon={<Calculator size={13} />} label="Resumo" colors={colors} />
+                <div className="space-y-1.5">
+                  {[
+                    { label: "Receita bruta", value: results.receitaBrutaMensal, color: colors.blue },
+                    { label: "Total despesas", value: -results.totalDespesas, color: colors.red },
+                    { label: "Renda líquida", value: results.rendaMensalLiquida, color: isPositive ? colors.green : colors.red, bold: true },
+                  ].map(({ label, value, color, bold }) => (
+                    <div key={label} className="flex items-center justify-between py-1.5" style={{ borderBottom: `1px solid ${colors.divider}` }}>
+                      <span className={`text-xs ${bold ? "font-semibold" : ""}`} style={{ color: bold ? colors.text2 : colors.text3 }}>{label}</span>
+                      <span className={`text-sm ${bold ? "font-black" : "font-semibold"}`} style={{ color, fontFamily: "'Geist Mono', monospace" }}>
+                        {value < 0 ? "−" : ""}{formatCurrency(Math.abs(value))}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="pt-2 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs" style={{ color: colors.text3 }}>Ganho mensal s/ capital</span>
+                      <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                        {formatPercent(results.ganhoFinanceiroMensal)} a.m.
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: colors.text2 }}>Rentabilidade anual</span>
+                      <span className="text-base font-black" style={{ color: rentColor, fontFamily: "'Geist Mono', monospace" }}>
+                        {formatPercent(results.rentabilidadeAnual)} a.a.
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-3 text-xs p-3 rounded-xl" style={{ background: "oklch(1 0 0 / 0.03)", color: "oklch(0.42 0.01 240)" }}>
-                  Holding: redução de 6%. PF: redução de 27% (IR estimado). Consulte um contador.
-                </p>
               </GlassPanel>
-
-              {/* Breakeven + Resumo */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                <GlassPanel delay={0.3}>
-                  <SectionHeader icon={<Zap size={13} />} label="Breakeven" />
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-xs mb-1" style={{ color: "oklch(0.5 0.01 240)" }}>Dias mínimos p/ cobrir despesas</div>
-                      <div className="text-3xl font-black" style={{ color: results.diasBreakeven <= inputs.diasOcupacao ? "oklch(0.72 0.18 145)" : "oklch(0.65 0.22 25)", fontFamily: "'Geist', sans-serif" }}>
-                        {results.diasBreakeven} dias
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      {[
-                        { label: "Ocupação atual", days: inputs.diasOcupacao, color: "oklch(0.78 0.12 210)" },
-                        { label: "Breakeven", days: results.diasBreakeven, color: "oklch(0.65 0.22 25 / 0.7)" },
-                      ].map(({ label, days, color }) => (
-                        <div key={label}>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: "oklch(0.5 0.01 240)" }}>{label}</span>
-                            <span style={{ color, fontFamily: "'Geist Mono', monospace" }}>{days} dias ({((days / 30) * 100).toFixed(0)}%)</span>
-                          </div>
-                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(1 0 0 / 0.06)" }}>
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${Math.min((days / 30) * 100, 100)}%` }}
-                              transition={{ duration: 0.8 }}
-                              className="h-full rounded-full"
-                              style={{ background: color }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </GlassPanel>
-
-                <GlassPanel delay={0.35}>
-                  <SectionHeader icon={<Calculator size={13} />} label="Resumo" />
-                  <div className="space-y-1.5">
-                    {[
-                      { label: "Receita bruta", value: results.receitaBrutaMensal, color: "oklch(0.78 0.12 210)" },
-                      { label: "Total despesas", value: -results.totalDespesas, color: "oklch(0.65 0.22 25)" },
-                      { label: "Renda líquida", value: results.rendaMensalLiquida, color: isPositive ? "oklch(0.72 0.18 145)" : "oklch(0.65 0.22 25)", bold: true },
-                    ].map(({ label, value, color, bold }) => (
-                      <div key={label} className="flex items-center justify-between py-1.5" style={{ borderBottom: "1px solid oklch(1 0 0 / 0.05)" }}>
-                        <span className={`text-xs ${bold ? "font-semibold" : ""}`} style={{ color: bold ? "oklch(0.8 0 0)" : "oklch(0.5 0.01 240)" }}>{label}</span>
-                        <span className={`text-sm ${bold ? "font-black" : "font-semibold"}`} style={{ color, fontFamily: "'Geist Mono', monospace" }}>
-                          {value < 0 ? "−" : ""}{formatCurrency(Math.abs(value))}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-2 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs" style={{ color: "oklch(0.5 0.01 240)" }}>Ganho mensal s/ capital</span>
-                        <span className="text-sm font-bold" style={{ color: "oklch(0.78 0.12 210)", fontFamily: "'Geist Mono', monospace" }}>
-                          {formatPercent(results.ganhoFinanceiroMensal)} a.m.
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold" style={{ color: "oklch(0.7 0 0)" }}>Rentabilidade anual</span>
-                        <span
-                          className="text-base font-black"
-                          style={{
-                            color: rentAccent === "green" ? "oklch(0.72 0.18 145)" : rentAccent === "amber" ? "oklch(0.78 0.18 70)" : "oklch(0.65 0.22 25)",
-                            fontFamily: "'Geist Mono', monospace",
-                          }}
-                        >
-                          {formatPercent(results.rentabilidadeAnual)} a.a.
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </GlassPanel>
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ── FOOTER ── */}
-        <footer className="py-6 px-4 text-center" style={{ borderTop: "1px solid oklch(1 0 0 / 0.06)" }}>
-          <p className="text-xs" style={{ color: "oklch(0.32 0.01 240)" }}>
-            Calculadora de rentabilidade para locação de curta temporada. Os valores são estimativas e não constituem assessoria financeira.
-          </p>
-        </footer>
+      {/* ── FOOTER ── */}
+      <footer className="py-6 px-4 text-center" style={{ borderTop: `1px solid ${colors.divider}` }}>
+        <p className="text-xs" style={{ color: colors.text4 }}>
+          Calculadora de rentabilidade para locação de curta temporada. Os valores são estimativas e não constituem assessoria financeira.
+        </p>
+      </footer>
     </div>
   );
 }

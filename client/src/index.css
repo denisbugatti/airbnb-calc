@@ -1,6 +1,7 @@
 /* ==========================================================
-   DESIGN SYSTEM: Dark Cosmos — Inspirado no Halo Template
-   Fundo preto profundo + blob azul difuso + glassmorphism
+   DESIGN SYSTEM: Dual Theme
+   DARK  → Dark Cosmos: preto profundo + glow azul difuso
+   LIGHT → Slate Premium: off-white quente + azul cobalto + sombras reais
    ========================================================== */
 
 @import "tailwindcss";
@@ -39,10 +40,74 @@
   --color-chart-5: var(--chart-5);
 }
 
+/* ─────────────────────────────────────────────────────────
+   LIGHT THEME — Slate Premium
+   Filosofia: fundo off-white quente (não branco puro),
+   cards com sombras reais (não glassmorphism),
+   azul cobalto saturado como accent principal,
+   verde esmeralda para positivo, vermelho coral para negativo,
+   tipografia em slate-900 com hierarquia de 4 níveis de cinza.
+   ───────────────────────────────────────────────────────── */
 :root {
   --radius: 0.875rem;
 
-  /* Dark Cosmos Palette */
+  /* Backgrounds — off-white quente, não branco puro */
+  --background: oklch(0.975 0.004 80);        /* #F7F6F3 — linho quente */
+  --foreground: oklch(0.18 0.01 260);          /* slate-900 */
+  --card: oklch(1 0 0);                        /* branco puro para cards */
+  --card-foreground: oklch(0.18 0.01 260);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 260);
+
+  /* Accent — azul cobalto vibrante (não o azul pastel do dark) */
+  --primary: oklch(0.52 0.22 250);             /* cobalto rico */
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.94 0.006 240);          /* slate-100 */
+  --secondary-foreground: oklch(0.35 0.01 260);
+
+  --muted: oklch(0.94 0.006 240);
+  --muted-foreground: oklch(0.52 0.01 260);    /* slate-500 */
+
+  --accent: oklch(0.52 0.22 250);
+  --accent-foreground: oklch(0.99 0 0);
+
+  --destructive: oklch(0.58 0.22 25);          /* coral-red */
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.88 0.008 240);             /* slate-200 */
+  --input: oklch(0.92 0.006 240);
+  --ring: oklch(0.52 0.22 250 / 0.35);
+
+  /* Chart */
+  --chart-1: oklch(0.52 0.22 250);            /* cobalto */
+  --chart-2: oklch(0.55 0.2 145);             /* esmeralda */
+  --chart-3: oklch(0.58 0.22 25);             /* coral */
+  --chart-4: oklch(0.6 0.18 280);             /* violeta */
+  --chart-5: oklch(0.62 0.18 60);             /* âmbar */
+
+  /* Custom tokens — light */
+  --surface-glass: oklch(1 0 0 / 0.85);
+  --surface-glass-hover: oklch(1 0 0);
+  --border-glass: oklch(0.88 0.008 240);
+  --border-glass-hover: oklch(0.52 0.22 250 / 0.3);
+  --glow-blue: oklch(0.52 0.22 250);
+  --glow-green: oklch(0.55 0.2 145);
+
+  /* Shadow tokens — light usa sombras reais */
+  --shadow-card: 0 1px 3px oklch(0 0 0 / 0.06), 0 4px 16px oklch(0 0 0 / 0.06);
+  --shadow-card-hover: 0 2px 8px oklch(0 0 0 / 0.08), 0 8px 32px oklch(0 0 0 / 0.1);
+  --shadow-input: inset 0 1px 2px oklch(0 0 0 / 0.04);
+}
+
+/* ─────────────────────────────────────────────────────────
+   DARK THEME — Dark Cosmos
+   Filosofia: preto profundo, glassmorphism, glow azul difuso,
+   sem sombras reais (tudo é luz, não sombra).
+   ───────────────────────────────────────────────────────── */
+.dark {
+  /* Backgrounds */
   --background: oklch(0.04 0 0);
   --foreground: oklch(0.97 0 0);
   --card: oklch(0.09 0.005 240);
@@ -50,13 +115,12 @@
   --popover: oklch(0.09 0.005 240);
   --popover-foreground: oklch(0.97 0 0);
 
-  /* Sky Blue accent — identical to Halo */
+  /* Sky Blue accent */
   --primary: oklch(0.78 0.12 210);
   --primary-foreground: oklch(0.04 0 0);
 
   --secondary: oklch(0.12 0.005 240);
   --secondary-foreground: oklch(0.75 0 0);
-
   --muted: oklch(0.14 0.005 240);
   --muted-foreground: oklch(0.55 0.01 240);
 
@@ -70,20 +134,22 @@
   --input: oklch(1 0 0 / 0.07);
   --ring: oklch(0.78 0.12 210 / 0.5);
 
-  /* Chart colors */
   --chart-1: oklch(0.78 0.12 210);
   --chart-2: oklch(0.72 0.18 145);
   --chart-3: oklch(0.65 0.18 30);
   --chart-4: oklch(0.7 0.15 280);
   --chart-5: oklch(0.6 0.15 60);
 
-  /* Custom tokens */
-  --glow-blue: oklch(0.78 0.12 210);
-  --glow-green: oklch(0.72 0.18 145);
   --surface-glass: oklch(1 0 0 / 0.04);
   --surface-glass-hover: oklch(1 0 0 / 0.07);
   --border-glass: oklch(1 0 0 / 0.08);
   --border-glass-hover: oklch(1 0 0 / 0.16);
+  --glow-blue: oklch(0.78 0.12 210);
+  --glow-green: oklch(0.72 0.18 145);
+
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-input: none;
 }
 
 @layer base {
@@ -95,6 +161,7 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -123,69 +190,89 @@
   }
 
   @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
+    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
   }
-
   @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem;
-      padding-right: 2rem;
-      max-width: 1280px;
-    }
+    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
   }
 
-  /* Glass card — core component */
+  /* ── Glass card (dark) / Elevated card (light) ── */
   .glass-card {
     background: var(--surface-glass);
     border: 1px solid var(--border-glass);
+    border-radius: var(--radius-xl);
+    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+  :root:not(.dark) .glass-card {
+    backdrop-filter: none;
+    box-shadow: var(--shadow-card);
+  }
+  .dark .glass-card {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-radius: var(--radius-xl);
-    transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
   }
-
   .glass-card:hover {
     background: var(--surface-glass-hover);
     border-color: var(--border-glass-hover);
+    box-shadow: var(--shadow-card-hover);
   }
 
-  /* Input dark style */
+  /* ── Input ── */
   .dark-input {
-    background: oklch(1 0 0 / 0.05);
-    border: 1px solid oklch(1 0 0 / 0.1);
-    color: oklch(0.97 0 0);
+    background: var(--input);
+    border: 1px solid var(--border);
+    color: var(--foreground);
     border-radius: 0.625rem;
     padding: 0.625rem 0.875rem;
     font-size: 0.9375rem;
-    transition: border-color 0.2s ease, background 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
     width: 100%;
     outline: none;
+    box-shadow: var(--shadow-input);
   }
-
   .dark-input:focus {
-    border-color: oklch(0.78 0.12 210 / 0.6);
-    background: oklch(1 0 0 / 0.08);
-    box-shadow: 0 0 0 3px oklch(0.78 0.12 210 / 0.12);
+    border-color: oklch(from var(--primary) l c h / 0.6);
+    box-shadow: 0 0 0 3px oklch(from var(--primary) l c h / 0.12);
   }
-
   .dark-input::placeholder {
-    color: oklch(0.45 0 0);
+    color: var(--muted-foreground);
   }
 
-  /* Glow number display */
+  /* ── Glow numbers (dark only) ── */
   .glow-number {
     font-variant-numeric: tabular-nums;
+  }
+  .dark .glow-number {
     text-shadow: 0 0 20px oklch(0.72 0.18 145 / 0.5);
   }
-
   .glow-number-blue {
+    font-variant-numeric: tabular-nums;
+  }
+  .dark .glow-number-blue {
     text-shadow: 0 0 20px oklch(0.78 0.12 210 / 0.6);
   }
 
-  /* Pill badge */
+  /* ── Section label ── */
+  .section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  /* ── Divider ── */
+  .glass-divider {
+    height: 1px;
+  }
+  .dark .glass-divider {
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.1), transparent);
+  }
+  :root:not(.dark) .glass-divider {
+    background: var(--border);
+  }
+
+  /* ── Pill badge ── */
   .pill-badge {
     display: inline-flex;
     align-items: center;
@@ -197,76 +284,33 @@
     text-transform: uppercase;
   }
 
-  /* Slider custom */
-  .slider-track {
-    height: 4px;
-    background: oklch(1 0 0 / 0.1);
-    border-radius: 9999px;
-    position: relative;
-  }
-
-  /* Section label */
-  .section-label {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: oklch(0.78 0.12 210);
-  }
-
-  /* Divider */
-  .glass-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.1), transparent);
-  }
-
-  /* Animated counter */
+  /* ── Animations ── */
   @keyframes countUp {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  .animate-count { animation: countUp 0.4s ease-out forwards; }
 
-  .animate-count {
-    animation: countUp 0.4s ease-out forwards;
-  }
-
-  /* Fade in up */
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(24px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+  .animate-fade-in-up-delay-1 { animation: fadeInUp 0.6s ease-out 0.1s forwards; opacity: 0; }
+  .animate-fade-in-up-delay-2 { animation: fadeInUp 0.6s ease-out 0.2s forwards; opacity: 0; }
+  .animate-fade-in-up-delay-3 { animation: fadeInUp 0.6s ease-out 0.3s forwards; opacity: 0; }
+  .animate-fade-in-up-delay-4 { animation: fadeInUp 0.6s ease-out 0.4s forwards; opacity: 0; }
 
-  .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out forwards;
-  }
-
-  .animate-fade-in-up-delay-1 {
-    animation: fadeInUp 0.6s ease-out 0.1s forwards;
-    opacity: 0;
-  }
-
-  .animate-fade-in-up-delay-2 {
-    animation: fadeInUp 0.6s ease-out 0.2s forwards;
-    opacity: 0;
-  }
-
-  .animate-fade-in-up-delay-3 {
-    animation: fadeInUp 0.6s ease-out 0.3s forwards;
-    opacity: 0;
-  }
-
-  .animate-fade-in-up-delay-4 {
-    animation: fadeInUp 0.6s ease-out 0.4s forwards;
-    opacity: 0;
-  }
-
-  /* Pulse glow */
   @keyframes pulseGlow {
     0%, 100% { box-shadow: 0 0 20px oklch(0.78 0.12 210 / 0.2); }
     50% { box-shadow: 0 0 40px oklch(0.78 0.12 210 / 0.4); }
   }
+  .dark .pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
 
-  .pulse-glow {
-    animation: pulseGlow 3s ease-in-out infinite;
+  /* ── Theme transition ── */
+  *, *::before, *::after {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
   }
 }
