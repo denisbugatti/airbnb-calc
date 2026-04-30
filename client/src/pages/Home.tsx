@@ -133,7 +133,14 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // Valor exibido fora do foco: sempre com pontos de milhar
-  const displayValue = focused ? undefined : formatThousands(value);
+  const displayValue = formatThousands(value);
+  // Sincroniza valor externo no input apenas quando NAO está focado
+  // (evita reset durante digitação, que limitava a apenas 1 dígito por vez).
+  useEffect(() => {
+    if (!focused && inputRef.current) {
+      inputRef.current.value = formatThousands(value);
+    }
+  }, [value, focused]);
   const handleFocus = useCallback(() => {
     setFocused(true);
     if (inputRef.current) {
@@ -193,29 +200,28 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
           boxShadow: focused ? colors.focusShadow : colors.inputShadow,
         }}
       >
-        {prefix && <span className="pl-3 text-sm font-medium select-none" style={{ color: colors.text3 }}>{prefix}</span>}
+        {prefix && <span className="pl-2.5 text-xs font-medium select-none" style={{ color: colors.text3 }}>{prefix}</span>}
         <input
           ref={inputRef}
           type="text"
           inputMode="numeric"
           defaultValue={displayValue}
-          key={focused ? "editing" : `v-${value}`}
           placeholder="0"
           onFocus={handleFocus}
           onBlur={handleBlur}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent px-3 py-3 text-sm font-medium outline-none min-w-0"
+          className="flex-1 bg-transparent px-2 py-3 text-sm font-medium outline-none min-w-0 w-full"
           style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
           autoComplete="off"
         />
         {suffix && <span className="pr-2 text-xs select-none" style={{ color: colors.text3 }}>{suffix}</span>}
-        <div className="flex flex-col border-l" style={{ borderColor: colors.divider }}>
-          <button onClick={() => { const v = Math.max(min, value + step); onChange(v); }} className="px-2.5 py-2 transition-colors rounded-tr-xl" style={{ color: colors.text3 }}>
-            <ChevronUp size={13} />
+        <div className="flex flex-col border-l shrink-0" style={{ borderColor: colors.divider }}>
+          <button onClick={() => { const v = Math.max(min, value + step); onChange(v); }} className="px-1.5 py-2 transition-colors rounded-tr-xl" style={{ color: colors.text3 }}>
+            <ChevronUp size={12} />
           </button>
-          <button onClick={() => { const v = Math.max(min, value - step); onChange(v); }} className="px-2.5 py-2 transition-colors rounded-br-xl" style={{ color: colors.text3 }}>
-            <ChevronDown size={13} />
+          <button onClick={() => { const v = Math.max(min, value - step); onChange(v); }} className="px-1.5 py-2 transition-colors rounded-br-xl" style={{ color: colors.text3 }}>
+            <ChevronDown size={12} />
           </button>
         </div>
       </div>

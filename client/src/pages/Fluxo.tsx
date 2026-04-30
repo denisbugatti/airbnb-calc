@@ -3,7 +3,7 @@
  * Dual theme: Dark Cosmos / Slate Premium
  * Exportação PNG via Canvas API nativa (sem html2canvas)
  */
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useFluxo } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -59,6 +59,13 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [editing, setEditing] = useState(false);
+  // Sincroniza valor externo no input apenas quando NAO está sendo editado
+  // (evita reset durante digitação e perda de foco com `key={value}`).
+  useEffect(() => {
+    if (!editing && inputRef.current) {
+      inputRef.current.value = fFormat(value);
+    }
+  }, [value, editing]);
   const handleFocus = () => {
     setEditing(true);
     setTimeout(() => {
@@ -99,7 +106,6 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
           type="text"
           inputMode="numeric"
           defaultValue={fFormat(value)}
-          key={`ev-${value}`}
           onFocus={handleFocus}
           onBlur={handleBlur}
           onInput={handleInput}
