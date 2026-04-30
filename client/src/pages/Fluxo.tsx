@@ -391,7 +391,7 @@ export default function FluxoPage() {
                   <THead colors={colors}>
                     <div className="font-black">+DECORAÇÃO</div>
                     <div className="text-xs font-normal opacity-70">(opcional)</div>
-                    <div className="text-xs font-normal opacity-50" style={{ fontSize: "0.6em" }}>não entra no ROI</div>
+
                   </THead>
                   <THead green colors={colors}>
                     <div className="font-black">TOTAL</div>
@@ -424,7 +424,7 @@ export default function FluxoPage() {
                   ))}
                   <TCell colors={colors}>
                     <EditableValue value={fluxo.decoracao} onChange={(v) => setFluxo((p) => ({ ...p, decoracao: v }))} colors={colors} />
-                    <div className="text-xs mt-0.5" style={{ color: colors.text4, fontSize: "0.65em" }}>informativo</div>
+
                   </TCell>
                   <TCell green colors={colors}>
                     <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>

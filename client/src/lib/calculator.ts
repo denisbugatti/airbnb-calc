@@ -96,7 +96,7 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
 
   // === FICHA TÉCNICA ===
   const valorPorM2 = areaM2 > 0 ? valorImovel / areaM2 : 0;
-  const totalUnidade = valorImovel + mobilia;
+  const totalUnidade = valorImovel; // Mobília não entra no Total da Unidade
 
   // === RECEITA ===
   const receitaBrutaMensal = diaria * diasOcupacao;
