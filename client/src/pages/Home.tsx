@@ -290,8 +290,8 @@ function WaterfallBar({ label, value, total, color, isNegative = false, colors }
 }
 
 // ─── Fiscal Card ──────────────────────────────────────────────────────────────
-function FiscalCard({ label, renda, rentabilidade, icon, accent, isHighlight = false, isDark, colors }: {
-  label: string; renda: number; rentabilidade: number;
+function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, isHighlight = false, isDark, colors }: {
+  label: string; renda: number; rentabilidade: number; receitaBruta: number;
   icon: React.ReactNode; accent: "blue" | "green" | "amber"; isHighlight?: boolean;
   isDark: boolean; colors: ReturnType<typeof useColors>;
 }) {
@@ -302,6 +302,8 @@ function FiscalCard({ label, renda, rentabilidade, icon, accent, isHighlight = f
   const accentIconBg = colors[`${accent}IconBg` as keyof typeof colors] as string;
   const animRenda = useAnimatedNumber(renda);
   const animRent = useAnimatedNumber(rentabilidade);
+  const rentMensal = rentabilidade / 12;
+  const animRentMensal = useAnimatedNumber(rentMensal);
   return (
     <div
       className="rounded-2xl p-3 md:p-4 flex flex-col gap-2 transition-all duration-300"
@@ -313,23 +315,38 @@ function FiscalCard({ label, renda, rentabilidade, icon, accent, isHighlight = f
           : colors.cardShadow,
       }}
     >
+      {/* Header */}
       <div className="flex items-center gap-1.5">
         <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: accentIconBg, color: accentColor }}>{icon}</div>
         <span className="text-xs font-bold tracking-wider uppercase" style={{ color: accentColor }}>{label}</span>
       </div>
+      {/* Receita Bruta — topo */}
       <div>
+        <div className="text-xs font-medium" style={{ color: colors.text4 }}>Receita bruta</div>
+        <div className="text-sm font-bold" style={{ color: colors.text2, fontFamily: "'Geist Mono', monospace" }}>
+          {formatCurrency(receitaBruta)}
+        </div>
+      </div>
+      {/* Renda Líquida */}
+      <div>
+        <div className="text-xs font-medium" style={{ color: colors.text4 }}>Renda líquida</div>
         <div className="text-lg md:text-2xl font-black" style={{ color: accentColor, fontFamily: "'Geist', sans-serif", textShadow: isDark ? `0 0 20px ${accentGlow}` : "none" }}>
           {formatCurrency(animRenda)}
         </div>
-        <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>renda / mês</div>
       </div>
-      <div className="pt-2 border-t" style={{ borderColor: colors.divider }}>
-        <div className="text-base md:text-lg font-bold" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
-          {formatPercent(animRent)} a.a.
+      {/* Rentabilidade Mensal + Anual */}
+      <div className="pt-2 border-t grid grid-cols-2 gap-2" style={{ borderColor: colors.divider }}>
+        <div>
+          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
+            {formatPercent(animRentMensal)} a.m.
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rent. mensal</div>
         </div>
-        <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rentabilidade anual</div>
-        <div className="text-xs font-semibold mt-1" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
-          {formatCurrency(renda)} / mês
+        <div>
+          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
+            {formatPercent(animRent)} a.a.
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rent. anual</div>
         </div>
       </div>
     </div>
@@ -794,13 +811,16 @@ export default function HomePage() {
               <SectionHeader icon={<Shield size={13} />} label="Variantes Fiscais" colors={colors} />
               <div className="grid grid-cols-3 gap-2 md:gap-3">
                 <FiscalCard label="Lucro" renda={results.rendaMensalLiquida}
-                  rentabilidade={results.rentabilidadeAnual} icon={<DollarSign size={13} />}
+                  rentabilidade={results.rentabilidadeAnual} receitaBruta={results.receitaBrutaMensal}
+                  icon={<DollarSign size={13} />}
                   accent="blue" isHighlight isDark={isDark} colors={colors} />
                 <FiscalCard label="Holding" renda={results.rendaHolding}
-                  rentabilidade={results.rentabilidadeHoldingAnual} icon={<Shield size={13} />}
+                  rentabilidade={results.rentabilidadeHoldingAnual} receitaBruta={results.receitaBrutaMensal}
+                  icon={<Shield size={13} />}
                   accent="green" isDark={isDark} colors={colors} />
                 <FiscalCard label="PF" renda={results.rendaPF}
-                  rentabilidade={results.rentabilidadePFAnual} icon={<User size={13} />}
+                  rentabilidade={results.rentabilidadePFAnual} receitaBruta={results.receitaBrutaMensal}
+                  icon={<User size={13} />}
                   accent="amber" isDark={isDark} colors={colors} />
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: colors.text4 }}>
