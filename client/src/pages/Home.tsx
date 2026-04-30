@@ -1011,30 +1011,32 @@ export default function HomePage() {
               // Anos com seta de lucro: 1, meio, último
               const arrowYears = [1, Math.ceil(anosTotal / 2), anosTotal];
               // SVG layout — mais altura para separar bem as duas linhas
-              const svgW = 980; const svgH = 440;
-              const padL = 70; const padR = 130; const padTop = 100; const padBot = 80;
+              const svgW = 980; const svgH = 520;
+              const padL = 70; const padR = 130; const padTop = 110; const padBot = 90;
               const plotW = svgW - padL - padR;
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
               const allVals = chartData.flatMap(d => [d.aluguel, d.parcela]);
-              // Expandir o range para forçar mais separação vertical entre as linhas
-              const minV = Math.min(...allVals) * 0.55;
-              const maxV = Math.max(...allVals) * 1.22;
+              // Mantém o intervalo dos dados reais — a maior altura do plot já gera mais separação
+              const minV = Math.min(...allVals) * 0.7;
+              const maxV = Math.max(...allVals) * 1.12;
               const xOf = (i: number) => padL + (i / (n - 1)) * plotW;
               const yOf = (v: number) => padTop + plotH - ((v - minV) / (maxV - minV)) * plotH;
               // Linha verde (aluguel)
               const greenPath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.aluguel)}`).join(" ");
               // Linha azul (parcela)
               const bluePath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.parcela)}`).join(" ");
-              // Cores — sempre dark navy como na imagem de referência
-              const chartBg = "oklch(0.12 0.04 220)";
-              const greenC = "#4ade80";
-              const blueC = "#60a5fa";
-              const textC = "#ffffff";
-              const text3C = "rgba(255,255,255,0.55)";
-              const divC = "rgba(255,255,255,0.18)";
-              const bgLabel = "oklch(0.18 0.06 145 / 0.92)";
-              const bgLabelBlue = "oklch(0.18 0.06 220 / 0.92)";
+              // Cores — adaptam ao tema (claro/escuro)
+              const chartBg = isDark ? "oklch(0.12 0.04 220)" : "oklch(0.985 0.005 220)";
+              const greenC = isDark ? "#4ade80" : "#16a34a";
+              const blueC = isDark ? "#60a5fa" : "#2563eb";
+              const textC = isDark ? "#ffffff" : "oklch(0.18 0.04 220)";
+              const text3C = isDark ? "rgba(255,255,255,0.55)" : "oklch(0.45 0.03 220)";
+              const divC = isDark ? "rgba(255,255,255,0.18)" : "oklch(0.85 0.02 220)";
+              const bgLabel = isDark ? "oklch(0.18 0.06 145 / 0.92)" : "oklch(0.95 0.08 145 / 0.95)";
+              const bgLabelBlue = isDark ? "oklch(0.18 0.06 220 / 0.92)" : "oklch(0.95 0.06 220 / 0.95)";
+              const gridC = isDark ? "rgba(255,255,255,0.06)" : "oklch(0.85 0.02 220 / 0.5)";
+              const yearChipBg = isDark ? "rgba(255,255,255,0.1)" : "oklch(0.92 0.02 220)";
               const fmt = (v: number) => v >= 1000
                 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1).replace(".", ",")}k`
                 : v.toLocaleString("pt-BR");
@@ -1054,7 +1056,7 @@ export default function HomePage() {
                       <rect width={svgW} height={svgH} rx={12} fill={chartBg} />
                       {/* Grade sutil */}
                       {[0.25, 0.5, 0.75].map(t => (
-                        <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke="rgba(255,255,255,0.06)" strokeWidth={1} strokeDasharray="4 4" />
+                        <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke={gridC} strokeWidth={1} strokeDasharray="4 4" />
                       ))}
                       {/* Label ALUGUEL */}
                       <text x={padL} y={32} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">ALUGUEL</text>
@@ -1131,7 +1133,7 @@ export default function HomePage() {
                       {/* Labels do eixo X (anos) — deslocados para não colidir com o label ANOS à esquerda */}
                       {chartData.map((d, i) => (
                         <g key={`x-${i}`}>
-                          <rect x={xOf(i) - 14} y={svgH - padBot + 14} width={28} height={22} rx={11} fill="rgba(255,255,255,0.1)" />
+                          <rect x={xOf(i) - 14} y={svgH - padBot + 14} width={28} height={22} rx={11} fill={yearChipBg} />
                           <text x={xOf(i)} y={svgH - padBot + 29} textAnchor="middle" fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">
                             {d.ano}
                           </text>
