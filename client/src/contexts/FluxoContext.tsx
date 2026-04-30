@@ -103,7 +103,8 @@ function calcularFluxo(inputs: FluxoInputs): FluxoResults {
   const totalAto = inputs.ato.reduce((s, p) => s + p.valor, 0);
   const totalMensais = inputs.valorMensal * inputs.numMensais;
   const totalAnuais = inputs.anuais.reduce((s, p) => s + p.valor, 0);
-  const totalInvestido = totalAto + totalMensais + totalAnuais + inputs.decoracao;
+  // Decoração NÃO entra na base do ROI — apenas informativa na tabela
+  const totalInvestido = totalAto + totalMensais + totalAnuais;
   const financiamento = Math.max(0, inputs.valorImovel - totalInvestido);
   return { totalAto, totalMensais, totalAnuais, totalInvestido, financiamento };
 }
