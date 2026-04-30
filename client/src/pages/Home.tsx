@@ -1010,15 +1010,16 @@ export default function HomePage() {
               }
               // Anos com seta de lucro: 1, meio, último
               const arrowYears = [1, Math.ceil(anosTotal / 2), anosTotal];
-              // SVG layout
-              const svgW = 980; const svgH = 380;
-              const padL = 50; const padR = 120; const padTop = 90; const padBot = 70;
+              // SVG layout — mais altura para separar bem as duas linhas
+              const svgW = 980; const svgH = 440;
+              const padL = 70; const padR = 130; const padTop = 100; const padBot = 80;
               const plotW = svgW - padL - padR;
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
               const allVals = chartData.flatMap(d => [d.aluguel, d.parcela]);
-              const minV = Math.min(...allVals) * 0.65;
-              const maxV = Math.max(...allVals) * 1.18;
+              // Expandir o range para forçar mais separação vertical entre as linhas
+              const minV = Math.min(...allVals) * 0.55;
+              const maxV = Math.max(...allVals) * 1.22;
               const xOf = (i: number) => padL + (i / (n - 1)) * plotW;
               const yOf = (v: number) => padTop + plotH - ((v - minV) / (maxV - minV)) * plotH;
               // Linha verde (aluguel)
@@ -1059,7 +1060,8 @@ export default function HomePage() {
                       <text x={padL} y={32} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">ALUGUEL</text>
                       {/* Eixo X */}
                       <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
-                      <text x={padL} y={svgH - padBot + 32} fill={textC} fontSize={13} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
+                      {/* Label ANOS — à esquerda do eixo, separado dos números */}
+                      <text x={8} y={svgH - padBot + 29} fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
                       {/* Linha verde (aluguel) */}
                       <path d={greenPath} fill="none" stroke={greenC} strokeWidth={2} strokeOpacity={0.6} />
                       {/* Linha azul (parcela) */}
@@ -1078,16 +1080,16 @@ export default function HomePage() {
                           <g key={`arrow-${ano}`}>
                             {/* Linha da seta */}
                             <line x1={x} y1={yA + 6} x2={x} y2={yP - 6} stroke={greenC} strokeWidth={2} markerEnd="url(#arrowDown)" markerStart="url(#arrowUp)" />
-                            {/* Valor do lucro — à direita da seta */}
+                            {/* Valor do lucro — à direita da seta, centralizado verticalmente */}
                             <text
-                              x={x + 16} y={midY + (isFirst ? 0 : 5)}
+                              x={x + 18} y={midY - 6}
                               fill={textC} fontSize={isFirst ? 22 : 19} fontWeight="900"
                               fontFamily="'Geist', sans-serif"
                             >
                               {formatCurrency(d.lucro)}
                             </text>
                             {isFirst && (
-                              <text x={x + 16} y={midY + 20} fill={text3C} fontSize={11} fontFamily="'Geist', sans-serif" letterSpacing="1">LUCRO MENSAL</text>
+                              <text x={x + 18} y={midY + 14} fill={text3C} fontSize={11} fontFamily="'Geist', sans-serif" letterSpacing="1">LUCRO MENSAL</text>
                             )}
                           </g>
                         );
@@ -1126,11 +1128,11 @@ export default function HomePage() {
                           </g>
                         );
                       })}
-                      {/* Labels do eixo X (anos) */}
+                      {/* Labels do eixo X (anos) — deslocados para não colidir com o label ANOS à esquerda */}
                       {chartData.map((d, i) => (
                         <g key={`x-${i}`}>
-                          <rect x={xOf(i) - 14} y={svgH - padBot + 14} width={28} height={20} rx={10} fill="rgba(255,255,255,0.08)" />
-                          <text x={xOf(i)} y={svgH - padBot + 28} textAnchor="middle" fill={textC} fontSize={12} fontWeight="600" fontFamily="'Geist', sans-serif">
+                          <rect x={xOf(i) - 14} y={svgH - padBot + 14} width={28} height={22} rx={11} fill="rgba(255,255,255,0.1)" />
+                          <text x={xOf(i)} y={svgH - padBot + 29} textAnchor="middle" fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">
                             {d.ano}
                           </text>
                         </g>
