@@ -860,7 +860,7 @@ export default function HomePage() {
                   ))}
                   <div className="pt-2 space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs" style={{ color: colors.text3 }}>Ganho mensal s/ capital</span>
+                      <span className="text-xs" style={{ color: colors.text3 }}>Rentabilidade mensal s/ capital investido</span>
                       <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
                         {formatPercent(results.ganhoFinanceiroMensal)} a.m.
                       </span>
@@ -878,7 +878,8 @@ export default function HomePage() {
 
             {/* Breakeven do Total Investido */}
             {(() => {
-              const totalInv = fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio;
+              // Decoracao soma ao total investido no breakeven (custo de setup do imovel)
+              const totalInv = (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (fluxo.decoracao || 0);
               const rendaLiq = results.rendaMensalLiquida;
               const mesesParaBreakeven = rendaLiq > 0 ? Math.ceil(totalInv / rendaLiq) : null;
               const anos = mesesParaBreakeven !== null ? Math.floor(mesesParaBreakeven / 12) : null;
@@ -901,7 +902,7 @@ export default function HomePage() {
                         <div className="text-2xl font-black" style={{ color: colors.red }}>Renda negativa</div>
                       )}
                       <div className="text-xs mt-1" style={{ color: colors.text4 }}>
-                        Base: {formatCurrency(totalInv)} investidos ÷ {formatCurrency(rendaLiq)}/mês
+                        Base: {formatCurrency(totalInv)} investidos{fluxo.decoracao > 0 ? ` (incl. R$ ${fluxo.decoracao.toLocaleString('pt-BR')} decoracao)` : ''} ÷ {formatCurrency(rendaLiq)}/mês
                       </div>
                     </div>
                     <div className="flex-1 w-full">
@@ -948,7 +949,7 @@ export default function HomePage() {
       {/* FOOTER */}
       <footer className="py-6 px-4 text-center" style={{ borderTop: `1px solid ${colors.divider}` }}>
         <p className="text-xs" style={{ color: colors.text4 }}>
-          Calculadora de rentabilidade para locação de curta temporada. Os valores são estimativas e não constituem assessoria financeira.
+          Calculadora de rentabilidade para locacao de curta temporada. Os valores sao estimativas e nao constituem assessoria financeira.
         </p>
       </footer>
     </div>

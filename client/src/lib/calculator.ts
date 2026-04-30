@@ -30,7 +30,7 @@ export interface CalculatorInputs {
   wifi: number;             // Wi-Fi mensal (R$)
   agua: number;             // Água mensal (R$)
   luz: number;              // Luz/Energia mensal (R$)
-  taxaAdminSeguro: number;  // Administração + Seguro (% sobre receita bruta, padrão: 10%)
+  taxaAdminSeguro: number;  // Administração + Seguro (% sobre receita bruta, padrão: 15%)
 
   // === AIRBNB ESPECÍFICO ===
   taxaPlataforma: number;   // Taxa da plataforma Airbnb (padrão: 3% = 0.03)
@@ -176,7 +176,7 @@ export const defaultInputs: CalculatorInputs = {
   wifi: 120,
   agua: 80,
   luz: 150,
-  taxaAdminSeguro: 0.10,
+  taxaAdminSeguro: 0.15,
   taxaPlataforma: 0.03,
   custoLimpeza: 120,
   checkInsMes: 4,
