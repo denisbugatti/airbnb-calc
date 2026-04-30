@@ -1,9 +1,10 @@
 /**
  * FluxoContext — Contexto compartilhado entre Fluxo de Pagamento e Calculadora
  * Sincroniza: Total Investido → Capital Próprio | Financiamento → Saldo a Financiar
+ * Sincronização bidirecional do Valor do Imóvel via callback registrado
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
 
 export interface ParcelaAto {
   label: string;   // ex: "ATO", "SINAL", "ATO 2/3"
@@ -112,6 +113,8 @@ function calcularFluxo(inputs: FluxoInputs): FluxoResults {
 interface FluxoContextType {
   fluxo: FluxoInputs;
   results: FluxoResults;
+  nomeEmpreendimento: string;
+  setNomeEmpreendimento: (nome: string) => void;
   setFluxo: (fn: (prev: FluxoInputs) => FluxoInputs) => void;
   updateAto: (percentual: number, parcelas: number) => void;
   updateParcelaAtoMes: (idx: number, mes: string) => void;
@@ -120,13 +123,26 @@ interface FluxoContextType {
   updateAnualValor: (idx: number, valor: number) => void;
   addAnual: () => void;
   removeAnual: () => void;
+  /** Chamado pela Calculadora para sincronizar o valor do imóvel → Fluxo */
   syncValorImovel: (valor: number) => void;
+  /** Chamado pelo Fluxo para sincronizar o valor do imóvel → Calculadora */
+  syncValorImovelParaCalc: (valor: number) => void;
+  /** Registra o callback que a Calculadora usa para receber atualizações do Fluxo */
+  registerValorImovelCallback: (cb: (v: number) => void) => void;
 }
 
 const FluxoContext = createContext<FluxoContextType | null>(null);
 
 export function FluxoProvider({ children }: { children: ReactNode }) {
   const [fluxo, setFluxoState] = useState<FluxoInputs>(defaultFluxo);
+  const [nomeEmpreendimento, setNomeEmpreendimento] = useState("");
+
+  // Callback registrado pelo Home.tsx para receber atualizações do Fluxo
+  const calcCallbackRef = useRef<((v: number) => void) | null>(null);
+
+  const registerValorImovelCallback = useCallback((cb: (v: number) => void) => {
+    calcCallbackRef.current = cb;
+  }, []);
 
   const setFluxo = useCallback((fn: (prev: FluxoInputs) => FluxoInputs) => {
     setFluxoState(fn);
@@ -191,12 +207,29 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  /** Chamado pela Calculadora (Home.tsx) — atualiza o Fluxo sem loop */
   const syncValorImovel = useCallback((valor: number) => {
+    setFluxoState((prev) => {
+      if (prev.valorImovel === valor) return prev;
+      return {
+        ...prev,
+        valorImovel: valor,
+        ato: buildAto(prev.percentualAto, prev.parcelasAto, valor),
+      };
+    });
+  }, []);
+
+  /** Chamado pelo Fluxo (Fluxo.tsx) — atualiza o Fluxo E notifica a Calculadora */
+  const syncValorImovelParaCalc = useCallback((valor: number) => {
     setFluxoState((prev) => ({
       ...prev,
       valorImovel: valor,
       ato: buildAto(prev.percentualAto, prev.parcelasAto, valor),
     }));
+    // Notifica a Calculadora para atualizar o campo valorImovel
+    if (calcCallbackRef.current) {
+      calcCallbackRef.current(valor);
+    }
   }, []);
 
   const results = calcularFluxo(fluxo);
@@ -204,10 +237,13 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   return (
     <FluxoContext.Provider value={{
       fluxo, results, setFluxo,
+      nomeEmpreendimento, setNomeEmpreendimento,
       updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
       updateAnualMes, updateAnualValor,
       addAnual, removeAnual,
       syncValorImovel,
+      syncValorImovelParaCalc,
+      registerValorImovelCallback,
     }}>
       {children}
     </FluxoContext.Provider>

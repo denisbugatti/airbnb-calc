@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useFluxo } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
-import { Download, Plus, Minus as MinusIcon, BarChart3, Zap } from "lucide-react";
+import { Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 function useColors(isDark: boolean) {
@@ -125,6 +125,7 @@ function exportFluxoPNG(
   results: ReturnType<typeof useFluxo>["results"],
   pctInvestido: number,
   pctFinanciamento: number,
+  nome?: string,
 ) {
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
   const cols: { header: string; sub: string; value: string; isGreen?: boolean }[] = [];
@@ -159,7 +160,12 @@ function exportFluxoPNG(
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 22px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Fluxo de Pagamento", totalW / 2, PADDING + 28);
+  ctx.fillText("Fluxo de Pagamento", totalW / 2, PADDING + 22);
+  if (nome && nome.trim()) {
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 14px system-ui, sans-serif";
+    ctx.fillText(nome.trim(), totalW / 2, PADDING + 44);
+  }
 
   const tableX = PADDING;
   const tableY = TITLE_H;
@@ -227,7 +233,8 @@ function exportFluxoPNG(
 export default function FluxoPage() {
   const {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
-    updateAnualMes, updateAnualValor, addAnual, removeAnual, setFluxo, syncValorImovel,
+    updateAnualMes, updateAnualValor, addAnual, removeAnual, setFluxo, syncValorImovelParaCalc,
+    nomeEmpreendimento, setNomeEmpreendimento,
   } = useFluxo();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -239,7 +246,7 @@ export default function FluxoPage() {
 
   const handleExport = useCallback(() => {
     setExporting(true);
-    try { exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento); }
+    try { exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento); }
     finally { setTimeout(() => setExporting(false), 500); }
   }, [fluxo, results, pctInvestido, pctFinanciamento]);
 
@@ -256,9 +263,36 @@ export default function FluxoPage() {
             Fluxo de{" "}
             <span style={{ color: colors.green }}>Pagamento</span>
           </h1>
-          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto" style={{ color: colors.text2 }}>
+          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: colors.text2 }}>
             Configure como o investimento será distribuído ao longo do tempo. O Total Investido alimenta automaticamente a base do ROI na calculadora.
           </p>
+          {/* Campo de nome do empreendimento */}
+          <div className="flex items-center justify-center">
+            <div
+              className="flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-all"
+              style={{
+                background: colors.inputBg,
+                border: `1.5px solid ${colors.blueBorder}`,
+                boxShadow: `0 0 0 3px ${colors.blueBg}`,
+                maxWidth: 400,
+                width: "100%",
+              }}
+            >
+              <Building2 size={14} style={{ color: colors.blue, flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Nome do empreendimento (aparece no relatório)"
+                value={nomeEmpreendimento}
+                onChange={(e) => setNomeEmpreendimento(e.target.value)}
+                className="flex-1 bg-transparent text-sm outline-none"
+                style={{
+                  color: colors.text1,
+                  fontFamily: "'Geist', sans-serif",
+                  fontWeight: 600,
+                }}
+              />
+            </div>
+          </div>
         </motion.div>
       </section>
 
@@ -439,7 +473,7 @@ export default function FluxoPage() {
                     <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>{pctFinanciamento.toFixed(1)}% do imóvel</div>
                   </TCell>
                   <TCell colors={colors}>
-                    <EditableValue value={fluxo.valorImovel} onChange={(v) => syncValorImovel(v)} colors={colors} />
+                    <EditableValue value={fluxo.valorImovel} onChange={(v) => syncValorImovelParaCalc(v)} colors={colors} />
                   </TCell>
                 </tr>
               </tbody>

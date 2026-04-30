@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import { encodeShareLink, decodeShareLink, copyToClipboard } from "@/lib/shareLink";
+import { Link2, Check } from "lucide-react";
 
 // ─── Animated Number ──────────────────────────────────────────────────────────
 function useAnimatedNumber(value: number, duration = 500) {
@@ -302,8 +305,38 @@ export default function HomePage() {
   const [inputs, setInputs] = useState<CalculatorInputs>(defaultInputs);
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, syncValorImovel } = useFluxo();
+  const { results: fluxoResults, syncValorImovel, registerValorImovelCallback, fluxo, nomeEmpreendimento } = useFluxo();
+  const [copied, setCopied] = useState(false);
 
+  // Decodifica link compartilhado ao montar
+  useEffect(() => {
+    const payload = decodeShareLink();
+    if (payload?.calc) {
+      setInputs(payload.calc);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    const link = encodeShareLink(inputs, fluxo, nomeEmpreendimento);
+    const ok = await copyToClipboard(link);
+    if (ok) {
+      setCopied(true);
+      toast.success("Link copiado!", { description: "Cole o link para compartilhar esta simulação." });
+      setTimeout(() => setCopied(false), 2500);
+    } else {
+      toast.error("Não foi possível copiar o link.");
+    }
+  }, [inputs, fluxo, nomeEmpreendimento]);
+
+  // Registra callback para receber atualizações do Fluxo → Calculadora (bidirecional)
+  useEffect(() => {
+    registerValorImovelCallback((valor: number) => {
+      setInputs((prev) => prev.valorImovel === valor ? prev : { ...prev, valorImovel: valor });
+    });
+  }, [registerValorImovelCallback]);
+
+  // Calculadora → Fluxo (quando o usuário edita na Ficha Técnica)
   useEffect(() => {
     syncValorImovel(inputs.valorImovel);
   }, [inputs.valorImovel, syncValorImovel]);
@@ -341,9 +374,21 @@ export default function HomePage() {
               rentabilidade
             </span>
           </h1>
-          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto" style={{ color: colors.text2 }}>
+          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-5" style={{ color: colors.text2 }}>
             Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
           </p>
+          <button
+            onClick={handleShare}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+            style={{
+              background: copied ? colors.greenBg : colors.blueBg,
+              border: `1px solid ${copied ? colors.greenBorder : colors.blueBorder}`,
+              color: copied ? colors.green : colors.blue,
+            }}
+          >
+            {copied ? <Check size={12} /> : <Link2 size={12} />}
+            {copied ? "Link copiado!" : "Compartilhar simulação"}
+          </button>
         </motion.div>
       </section>
 
