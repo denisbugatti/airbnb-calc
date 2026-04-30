@@ -10,7 +10,10 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation, Link } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
-import { FluxoProvider } from "./contexts/FluxoContext";
+import { FluxoProvider } from "@/contexts/FluxoContext";
+import { CenariosProvider } from "@/contexts/CenariosContext";
+import HistoricoCenarios from "@/components/HistoricoCenarios";
+import { useFluxo } from "@/contexts/FluxoContext";
 import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
 import { useCursorGlow } from "./hooks/useCursorGlow";
@@ -24,8 +27,8 @@ function NavBar() {
   const isDark = theme === "dark";
 
   const tabs = [
-    { path: "/", label: "Calculadora", icon: <Calculator size={14} /> },
     { path: "/fluxo", label: "Fluxo de Pagamento", icon: <GitBranch size={14} /> },
+    { path: "/", label: "Calculadora", icon: <Calculator size={14} /> },
   ];
 
   return (
@@ -196,6 +199,7 @@ function Router() {
       <GlobalBackground />
       <div className="relative" style={{ zIndex: 1 }}>
         <NavBar />
+        <RouterHistorico />
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/fluxo" component={FluxoPage} />
@@ -208,15 +212,28 @@ function Router() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+function RouterHistorico() {
+  const { fluxo } = useFluxo();
+  return (
+    <HistoricoCenarios
+      onRestaurar={(_cenario) => {
+        // Restaurar é tratado dentro do Home.tsx via evento customizado
+        window.dispatchEvent(new CustomEvent("restaurar-cenario", { detail: _cenario }));
+      }}
+    />
+  );
+}
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark" switchable>
         <FluxoProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <CenariosProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </CenariosProvider>
         </FluxoProvider>
       </ThemeProvider>
     </ErrorBoundary>

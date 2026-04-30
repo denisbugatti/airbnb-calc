@@ -24,7 +24,8 @@ import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { encodeShareLink, decodeShareLink, copyToClipboard } from "@/lib/shareLink";
-import { Link2, Check } from "lucide-react";
+import { Link2, Check, BookmarkPlus } from "lucide-react";
+import { useCenarios, type Cenario } from "@/contexts/CenariosContext";
 
 // ─── Animated Number ──────────────────────────────────────────────────────────
 function useAnimatedNumber(value: number, duration = 500) {
@@ -359,6 +360,9 @@ export default function HomePage() {
 
   const { results: fluxoResults, syncValorImovel, registerValorImovelCallback, fluxo, nomeEmpreendimento } = useFluxo();
   const [copied, setCopied] = useState(false);
+  const { salvarCenario } = useCenarios();
+  const [showSalvarModal, setShowSalvarModal] = useState(false);
+  const [nomeCenario, setNomeCenario] = useState("");
 
   // Decodifica link compartilhado ao montar
   useEffect(() => {
@@ -388,6 +392,19 @@ export default function HomePage() {
     });
   }, [registerValorImovelCallback]);
 
+  // Listener para restaurar cenário do histórico
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const cenario = (e as CustomEvent<Cenario>).detail;
+      if (cenario?.inputs) {
+        setInputs(cenario.inputs);
+        toast.success(`Cenário "${cenario.nome}" restaurado!`);
+      }
+    };
+    window.addEventListener("restaurar-cenario", handler);
+    return () => window.removeEventListener("restaurar-cenario", handler);
+  }, []);
+
   // Calculadora → Fluxo (quando o usuário edita na Ficha Técnica)
   useEffect(() => {
     syncValorImovel(inputs.valorImovel);
@@ -404,7 +421,21 @@ export default function HomePage() {
     setInputs((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const isPositive = results.rendaMensalLiquida > 0;
+  const handleSalvarCenario = useCallback(() => {
+    const nome = nomeCenario.trim() || `Cenário ${new Date().toLocaleDateString("pt-BR")}`;
+    salvarCenario(nome, inputsComFluxo, fluxo, {
+      rendaMensalLiquida: results.rendaMensalLiquida,
+      rentabilidadeAnual: results.rentabilidadeAnual,
+      totalInvestido: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
+      financiamento: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
+      valorImovel: inputs.valorImovel,
+    });
+    setShowSalvarModal(false);
+    setNomeCenario("");
+    toast.success(`Cenário "${nome}" salvo!`, { description: "Acesse o histórico para consultar." });
+  }, [nomeCenario, salvarCenario, inputsComFluxo, fluxo, results, fluxoResults, inputs]);
+
+  const isPositive = results.rendaMensalLiquida > 0;;
   const rentAccent = results.rentabilidadeAnual >= 15 ? "green" : results.rentabilidadeAnual >= 8 ? "amber" : "red";
   const rentColor = rentAccent === "green" ? colors.green : rentAccent === "amber" ? colors.amber : colors.red;
 
@@ -429,20 +460,105 @@ export default function HomePage() {
           <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-5" style={{ color: colors.text2 }}>
             Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
           </p>
-          <button
-            onClick={handleShare}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-            style={{
-              background: copied ? colors.greenBg : colors.blueBg,
-              border: `1px solid ${copied ? colors.greenBorder : colors.blueBorder}`,
-              color: copied ? colors.green : colors.blue,
-            }}
-          >
-            {copied ? <Check size={12} /> : <Link2 size={12} />}
-            {copied ? "Link copiado!" : "Compartilhar simulação"}
-          </button>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={handleShare}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+              style={{
+                background: copied ? colors.greenBg : colors.blueBg,
+                border: `1px solid ${copied ? colors.greenBorder : colors.blueBorder}`,
+                color: copied ? colors.green : colors.blue,
+              }}
+            >
+              {copied ? <Check size={12} /> : <Link2 size={12} />}
+              {copied ? "Link copiado!" : "Compartilhar simulação"}
+            </button>
+            <button
+              onClick={() => setShowSalvarModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+              style={{
+                background: isDark ? "oklch(0.72 0.18 145 / 0.1)" : "oklch(0.48 0.2 145 / 0.08)",
+                border: `1px solid ${isDark ? "oklch(0.72 0.18 145 / 0.25)" : "oklch(0.48 0.2 145 / 0.2)"}`,
+                color: colors.green,
+              }}
+            >
+              <BookmarkPlus size={12} />
+              Salvar cenário
+            </button>
+          </div>
         </motion.div>
       </section>
+
+      {/* ── MODAL SALVAR CENÁRIO ── */}
+      <AnimatePresence>
+        {showSalvarModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowSalvarModal(false)}
+              className="fixed inset-0"
+              style={{ background: "oklch(0 0 0 / 0.6)", backdropFilter: "blur(6px)", zIndex: 80 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4"
+              style={{ zIndex: 90 }}
+            >
+              <div
+                className="rounded-2xl p-6"
+                style={{
+                  background: isDark ? "oklch(0.11 0.008 240)" : "oklch(1 0 0)",
+                  border: `1px solid ${isDark ? "oklch(1 0 0 / 0.08)" : "oklch(0 0 0 / 0.07)"}`,
+                  boxShadow: isDark ? "0 24px 64px oklch(0 0 0 / 0.6)" : "0 24px 64px oklch(0 0 0 / 0.15)",
+                }}
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: isDark ? "oklch(0.72 0.18 145 / 0.12)" : "oklch(0.48 0.2 145 / 0.1)", color: colors.green }}>
+                    <BookmarkPlus size={20} />
+                  </div>
+                  <div>
+                    <div className="font-black text-base" style={{ color: colors.text1 }}>Salvar cenário</div>
+                    <div className="text-xs" style={{ color: colors.text3 }}>Dê um nome para identificar esta simulação</div>
+                  </div>
+                </div>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder={`Cenário ${new Date().toLocaleDateString("pt-BR")}`}
+                  value={nomeCenario}
+                  onChange={(e) => setNomeCenario(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSalvarCenario(); if (e.key === "Escape") setShowSalvarModal(false); }}
+                  className="w-full px-4 py-3 rounded-xl text-sm outline-none mb-4"
+                  style={{
+                    background: isDark ? "oklch(0.08 0.005 240)" : "oklch(0.97 0.003 80)",
+                    border: `1px solid ${isDark ? "oklch(1 0 0 / 0.1)" : "oklch(0 0 0 / 0.08)"}`,
+                    color: colors.text1,
+                  }}
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowSalvarModal(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-70"
+                    style={{ background: isDark ? "oklch(1 0 0 / 0.06)" : "oklch(0 0 0 / 0.05)", color: colors.text2 }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSalvarCenario}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-black transition-all hover:opacity-90"
+                    style={{ background: colors.green, color: "white" }}
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── MOBILE KPIs ── */}
       <div className="md:hidden px-4 mb-4 grid grid-cols-2 gap-2">
@@ -759,11 +875,77 @@ export default function HomePage() {
                 </div>
               </GlassPanel>
             </div>
+
+            {/* Breakeven do Total Investido */}
+            {(() => {
+              const totalInv = fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio;
+              const rendaLiq = results.rendaMensalLiquida;
+              const mesesParaBreakeven = rendaLiq > 0 ? Math.ceil(totalInv / rendaLiq) : null;
+              const anos = mesesParaBreakeven !== null ? Math.floor(mesesParaBreakeven / 12) : null;
+              const mesesRest = mesesParaBreakeven !== null ? mesesParaBreakeven % 12 : null;
+              const progressPct = mesesParaBreakeven !== null ? Math.min((12 / mesesParaBreakeven) * 100, 100) : 0;
+              return (
+                <GlassPanel delay={0.3} colors={colors}>
+                  <SectionHeader icon={<TrendingUp size={13} />} label="Breakeven do Investimento" colors={colors} />
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    <div className="flex-1">
+                      <div className="text-xs mb-1" style={{ color: colors.text3 }}>Tempo para recuperar o capital investido</div>
+                      {mesesParaBreakeven !== null ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-black" style={{ color: colors.green, fontFamily: "'Geist', sans-serif" }}>
+                            {anos}a {mesesRest}m
+                          </span>
+                          <span className="text-xs" style={{ color: colors.text3 }}>({mesesParaBreakeven} meses)</span>
+                        </div>
+                      ) : (
+                        <div className="text-2xl font-black" style={{ color: colors.red }}>Renda negativa</div>
+                      )}
+                      <div className="text-xs mt-1" style={{ color: colors.text4 }}>
+                        Base: {formatCurrency(totalInv)} investidos ÷ {formatCurrency(rendaLiq)}/mês
+                      </div>
+                    </div>
+                    <div className="flex-1 w-full">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span style={{ color: colors.text3 }}>Progresso anual estimado</span>
+                        <span style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>{progressPct.toFixed(1)}% / ano</span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
+                        <motion.div
+                          initial={{ width: 0 }} animate={{ width: `${progressPct}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="h-full rounded-full"
+                          style={{ background: `linear-gradient(90deg, ${colors.blue}, ${colors.green})` }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-3">
+                        {[
+                          { label: "Bruto", meses: mesesParaBreakeven, color: colors.text2 },
+                          { label: "Holding (−6%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.94)) : null, color: colors.blue },
+                          { label: "PF (−27%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.73)) : null, color: colors.amber },
+                        ].map(({ label, meses, color }) => (
+                          <div key={label} className="text-center p-2 rounded-xl" style={{ background: colors.inputBg }}>
+                            <div className="text-xs mb-0.5" style={{ color: colors.text4 }}>{label}</div>
+                            {meses !== null ? (
+                              <>
+                                <div className="text-sm font-black" style={{ color, fontFamily: "'Geist Mono', monospace" }}>
+                                  {Math.floor(meses / 12)}a {meses % 12}m
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-xs font-bold" style={{ color: colors.red }}>—</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </GlassPanel>
+              );
+            })()}
           </div>
         </div>
       </div>
-
-      {/* ── FOOTER ── */}
+      {/* FOOTER */}
       <footer className="py-6 px-4 text-center" style={{ borderTop: `1px solid ${colors.divider}` }}>
         <p className="text-xs" style={{ color: colors.text4 }}>
           Calculadora de rentabilidade para locação de curta temporada. Os valores são estimativas e não constituem assessoria financeira.

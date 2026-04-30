@@ -177,13 +177,14 @@ function exportFluxoPNG(
   pctInvestido: number,
   pctFinanciamento: number,
   nome?: string,
+  incluirDecoracao = true,
 ) {
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
   const cols: { header: string; sub: string; value: string; isGreen?: boolean }[] = [];
   fluxo.ato.forEach((p) => cols.push({ header: p.label, sub: p.mes, value: fmt(p.valor) }));
   cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
   fluxo.anuais.forEach((a, i) => cols.push({ header: `ANUAL ${i + 1}`, sub: a.mes, value: fmt(a.valor) }));
-  cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
+  if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
   cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
   cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
   cols.push({ header: "VALOR DO IMOVEL", sub: "base", value: fmt(fluxo.valorImovel) });
@@ -295,11 +296,11 @@ export default function FluxoPage() {
   const pctInvestido = fluxo.valorImovel > 0 ? (results.totalInvestido / fluxo.valorImovel) * 100 : 0;
   const pctFinanciamento = 100 - pctInvestido;
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback((incluirDecoracao = true) => {
     setExporting(true);
-    try { exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento); }
+    try { exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao); }
     finally { setTimeout(() => setExporting(false), 500); }
-  }, [fluxo, results, pctInvestido, pctFinanciamento]);
+  }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento]);
 
   return (
     <div className="w-full pb-16" style={{ fontFamily: "'Geist', sans-serif" }}>
@@ -446,12 +447,22 @@ export default function FluxoPage() {
               </div>
               <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>Fluxo de Pagamento</span>
             </div>
-            <button onClick={handleExport} disabled={exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
-              style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}>
-              <Download size={12} />
-              {exporting ? "Gerando..." : "Exportar PNG"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleExport(true)} disabled={exporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+                style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}
+                title="Exportar com coluna de Decoração">
+                <Download size={12} />
+                {exporting ? "Gerando..." : "Com decoração"}
+              </button>
+              <button onClick={() => handleExport(false)} disabled={exporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+                style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}`, color: colors.green }}
+                title="Exportar sem coluna de Decoração">
+                <Download size={12} />
+                Sem decoração
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto" style={{ background: colors.surface }}>
             <table className="w-full" style={{ borderCollapse: "collapse", minWidth: "700px" }}>
