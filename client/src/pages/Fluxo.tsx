@@ -227,7 +227,7 @@ function exportFluxoPNG(
 export default function FluxoPage() {
   const {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
-    updateAnualMes, updateAnualValor, addAnual, removeAnual, setFluxo,
+    updateAnualMes, updateAnualValor, addAnual, removeAnual, setFluxo, syncValorImovel,
   } = useFluxo();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -437,9 +437,7 @@ export default function FluxoPage() {
                     <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>{pctFinanciamento.toFixed(1)}% do imóvel</div>
                   </TCell>
                   <TCell colors={colors}>
-                    <div className="text-sm font-bold" style={{ color: colors.text1, fontFamily: "'Geist Mono', monospace" }}>
-                      {formatCurrency(fluxo.valorImovel)}
-                    </div>
+                    <EditableValue value={fluxo.valorImovel} onChange={(v) => syncValorImovel(v)} colors={colors} />
                   </TCell>
                 </tr>
               </tbody>
