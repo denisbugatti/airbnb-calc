@@ -98,6 +98,25 @@ function useColors(isDark: boolean) {
   }), [isDark]);
 }
 
+// ─── Helpers de formatação de milhar ─────────────────────────────────────────
+function applyThousandsMask(raw: string): string {
+  // Mantém apenas dígitos
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  // Remove zeros à esquerda
+  const trimmed = digits.replace(/^0+(?=\d)/, "");
+  // Aplica pontos de milhar
+  return trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+function parseThousands(str: string): number {
+  const clean = str.replace(/\./g, "");
+  const num = parseInt(clean, 10);
+  return isNaN(num) ? 0 : num;
+}
+function formatThousands(num: number): string {
+  if (!num) return "";
+  return Math.round(num).toLocaleString("pt-BR");
+}
 // ─── Input Field ──────────────────────────────────────────────────────────────
 interface InputFieldProps {
   label: string; value: number; onChange: (v: number) => void;
@@ -105,14 +124,44 @@ interface InputFieldProps {
   tooltip?: string; integer?: boolean; icon?: React.ReactNode;
   isDark: boolean; colors: ReturnType<typeof useColors>;
 }
-function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1, tooltip, integer = false, icon, isDark, colors }: InputFieldProps) {
+function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1, tooltip, integer = false, icon, isDark: _isDark, colors }: InputFieldProps) {
   const [focused, setFocused] = useState(false);
-  const [raw, setRaw] = useState("");
-  const displayValue = focused
-    ? raw
-    : integer
-    ? Math.round(value).toString()
-    : value.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Valor exibido fora do foco: sempre com pontos de milhar
+  const displayValue = focused ? undefined : formatThousands(value);
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    if (inputRef.current) {
+      inputRef.current.value = formatThousands(value);
+      setTimeout(() => inputRef.current?.select(), 0);
+    }
+  }, [value]);
+  const handleBlur = useCallback(() => {
+    setFocused(false);
+    if (inputRef.current) {
+      const parsed = parseThousands(inputRef.current.value);
+      const clamped = Math.max(min, parsed);
+      onChange(clamped);
+      inputRef.current.value = formatThousands(clamped);
+    }
+  }, [onChange, min]);
+  const handleInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const raw = el.value;
+    const cursor = el.selectionStart ?? raw.length;
+    const dotsBefore = (raw.slice(0, cursor).match(/\./g) || []).length;
+    const formatted = applyThousandsMask(raw);
+    el.value = formatted;
+    const newDotsBefore = (formatted.slice(0, cursor).match(/\./g) || []).length;
+    const newCursor = Math.max(0, cursor + (newDotsBefore - dotsBefore));
+    el.setSelectionRange(newCursor, newCursor);
+    onChange(parseThousands(formatted));
+  }, [onChange]);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp") { e.preventDefault(); const v = Math.max(min, value + step); onChange(v); if (inputRef.current) inputRef.current.value = formatThousands(v); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); const v = Math.max(min, value - step); onChange(v); if (inputRef.current) inputRef.current.value = formatThousands(v); }
+    else if (e.key === "Enter") inputRef.current?.blur();
+  }, [value, step, min, onChange]);
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -141,23 +190,26 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
       >
         {prefix && <span className="pl-3 text-sm font-medium select-none" style={{ color: colors.text3 }}>{prefix}</span>}
         <input
-          type="text" inputMode="decimal" value={displayValue}
-          onFocus={() => { setFocused(true); setRaw(value.toString().replace(".", ",")); }}
-          onBlur={() => {
-            setFocused(false);
-            const parsed = parseFloat(raw.replace(/\./g, "").replace(",", "."));
-            if (!isNaN(parsed) && parsed >= min) onChange(parsed);
-          }}
-          onChange={(e) => setRaw(e.target.value)}
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          defaultValue={displayValue}
+          key={focused ? "editing" : `v-${value}`}
+          placeholder="0"
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent px-3 py-3 text-sm font-medium outline-none min-w-0"
           style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
+          autoComplete="off"
         />
         {suffix && <span className="pr-2 text-xs select-none" style={{ color: colors.text3 }}>{suffix}</span>}
         <div className="flex flex-col border-l" style={{ borderColor: colors.divider }}>
-          <button onClick={() => onChange(Math.max(min, value + step))} className="px-2.5 py-2 transition-colors rounded-tr-xl" style={{ color: colors.text3 }}>
+          <button onClick={() => { const v = Math.max(min, value + step); onChange(v); }} className="px-2.5 py-2 transition-colors rounded-tr-xl" style={{ color: colors.text3 }}>
             <ChevronUp size={13} />
           </button>
-          <button onClick={() => onChange(Math.max(min, value - step))} className="px-2.5 py-2 transition-colors rounded-br-xl" style={{ color: colors.text3 }}>
+          <button onClick={() => { const v = Math.max(min, value - step); onChange(v); }} className="px-2.5 py-2 transition-colors rounded-br-xl" style={{ color: colors.text3 }}>
             <ChevronDown size={13} />
           </button>
         </div>

@@ -3,7 +3,7 @@
  * Dual theme: Dark Cosmos / Slate Premium
  * Exportação PNG via Canvas API nativa (sem html2canvas)
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useFluxo } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -38,32 +38,83 @@ function useColors(isDark: boolean) {
   };
 }
 
+// Helpers de milhar para o Fluxo
+function fApplyMask(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const trimmed = digits.replace(/^0+(?=\d)/, "");
+  return trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+function fParse(str: string): number {
+  const num = parseInt(str.replace(/\./g, ""), 10);
+  return isNaN(num) ? 0 : num;
+}
+function fFormat(v: number): string {
+  if (!v && v !== 0) return "";
+  return Math.round(v).toLocaleString("pt-BR");
+}
 function EditableValue({ value, onChange, prefix = "R$", colors }: {
   value: number; onChange: (v: number) => void; prefix?: string;
   colors: ReturnType<typeof useColors>;
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [editing, setEditing] = useState(false);
-  const [raw, setRaw] = useState("");
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  return editing ? (
-    <input autoFocus type="text" inputMode="decimal" value={raw}
-      onChange={(e) => setRaw(e.target.value)}
-      onBlur={() => {
-        const parsed = parseFloat(raw.replace(/\./g, "").replace(",", "."));
-        if (!isNaN(parsed) && parsed >= 0) onChange(parsed);
-        setEditing(false);
-      }}
-      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-      className="bg-transparent border-b outline-none text-center w-full text-sm"
-      style={{ borderColor: colors.blue, color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
-    />
-  ) : (
-    <button onClick={() => { setEditing(true); setRaw(value.toString()); }}
-      className="w-full text-center transition-opacity hover:opacity-70 text-sm font-bold"
-      style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }} title="Clique para editar">
-      {prefix && <span style={{ color: colors.text3, fontSize: "0.65em", marginRight: "2px" }}>{prefix}</span>}
-      {fmt(value)}
-    </button>
+  const handleFocus = () => {
+    setEditing(true);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.value = fFormat(value);
+        inputRef.current.select();
+      }
+    }, 0);
+  };
+  const handleBlur = () => {
+    setEditing(false);
+    if (inputRef.current) {
+      const parsed = fParse(inputRef.current.value);
+      onChange(Math.max(0, parsed));
+      inputRef.current.value = fFormat(Math.max(0, parsed));
+    }
+  };
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const raw = el.value;
+    const cursor = el.selectionStart ?? raw.length;
+    const dotsBefore = (raw.slice(0, cursor).match(/\./g) || []).length;
+    const formatted = fApplyMask(raw);
+    el.value = formatted;
+    const newDots = (formatted.slice(0, cursor).match(/\./g) || []).length;
+    const newCursor = Math.max(0, cursor + (newDots - dotsBefore));
+    el.setSelectionRange(newCursor, newCursor);
+    onChange(fParse(formatted));
+  };
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-center gap-1">
+        {prefix && !editing && (
+          <span style={{ color: colors.text3, fontSize: "0.65em" }}>{prefix}</span>
+        )}
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          defaultValue={fFormat(value)}
+          key={`ev-${value}`}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onInput={handleInput}
+          onKeyDown={(e) => { if (e.key === "Enter") inputRef.current?.blur(); }}
+          className="bg-transparent outline-none text-center text-sm font-bold min-w-0 w-full"
+          style={{
+            color: colors.mono,
+            fontFamily: "'Geist Mono', monospace",
+            borderBottom: editing ? `1px solid ${colors.blue}` : "none",
+          }}
+          autoComplete="off"
+          title="Clique para editar"
+        />
+      </div>
+    </div>
   );
 }
 
