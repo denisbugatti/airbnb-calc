@@ -773,15 +773,16 @@ export default function HomePage() {
             <GlassPanel delay={0.1} colors={colors}>
               <SectionHeader icon={<BarChart3 size={13} />} label="Composição da Renda" colors={colors} />
               <div className="space-y-2">
-                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
-                <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="Wi-Fi/Água/Luz" value={inputs.wifi + inputs.agua + inputs.luz} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
-                <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
-                <div className="h-px my-2" style={{ background: colors.divider }} />
+                {/* Ordem: Renda liquida (topo) -> custos de baixo para cima -> Receita bruta (base) */}
                 <WaterfallBar label="Renda líquida" value={results.rendaMensalLiquida} total={results.receitaBrutaMensal}
                   color={isPositive ? colors.green : colors.red} colors={colors} />
+                <div className="h-px my-2" style={{ background: colors.divider }} />
+                <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                <WaterfallBar label="Wi-Fi/Água/Luz" value={inputs.wifi + inputs.agua + inputs.luz} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
               </div>
             </GlassPanel>
 
@@ -789,7 +790,7 @@ export default function HomePage() {
             <GlassPanel delay={0.15} colors={colors}>
               <SectionHeader icon={<Shield size={13} />} label="Variantes Fiscais" colors={colors} />
               <div className="grid grid-cols-3 gap-2 md:gap-3">
-                <FiscalCard label="Bruto" renda={results.rendaMensalLiquida}
+                <FiscalCard label="Lucro" renda={results.rendaMensalLiquida}
                   rentabilidade={results.rentabilidadeAnual} icon={<DollarSign size={13} />}
                   accent="blue" isHighlight isDark={isDark} colors={colors} />
                 <FiscalCard label="Holding" renda={results.rendaHolding}
@@ -801,7 +802,7 @@ export default function HomePage() {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: colors.text4 }}>
                 <div className="rounded-lg px-3 py-2" style={{ background: colors.inputBg }}>
-                  <span style={{ color: colors.green }}>Holding</span>: desconto de 6% sobre renda bruta
+                  <span style={{ color: colors.green }}>Holding</span>: desconto de 9% sobre renda bruta
                 </div>
                 <div className="rounded-lg px-3 py-2" style={{ background: colors.inputBg }}>
                   <span style={{ color: colors.amber }}>PF</span>: desconto de 27% sobre renda bruta
@@ -920,8 +921,8 @@ export default function HomePage() {
                       </div>
                       <div className="grid grid-cols-3 gap-2 mt-3">
                         {[
-                          { label: "Bruto", meses: mesesParaBreakeven, color: colors.text2 },
-                          { label: "Holding (−6%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.94)) : null, color: colors.blue },
+                          { label: "Lucro", meses: mesesParaBreakeven, color: colors.text2 },
+                          { label: "Holding (−9%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.91)) : null, color: colors.blue },
                           { label: "PF (−27%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.73)) : null, color: colors.amber },
                         ].map(({ label, meses, color }) => (
                           <div key={label} className="text-center p-2 rounded-xl" style={{ background: colors.inputBg }}>

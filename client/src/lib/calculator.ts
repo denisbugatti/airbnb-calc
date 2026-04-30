@@ -59,7 +59,7 @@ export interface CalculatorResults {
 
   // === RESULTADO ===
   rendaMensalLiquida: number;
-  rendaHolding: number;         // rendaLiquida * 0.94
+  rendaHolding: number;         // rendaLiquida * 0.91 (9% imposto Holding)
   rendaPF: number;              // rendaLiquida * 0.73
 
   // === MÉTRICAS DE RETORNO ===
@@ -120,7 +120,7 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
 
   // === RESULTADO ===
   const rendaMensalLiquida = receitaBrutaMensal - totalDespesas;
-  const rendaHolding = rendaMensalLiquida * 0.94;
+  const rendaHolding = rendaMensalLiquida * 0.91; // Holding: 9% de imposto
   const rendaPF = rendaMensalLiquida * 0.73;
 
   // === MÉTRICAS DE RETORNO ===
@@ -128,7 +128,7 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
     capitalProprio > 0 ? (rendaMensalLiquida * 100) / capitalProprio : 0;
   const rentabilidadeAnual = ganhoFinanceiroMensal * 12;
   const rentabilidadeHoldingAnual = capitalProprio > 0
-    ? (rendaHolding * 100 / capitalProprio) * 12 : 0;
+    ? (rendaHolding * 100 / capitalProprio) * 12 : 0; // base: 9% imposto Holding
   const rentabilidadePFAnual = capitalProprio > 0
     ? (rendaPF * 100 / capitalProprio) * 12 : 0;
 
