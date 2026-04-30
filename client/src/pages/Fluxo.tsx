@@ -193,7 +193,7 @@ function exportFluxoPNG(
   if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
   cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
   cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
-  cols.push({ header: "VALOR DO IMOVEL", sub: "base", value: fmt(fluxo.valorImovel) });
+  cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(fluxo.valorImovel) });
 
   const PADDING = 40;
   const COL_W = 148;
@@ -242,9 +242,11 @@ function exportFluxoPNG(
     ctx.textAlign = "center";
     ctx.fillText(col.header, x + COL_W / 2, tableY + 26);
 
-    ctx.fillStyle = isGreen ? "#bbf7d0" : "#bae6fd";
-    ctx.font = "10px system-ui, sans-serif";
-    ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
+    if (col.sub) {
+      ctx.fillStyle = isGreen ? "#bbf7d0" : "#bae6fd";
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
+    }
 
     // Row bg
     ctx.fillStyle = isGreen ? "#dcfce7" : "#ffffff";
