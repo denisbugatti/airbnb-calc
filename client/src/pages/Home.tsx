@@ -328,6 +328,9 @@ function FiscalCard({ label, renda, rentabilidade, icon, accent, isHighlight = f
           {formatPercent(animRent)} a.a.
         </div>
         <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rentabilidade anual</div>
+        <div className="text-xs font-semibold mt-1" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
+          {formatCurrency(renda)} / mês
+        </div>
       </div>
     </div>
   );
@@ -412,7 +415,7 @@ export default function HomePage() {
 
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
-    capitalProprio: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
+    capitalProprio: (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (fluxo.decoracao || 0),
     saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
   }), [inputs, fluxoResults]);
 
@@ -564,8 +567,8 @@ export default function HomePage() {
       <div className="md:hidden px-4 mb-4 grid grid-cols-2 gap-2">
         <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
           formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="md" isDark={isDark} colors={colors} />
-        <MetricCard value={results.rentabilidadeAnual} label="Rentabilidade anual"
-          formatter={(v) => `${formatPercent(v)} a.a.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="md" isDark={isDark} colors={colors} />
+        <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital"
+          formatter={(v) => `${formatPercent(v)} a.m.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="md" isDark={isDark} colors={colors} />
       </div>
 
       {/* ── MOBILE TABS ── */}
@@ -761,8 +764,8 @@ export default function HomePage() {
             <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3">
               <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
                 formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
-              <MetricCard value={results.rentabilidadeAnual} label="Rentabilidade anual"
-                formatter={(v) => `${formatPercent(v)} a.a.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="lg" isDark={isDark} colors={colors} />
+              <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital"
+                formatter={(v) => `${formatPercent(v)} a.m.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="lg" isDark={isDark} colors={colors} />
               <MetricCard value={results.receitaBrutaMensal} label="Receita bruta / mês"
                 formatter={formatCurrency} icon={<DollarSign size={14} />} accent="blue" isDark={isDark} colors={colors} />
               <MetricCard value={results.totalDespesas} label="Total de despesas"
