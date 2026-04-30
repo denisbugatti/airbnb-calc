@@ -21,7 +21,7 @@ export interface CalculatorInputs {
   // === FINANCIAMENTO ===
   capitalProprio: number;   // Capital próprio investido (R$) — base do Cash-on-Cash
   saldoFinanciar: number;   // Saldo a financiar (R$)
-  taxaJurosMensal: number;  // Taxa de juros mensal (padrão: 0.9% = 0.009)
+  taxaJurosMensal: number;  // Taxa de juros mensal decimal (ex: 0.01 = 1% a.m. = 12% a.a.)
   prazoMeses: number;       // Prazo do financiamento em meses (padrão: 360)
 
   // === DESPESAS FIXAS ===
@@ -169,7 +169,7 @@ export const defaultInputs: CalculatorInputs = {
   diasOcupacao: 23,
   capitalProprio: 280_000,
   saldoFinanciar: 197_000,
-  taxaJurosMensal: 0.009,
+  taxaJurosMensal: 0.01,   // 12% a.a. = 1% a.m.
   prazoMeses: 360,
   condominio: 700,
   iptuMensal: 290,

@@ -460,8 +460,43 @@ export default function HomePage() {
                   <InputField label="Saldo a financiar" prefix="R$" min={0} step={1000} tooltip="Valor financiado pelo banco"
                     {...iF("saldoFinanciar")} />
                 )}
-                <InputField label="Taxa mensal" suffix="%" min={0.1} step={0.05} tooltip="Taxa de juros mensal do financiamento"
-                  {...iF("taxaJurosMensal")} />
+                {/* Taxa anual → converte para mensal internamente */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium" style={{ color: colors.text3 }}>Taxa de juros anual</label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info size={11} className="cursor-help" style={{ color: colors.text4 }} />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-48 text-xs">
+                        Digite a taxa anual. A taxa mensal equivalente é calculada automaticamente.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center rounded-xl transition-all duration-200 flex-1"
+                      style={{ background: colors.inputBg, border: `1px solid ${colors.border}`, boxShadow: colors.inputShadow }}
+                    >
+                      <input
+                        type="text" inputMode="decimal"
+                        value={(() => { const aa = inputs.taxaJurosMensal * 100 * 12; return aa % 1 === 0 ? aa.toFixed(0) : aa.toFixed(2); })()}
+                        onChange={(e) => {
+                          const aa = parseFloat(e.target.value.replace(",", "."));
+                          if (!isNaN(aa) && aa > 0) set("taxaJurosMensal")(aa / 100 / 12);
+                        }}
+                        className="flex-1 bg-transparent px-3 py-3 text-sm font-medium outline-none min-w-0"
+                        style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
+                      />
+                      <span className="pr-3 text-xs select-none" style={{ color: colors.text3 }}>% a.a.</span>
+                    </div>
+                  </div>
+                  <div className="mt-1.5 text-xs" style={{ color: colors.text4 }}>
+                    Equivalente: <span style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      {(inputs.taxaJurosMensal * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}% a.m.
+                    </span>
+                  </div>
+                </div>
                 <InputField label="Prazo" suffix="meses" min={12} step={12} integer tooltip="Prazo total do financiamento em meses"
                   {...iF("prazoMeses")} />
                 <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
