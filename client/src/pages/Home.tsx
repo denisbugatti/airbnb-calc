@@ -27,8 +27,8 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { encodeShareLink, decodeShareLink, copyToClipboard } from "@/lib/shareLink";
-import { Link2, Check, BookmarkPlus } from "lucide-react";
+import { decodeShareLink } from "@/lib/shareLink";
+import { BookmarkPlus } from "lucide-react";
 import { useCenarios, type Cenario } from "@/contexts/CenariosContext";
 
 // ─── Animated Number ──────────────────────────────────────────────────────────
@@ -393,7 +393,6 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
   const { results: fluxoResults, syncValorImovel, registerValorImovelCallback, fluxo, nomeEmpreendimento } = useFluxo();
-  const [copied, setCopied] = useState(false);
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
   const [nomeCenario, setNomeCenario] = useState("");
@@ -406,18 +405,6 @@ export default function HomePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleShare = useCallback(async () => {
-    const link = encodeShareLink(inputs, fluxo, nomeEmpreendimento);
-    const ok = await copyToClipboard(link);
-    if (ok) {
-      setCopied(true);
-      toast.success("Link copiado!", { description: "Cole o link para compartilhar esta simulação." });
-      setTimeout(() => setCopied(false), 2500);
-    } else {
-      toast.error("Não foi possível copiar o link.");
-    }
-  }, [inputs, fluxo, nomeEmpreendimento]);
 
   // Registra callback para receber atualizações do Fluxo → Calculadora (bidirecional)
   useEffect(() => {
@@ -495,18 +482,6 @@ export default function HomePage() {
             Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-              style={{
-                background: copied ? colors.greenBg : colors.blueBg,
-                border: `1px solid ${copied ? colors.greenBorder : colors.blueBorder}`,
-                color: copied ? colors.green : colors.blue,
-              }}
-            >
-              {copied ? <Check size={12} /> : <Link2 size={12} />}
-              {copied ? "Link copiado!" : "Compartilhar simulação"}
-            </button>
             <button
               onClick={() => setShowSalvarModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
@@ -795,12 +770,12 @@ export default function HomePage() {
             <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3">
               <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
                 formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
+              <MetricCard value={results.rendaMensalLiquida * 12} label="Renda líquida / ano"
+                formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
               <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital"
                 formatter={(v) => `${formatPercent(v)} a.m.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="lg" isDark={isDark} colors={colors} />
               <MetricCard value={results.receitaBrutaMensal} label="Receita bruta / mês"
                 formatter={formatCurrency} icon={<DollarSign size={14} />} accent="blue" isDark={isDark} colors={colors} />
-              <MetricCard value={results.totalDespesas} label="Total de despesas"
-                formatter={formatCurrency} icon={<Minus size={14} />} accent="red" isDark={isDark} colors={colors} />
             </div>
 
             {/* Composição da renda */}
