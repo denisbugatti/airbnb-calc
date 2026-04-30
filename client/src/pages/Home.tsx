@@ -337,11 +337,15 @@ function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, i
           {formatCurrency(receitaBruta)}
         </div>
       </div>
-      {/* Renda Líquida */}
+      {/* Renda Líquida (mensal + anual) */}
       <div>
-        <div className="text-xs font-medium" style={{ color: colors.text4 }}>Renda líquida</div>
+        <div className="text-xs font-medium" style={{ color: colors.text4 }}>Renda líquida / mês</div>
         <div className="text-lg md:text-2xl font-black" style={{ color: accentColor, fontFamily: "'Geist', sans-serif", textShadow: isDark ? `0 0 20px ${accentGlow}` : "none" }}>
           {formatCurrency(animRenda)}
+        </div>
+        <div className="text-xs font-medium mt-1.5" style={{ color: colors.text4 }}>Renda líquida / ano</div>
+        <div className="text-sm md:text-base font-bold" style={{ color: colors.text2, fontFamily: "'Geist Mono', monospace" }}>
+          {formatCurrency(animRenda * 12)}
         </div>
       </div>
       {/* Rentabilidade Mensal + Anual */}
