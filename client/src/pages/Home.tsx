@@ -5,6 +5,10 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ReferenceLine, Legend,
+} from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   calcular,
@@ -793,16 +797,17 @@ export default function HomePage() {
             <GlassPanel delay={0.1} colors={colors}>
               <SectionHeader icon={<BarChart3 size={13} />} label="Composição da Renda" colors={colors} />
               <div className="space-y-2">
-                {/* Ordem: Renda liquida (topo) -> custos de baixo para cima -> Receita bruta (base) */}
+                {/* Ordem: Receita bruta (topo) -> custos -> Renda líquida (base) */}
+                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
+                <div className="h-px my-2" style={{ background: colors.divider }} />
+                <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="Wi-Fi/Água/Luz" value={inputs.wifi + inputs.agua + inputs.luz} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
+                <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                <div className="h-px my-2" style={{ background: colors.divider }} />
                 <WaterfallBar label="Renda líquida" value={results.rendaMensalLiquida} total={results.receitaBrutaMensal}
                   color={isPositive ? colors.green : colors.red} colors={colors} />
-                <div className="h-px my-2" style={{ background: colors.divider }} />
-                <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
-                <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
-                <WaterfallBar label="Wi-Fi/Água/Luz" value={inputs.wifi + inputs.agua + inputs.luz} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
               </div>
             </GlassPanel>
 
@@ -963,6 +968,155 @@ export default function HomePage() {
                         ))}
                       </div>
                     </div>
+                  </div>
+                </GlassPanel>
+              );
+            })()}
+
+            {/* ── GRÁFICO DE EVOLUÇÃO DO FINANCIAMENTO ── */}
+            {(() => {
+              const saldo = inputsComFluxo.saldoFinanciar;
+              const taxa = inputsComFluxo.taxaJurosMensal;
+              const prazo = inputsComFluxo.prazoMeses;
+              const parcela = results.parcelaFinanciamento;
+              const rendaBase = results.rendaMensalLiquida;
+              // Só mostra se houver financiamento e renda positiva
+              if (saldo <= 0 || parcela <= 0) return null;
+              // Inflação anual estimada de 5% para projeção do aluguel
+              const inflacaoAnual = 0.05;
+              // Gera dados anuais por até 30 anos ou até quitar
+              const anosTotal = Math.min(Math.ceil(prazo / 12), 30);
+              const chartData: Array<{
+                ano: number;
+                aluguel: number;
+                parcela: number;
+                lucro: number;
+                saldoDevedor: number;
+              }> = [];
+              let saldoAtual = saldo;
+              for (let ano = 1; ano <= anosTotal; ano++) {
+                // Aluguel cresce com inflação
+                const aluguelAno = rendaBase * Math.pow(1 + inflacaoAnual, ano - 1);
+                // Parcela SAC-like: amortiza o saldo com juros Price
+                // Saldo devedor ao final do ano (12 meses de amortização)
+                for (let m = 0; m < 12; m++) {
+                  if (saldoAtual <= 0) break;
+                  const juros = saldoAtual * taxa;
+                  const amort = Math.max(0, parcela - juros);
+                  saldoAtual = Math.max(0, saldoAtual - amort);
+                }
+                // Parcela do ano (Price = constante)
+                const parcelaAno = saldoAtual > 0 ? parcela : 0;
+                const lucroAno = aluguelAno - parcelaAno;
+                chartData.push({
+                  ano,
+                  aluguel: Math.round(aluguelAno),
+                  parcela: Math.round(parcelaAno),
+                  lucro: Math.round(lucroAno),
+                  saldoDevedor: Math.round(saldoAtual),
+                });
+                if (saldoAtual <= 0) break;
+              }
+              // Ponto de cruzamento (onde aluguel > parcela — sempre no ano 1 se renda positiva)
+              const crossYear = chartData.find(d => d.aluguel > d.parcela)?.ano ?? null;
+              // Anos de destaque: 1, metade, último
+              const highlightYears = new Set([
+                1,
+                Math.ceil(chartData.length / 2),
+                chartData.length,
+              ]);
+              return (
+                <GlassPanel delay={0.35} colors={colors}>
+                  <SectionHeader icon={<TrendingUp size={13} />} label="Evolução do Financiamento" colors={colors} />
+                  <div className="text-xs mb-3" style={{ color: colors.text3 }}>
+                    Projeção do aluguel líquido (com +5% a.a.) vs. parcela do financiamento ao longo dos anos
+                  </div>
+                  <div style={{ height: 260 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "oklch(1 0 0 / 0.06)" : "oklch(0 0 0 / 0.06)"} />
+                        <XAxis
+                          dataKey="ano"
+                          tick={{ fill: colors.text4, fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={{ stroke: colors.divider }}
+                          label={{ value: "Anos", position: "insideBottom", offset: -2, fill: colors.text3, fontSize: 11 }}
+                        />
+                        <YAxis
+                          tick={{ fill: colors.text4, fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                          width={42}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            background: isDark ? "oklch(0.12 0.01 240)" : "oklch(1 0 0)",
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: 10,
+                            fontSize: 12,
+                            color: colors.text1,
+                          }}
+                          labelFormatter={(v) => `Ano ${v}`}
+                          formatter={(value: number, name: string) => [
+                            formatCurrency(value),
+                            name === "aluguel" ? "Aluguel líquido" : name === "parcela" ? "Parcela financiamento" : "Lucro mensal",
+                          ]}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                          formatter={(value) =>
+                            value === "aluguel" ? "Aluguel líquido" :
+                            value === "parcela" ? "Parcela financiamento" : "Lucro mensal"
+                          }
+                        />
+                        {crossYear && (
+                          <ReferenceLine
+                            x={crossYear}
+                            stroke={colors.green}
+                            strokeDasharray="4 4"
+                            label={{ value: "Payback", fill: colors.green, fontSize: 10, position: "top" }}
+                          />
+                        )}
+                        <Line
+                          type="monotone" dataKey="aluguel" stroke={colors.green}
+                          strokeWidth={2.5} dot={false}
+                          activeDot={{ r: 5, fill: colors.green }}
+                        />
+                        <Line
+                          type="monotone" dataKey="parcela" stroke={colors.blue}
+                          strokeWidth={2} dot={false} strokeDasharray="5 3"
+                          activeDot={{ r: 5, fill: colors.blue }}
+                        />
+                        <Line
+                          type="monotone" dataKey="lucro" stroke={colors.amber}
+                          strokeWidth={1.5} dot={false} strokeDasharray="2 2"
+                          activeDot={{ r: 4, fill: colors.amber }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Cards de destaque */}
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    {chartData
+                      .filter(d => highlightYears.has(d.ano))
+                      .map(d => (
+                        <div key={d.ano} className="rounded-xl p-3" style={{ background: colors.inputBg }}>
+                          <div className="text-xs mb-1" style={{ color: colors.text4 }}>Ano {d.ano}</div>
+                          <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                            {formatCurrency(d.aluguel)}
+                          </div>
+                          <div className="text-xs" style={{ color: colors.text3 }}>aluguel</div>
+                          <div className="text-xs font-semibold mt-1" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                            {formatCurrency(d.parcela)}
+                          </div>
+                          <div className="text-xs" style={{ color: colors.text3 }}>parcela</div>
+                          <div className="text-xs font-bold mt-1" style={{ color: d.lucro >= 0 ? colors.amber : colors.red, fontFamily: "'Geist Mono', monospace" }}>
+                            {formatCurrency(d.lucro)}
+                          </div>
+                          <div className="text-xs" style={{ color: colors.text3 }}>lucro</div>
+                        </div>
+                      ))}
                   </div>
                 </GlassPanel>
               );
