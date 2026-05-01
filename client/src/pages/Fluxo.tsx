@@ -25,6 +25,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ONE_INNOVATION_LOGO } from "@/lib/defaultLogo";
 
 function useColors(isDark: boolean) {
   return {
@@ -132,13 +133,12 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
             borderBottom: editing ? `1px solid ${colors.blue}` : "none",
           }}
           autoComplete="off"
-          title="Clique para editar"
+           title="Clique para editar"
         />
       </div>
     </div>
   );
 }
-
 function EditableMes({ value, onChange, colors }: {
   value: string; onChange: (v: string) => void; colors: ReturnType<typeof useColors>;
 }) {
@@ -242,7 +242,8 @@ function SortableAnualTCell({ id, children, colors }: {
   );
 }
 
-function exportFluxoPNG(
+// Gera o PNG e retorna o dataURL (Promise)
+function gerarFluxoPNG(
   fluxo: ReturnType<typeof useFluxo>["fluxo"],
   results: ReturnType<typeof useFluxo>["results"],
   pctInvestido: number,
@@ -250,122 +251,100 @@ function exportFluxoPNG(
   nome?: string,
   incluirDecoracao = true,
   logoDataUrl?: string,
-) {
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-  const cols: { header: string; sub: string; value: string; isGreen?: boolean }[] = [];
-  fluxo.ato.forEach((p) => cols.push({ header: p.label, sub: p.mes, value: fmt(p.valor) }));
-  cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
-  fluxo.anuais.forEach((a, i) => cols.push({ header: `ANUAL ${i + 1}`, sub: a.mes, value: fmt(a.valor) }));
-  if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
-  cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
-  cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
-  cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(fluxo.valorImovel) });
+): Promise<string> {
+  return new Promise((resolve) => {
+    const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+    const cols: { header: string; sub: string; value: string; isGreen?: boolean }[] = [];
+    fluxo.ato.forEach((p) => cols.push({ header: p.label, sub: p.mes, value: fmt(p.valor) }));
+    cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
+    fluxo.anuais.forEach((a, i) => cols.push({ header: `ANUAL ${i + 1}`, sub: a.mes, value: fmt(a.valor) }));
+    if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
+    cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
+    cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
+    cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(fluxo.valorImovel) });
 
-  const PADDING = 40;
-  const COL_W = 148;
-  const HEADER_H = 72;
-  const ROW_H = 80;
-  const TITLE_H = 80;
-  const FOOTER_H = 44;
-  const totalW = PADDING * 2 + cols.length * COL_W;
-  const totalH = TITLE_H + HEADER_H + ROW_H + FOOTER_H + PADDING;
+    const PADDING = 40;
+    const COL_W = 148;
+    const HEADER_H = 72;
+    const ROW_H = 80;
+    const LOGO_H = 90;
+    const TITLE_H = 60;
+    const totalW = PADDING * 2 + cols.length * COL_W;
+    const totalH = PADDING + LOGO_H + TITLE_H + HEADER_H + ROW_H + PADDING;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = totalW * 2;
-  canvas.height = totalH * 2;
-  const ctx = canvas.getContext("2d")!;
-  ctx.scale(2, 2);
+    const canvas = document.createElement("canvas");
+    canvas.width = totalW * 2;
+    canvas.height = totalH * 2;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(2, 2);
 
-  // Background
-  ctx.fillStyle = "#0a0f1a";
-  ctx.fillRect(0, 0, totalW, totalH);
+    ctx.fillStyle = "#0a0f1a";
+    ctx.fillRect(0, 0, totalW, totalH);
 
-  // Logo (top-left, drawn synchronously if available)
-  // Note: logo is drawn after table; we do a two-pass approach using a helper
-  // Title
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("Fluxo de Pagamento", totalW / 2, PADDING + 22);
-  if (nome && nome.trim()) {
-    ctx.fillStyle = "#38bdf8";
-    ctx.font = "bold 14px system-ui, sans-serif";
-    ctx.fillText(nome.trim(), totalW / 2, PADDING + 44);
-  }
-
-  const tableX = PADDING;
-  const tableY = TITLE_H;
-
-  cols.forEach((col, i) => {
-    const x = tableX + i * COL_W;
-    const isGreen = col.isGreen;
-
-    // Header bg
-    ctx.fillStyle = isGreen ? "#16a34a" : "#1a9fc7";
-    ctx.fillRect(x, tableY, COL_W, HEADER_H);
-
-    // Header text
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 11px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(col.header, x + COL_W / 2, tableY + 26);
-
-    if (col.sub) {
-      ctx.fillStyle = isGreen ? "#bbf7d0" : "#bae6fd";
-      ctx.font = "10px system-ui, sans-serif";
-      ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
-    }
-
-    // Row bg
-    ctx.fillStyle = isGreen ? "#dcfce7" : "#ffffff";
-    ctx.fillRect(x, tableY + HEADER_H, COL_W, ROW_H);
-
-    // Row value
-    ctx.fillStyle = isGreen ? "#15803d" : "#1e293b";
-    ctx.font = "bold 13px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(col.value, x + COL_W / 2, tableY + HEADER_H + ROW_H / 2 + 5);
-
-    // Column divider
-    if (i < cols.length - 1) {
-      ctx.strokeStyle = "#e2e8f0";
+    const drawTable = () => {
+      const titleY = PADDING + LOGO_H + 26;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 22px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Fluxo de Pagamento", totalW / 2, titleY);
+      if (nome && nome.trim()) {
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 14px system-ui, sans-serif";
+        ctx.fillText(nome.trim(), totalW / 2, titleY + 22);
+      }
+      const tableX = PADDING;
+      const tableY = PADDING + LOGO_H + TITLE_H;
+      cols.forEach((col, i) => {
+        const x = tableX + i * COL_W;
+        const isGreen = col.isGreen;
+        ctx.fillStyle = isGreen ? "#16a34a" : "#1a9fc7";
+        ctx.fillRect(x, tableY, COL_W, HEADER_H);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 11px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(col.header, x + COL_W / 2, tableY + 26);
+        if (col.sub) {
+          ctx.fillStyle = isGreen ? "#bbf7d0" : "#bae6fd";
+          ctx.font = "10px system-ui, sans-serif";
+          ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
+        }
+        ctx.fillStyle = isGreen ? "#dcfce7" : "#ffffff";
+        ctx.fillRect(x, tableY + HEADER_H, COL_W, ROW_H);
+        ctx.fillStyle = isGreen ? "#15803d" : "#1e293b";
+        ctx.font = "bold 13px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(col.value, x + COL_W / 2, tableY + HEADER_H + ROW_H / 2 + 5);
+        if (i < cols.length - 1) {
+          ctx.strokeStyle = "#e2e8f0";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x + COL_W, tableY);
+          ctx.lineTo(x + COL_W, tableY + HEADER_H + ROW_H);
+          ctx.stroke();
+        }
+      });
+      ctx.strokeStyle = "#1e3a5f";
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x + COL_W, tableY);
-      ctx.lineTo(x + COL_W, tableY + HEADER_H + ROW_H);
-      ctx.stroke();
-    }
-  });
+      ctx.strokeRect(tableX, tableY, cols.length * COL_W, HEADER_H + ROW_H);
+      resolve(canvas.toDataURL("image/png"));
+    };
 
-  // Table border
-  ctx.strokeStyle = "#1e3a5f";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(tableX, tableY, cols.length * COL_W, HEADER_H + ROW_H);
-
-  // Draw logo top-left if provided
-  const doDownload = () => {
-    const link = document.createElement("a");
-    link.download = "fluxo-pagamento.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  };
-  if (logoDataUrl) {
+    const effectiveLogo = logoDataUrl || ONE_INNOVATION_LOGO;
     const img = new Image();
     img.onload = () => {
-      const maxH = 36;
+      const maxH = LOGO_H - 10;
       const ratio = img.width / img.height;
       const h = Math.min(maxH, img.height);
       const w = h * ratio;
-      ctx.drawImage(img, PADDING, PADDING - 4, w, h);
-      doDownload();
+      const logoX = (totalW - w) / 2;
+      const logoY = PADDING;
+      ctx.drawImage(img, logoX, logoY, w, h);
+      drawTable();
     };
-    img.onerror = doDownload;
-    img.src = logoDataUrl;
-  } else {
-    doDownload();
-  }
+    img.onerror = drawTable;
+    img.src = effectiveLogo;
+  });
 }
-
 export default function FluxoPage() {
   const {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
@@ -377,6 +356,7 @@ export default function FluxoPage() {
   const colors = useColors(isDark);
   const [exporting, setExporting] = useState(false);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -393,10 +373,14 @@ export default function FluxoPage() {
   const pctInvestido = fluxo.valorImovel > 0 ? (results.totalInvestido / fluxo.valorImovel) * 100 : 0;
   const pctFinanciamento = 100 - pctInvestido;
 
-  const handleExport = useCallback((incluirDecoracao = true) => {
+  const handleExport = useCallback(async (incluirDecoracao = true) => {
     setExporting(true);
-    exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao, logoDataUrl ?? undefined);
-    setTimeout(() => setExporting(false), 600);
+    try {
+      const dataUrl = await gerarFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao, logoDataUrl ?? undefined);
+      setPreviewUrl(dataUrl);
+    } finally {
+      setExporting(false);
+    }
   }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, logoDataUrl]);
 
   // DnD sensors — require 8px movement to start drag (prevents accidental drags on click)
@@ -756,6 +740,77 @@ export default function FluxoPage() {
           O financiamento ({formatCurrency(results.financiamento)}) é atualizado automaticamente na calculadora principal como "Saldo a Financiar".
         </motion.div>
       </div>
+
+      {/* MODAL DE PREVIEW DO PNG */}
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(4px)" }}
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div
+            className="relative rounded-2xl overflow-hidden flex flex-col"
+            style={{
+              maxWidth: "95vw",
+              maxHeight: "90vh",
+              background: isDark ? "oklch(0.14 0.01 240)" : "oklch(0.98 0.005 240)",
+              border: `1px solid ${colors.border}`,
+              boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header do modal */}
+            <div
+              className="flex items-center justify-between px-5 py-3"
+              style={{ borderBottom: `1px solid ${colors.divider}` }}
+            >
+              <span className="text-sm font-bold" style={{ color: colors.text1 }}>Preview — Fluxo de Pagamento</span>
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+                style={{ background: colors.amberBg, color: colors.amber }}
+                title="Fechar"
+              >
+                <XIcon size={13} />
+              </button>
+            </div>
+            {/* Imagem com scroll */}
+            <div className="overflow-auto flex-1 p-4">
+              <img
+                src={previewUrl}
+                alt="Preview Fluxo de Pagamento"
+                style={{ display: "block", maxWidth: "none", height: "auto", borderRadius: 8 }}
+              />
+            </div>
+            {/* Footer do modal */}
+            <div
+              className="flex items-center justify-end gap-3 px-5 py-3"
+              style={{ borderTop: `1px solid ${colors.divider}` }}
+            >
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+                style={{ background: colors.inputBg, color: colors.text2, border: `1px solid ${colors.border}` }}
+              >
+                Fechar
+              </button>
+              <button
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.download = `fluxo-pagamento${nomeEmpreendimento ? `-${nomeEmpreendimento.replace(/\s+/g, "-")}` : ""}.png`;
+                  link.href = previewUrl;
+                  link.click();
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+                style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}`, color: colors.green }}
+              >
+                <Download size={14} />
+                Salvar imagem
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
