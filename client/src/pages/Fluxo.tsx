@@ -339,16 +339,6 @@ function exportFluxoPNG(
   ctx.lineWidth = 1;
   ctx.strokeRect(tableX, tableY, cols.length * COL_W, HEADER_H + ROW_H);
 
-  // Footer
-  ctx.fillStyle = "#64748b";
-  ctx.font = "10px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(
-    "Calculadora Short Stay - Os valores sao estimativas e nao constituem assessoria financeira.",
-    totalW / 2,
-    tableY + HEADER_H + ROW_H + 28,
-  );
-
   const link = document.createElement("a");
   link.download = "fluxo-pagamento.png";
   link.href = canvas.toDataURL("image/png");
