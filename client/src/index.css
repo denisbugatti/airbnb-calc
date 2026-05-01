@@ -156,12 +156,33 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* Evita zoom acidental em iOS quando focar em inputs com font-size < 16px */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
+    /* Mobile: bloqueia bounce e melhora performance de toque */
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Suporte a notch/safe-area (iPhone X+) */
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  /* Inputs numéricos com font-size mínimo de 16px para não causar zoom no iOS */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  @media (min-width: 768px) {
+    input, textarea, select {
+      font-size: inherit;
+    }
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

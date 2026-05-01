@@ -1,0 +1,54 @@
+{
+  "name": "Short Stay — Calculadora de Rentabilidade",
+  "short_name": "Short Stay",
+  "description": "Calcule a rentabilidade do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "sizes": "2048x2048",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Calculadora",
+      "short_name": "Calc",
+      "description": "Abrir Calculadora de Rentabilidade",
+      "url": "/?tab=calc"
+    },
+    {
+      "name": "Fluxo de Pagamento",
+      "short_name": "Fluxo",
+      "description": "Abrir Fluxo de Pagamento",
+      "url": "/fluxo"
+    }
+  ]
+}

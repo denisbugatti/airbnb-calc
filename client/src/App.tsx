@@ -33,13 +33,14 @@ function NavBar() {
 
   return (
     <nav
-      className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-6 py-3 md:py-4"
+      className="sticky top-0 z-50 flex items-center justify-between gap-2 px-3 md:px-6 py-2.5 md:py-4"
       style={{
         background: isDark ? "oklch(0.04 0 0 / 0.85)" : "oklch(1 0 0 / 0.9)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         borderBottom: isDark ? "1px solid oklch(1 0 0 / 0.07)" : "1px solid oklch(0.88 0.008 240)",
         boxShadow: isDark ? "none" : "0 1px 12px oklch(0 0 0 / 0.06)",
+        paddingTop: "max(0.625rem, env(safe-area-inset-top))",
       }}
     >
       {/* Logo */}
@@ -89,7 +90,7 @@ function NavBar() {
                 }}
               >
                 {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="hidden xs:inline sm:inline">{tab.label}</span>
               </div>
             </Link>
           );

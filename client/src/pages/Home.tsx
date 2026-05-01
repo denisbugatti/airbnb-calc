@@ -766,8 +766,8 @@ export default function HomePage() {
           {/* ── RIGHT: RESULTS ── */}
           <div className={`space-y-3 ${activeTab === "inputs" ? "hidden md:block" : ""}`}>
 
-            {/* KPI Grid — desktop only */}
-            <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* KPI Grid — 2 colunas mobile, 4 desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
               <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
                 formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
               <MetricCard value={results.rendaMensalLiquida * 12} label="Renda líquida / ano"
@@ -799,7 +799,7 @@ export default function HomePage() {
             {/* Variantes fiscais */}
             <GlassPanel delay={0.15} colors={colors}>
               <SectionHeader icon={<Shield size={13} />} label="Variantes Fiscais" colors={colors} />
-              <div className="grid grid-cols-3 gap-2 md:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
                 <FiscalCard label="Lucro" renda={results.rendaMensalLiquida}
                   rentabilidade={results.rentabilidadeAnual} receitaBruta={results.receitaBrutaMensal}
                   icon={<DollarSign size={13} />}
@@ -1034,7 +1034,7 @@ export default function HomePage() {
                   <div className="w-full overflow-x-auto">
                     <svg
                       viewBox={`0 0 ${svgW} ${svgH}`}
-                      style={{ width: "100%", minWidth: 520, height: "auto", display: "block", borderRadius: 12 }}
+                      style={{ width: "100%", minWidth: 380, height: "auto", display: "block", borderRadius: 12 }}
                       xmlns="http://www.w3.org/2000/svg"
                     >
                       {/* Fundo dark navy */}
