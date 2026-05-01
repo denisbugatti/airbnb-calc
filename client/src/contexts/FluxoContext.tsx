@@ -124,6 +124,7 @@ interface FluxoContextType {
   addAnual: () => void;
   removeAnual: () => void;
   removeAnualAt: (idx: number) => void;
+  reorderAnuais: (fromIdx: number, toIdx: number) => void;
   /** Chamado pela Calculadora para sincronizar o valor do imóvel → Fluxo */
   syncValorImovel: (valor: number) => void;
   /** Chamado pelo Fluxo para sincronizar o valor do imóvel → Calculadora */
@@ -216,6 +217,15 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const reorderAnuais = useCallback((fromIdx: number, toIdx: number) => {
+    setFluxoState((prev) => {
+      const arr = [...prev.anuais];
+      const [moved] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, moved);
+      return { ...prev, anuais: arr };
+    });
+  }, []);
+
   /** Chamado pela Calculadora (Home.tsx) — atualiza o Fluxo sem loop */
   const syncValorImovel = useCallback((valor: number) => {
     setFluxoState((prev) => {
@@ -249,7 +259,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
       nomeEmpreendimento, setNomeEmpreendimento,
       updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
       updateAnualMes, updateAnualValor,
-      addAnual, removeAnual, removeAnualAt,
+      addAnual, removeAnual, removeAnualAt, reorderAnuais,
       syncValorImovel,
       syncValorImovelParaCalc,
       registerValorImovelCallback,

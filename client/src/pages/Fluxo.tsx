@@ -8,8 +8,23 @@ import { motion } from "framer-motion";
 import { useFluxo } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
-import { Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2 } from "lucide-react";
+import { Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2, GripVertical } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 function useColors(isDark: boolean) {
   return {
@@ -177,6 +192,56 @@ function TCell({ children, green = false, colors }: {
   );
 }
 
+// Sortable THead para colunas anuais (drag-and-drop horizontal)
+function SortableAnualTHead({ id, children, colors }: {
+  id: string; children: React.ReactNode; colors: ReturnType<typeof useColors>;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <th
+      ref={setNodeRef}
+      className="px-2 py-2.5 text-center text-xs font-black tracking-wider uppercase"
+      style={{
+        background: colors.blueHead,
+        borderRight: `1px solid ${colors.divider}`,
+        borderBottom: `1px solid ${colors.divider}`,
+        color: colors.blue,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        cursor: isDragging ? "grabbing" : "grab",
+        userSelect: "none",
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </th>
+  );
+}
+
+function SortableAnualTCell({ id, children, colors }: {
+  id: string; children: React.ReactNode; colors: ReturnType<typeof useColors>;
+}) {
+  const { setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <td
+      ref={setNodeRef}
+      className="px-2 py-2.5 text-center align-middle"
+      style={{
+        background: colors.blueCell,
+        borderRight: `1px solid ${colors.divider}`,
+        borderBottom: `1px solid ${colors.divider}`,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+    >
+      {children}
+    </td>
+  );
+}
+
 function exportFluxoPNG(
   fluxo: ReturnType<typeof useFluxo>["fluxo"],
   results: ReturnType<typeof useFluxo>["results"],
@@ -293,7 +358,7 @@ function exportFluxoPNG(
 export default function FluxoPage() {
   const {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
-    updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, setFluxo, syncValorImovelParaCalc,
+    updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, reorderAnuais, setFluxo, syncValorImovelParaCalc,
     nomeEmpreendimento, setNomeEmpreendimento,
   } = useFluxo();
   const { theme } = useTheme();
@@ -309,6 +374,17 @@ export default function FluxoPage() {
     try { exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao); }
     finally { setTimeout(() => setExporting(false), 500); }
   }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento]);
+
+  // DnD sensors — require 8px movement to start drag (prevents accidental drags on click)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromIdx = fluxo.anuais.findIndex((_, i) => `anual-${i}` === active.id);
+    const toIdx = fluxo.anuais.findIndex((_, i) => `anual-${i}` === over.id);
+    if (fromIdx !== -1 && toIdx !== -1) reorderAnuais(fromIdx, toIdx);
+  }, [fluxo.anuais, reorderAnuais]);
 
   return (
     <div className="w-full pb-16" style={{ fontFamily: "'Geist', sans-serif" }}>
@@ -474,6 +550,8 @@ export default function FluxoPage() {
               </button>
             </div>
           </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={fluxo.anuais.map((_, i) => `anual-${i}`)} strategy={horizontalListSortingStrategy}>
           <div className="overflow-x-auto" style={{ background: colors.surface }}>
             <table className="w-full" style={{ borderCollapse: "collapse", minWidth: "700px" }}>
               <thead>
@@ -489,11 +567,15 @@ export default function FluxoPage() {
                     <div className="text-xs font-normal opacity-70">por parcela</div>
                   </THead>
                   {fluxo.anuais.map((a, i) => (
-                    <THead key={i} colors={colors}>
+                    <SortableAnualTHead key={`anual-${i}`} id={`anual-${i}`} colors={colors}>
                       <div className="flex items-center justify-between gap-1">
-                        <span className="font-black">ANUAL {i + 1}</span>
+                        <div className="flex items-center gap-1">
+                          <GripVertical size={10} className="opacity-40" />
+                          <span className="font-black">ANUAL {i + 1}</span>
+                        </div>
                         <button
-                          onClick={() => removeAnualAt(i)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); removeAnualAt(i); }}
                           className="w-4 h-4 rounded flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
                           style={{ background: colors.amberBg, color: colors.amber }}
                           title={`Remover Anual ${i + 1}`}
@@ -502,7 +584,7 @@ export default function FluxoPage() {
                         </button>
                       </div>
                       <EditableMes value={a.mes} onChange={(v) => updateAnualMes(i, v)} colors={colors} />
-                    </THead>
+                    </SortableAnualTHead>
                   ))}
                   <THead colors={colors}>
                     <div className="font-black">+DECORAÇÃO</div>
@@ -534,9 +616,9 @@ export default function FluxoPage() {
                     <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>= {formatCurrency(results.totalMensais)} total</div>
                   </TCell>
                   {fluxo.anuais.map((a, i) => (
-                    <TCell key={i} colors={colors}>
+                    <SortableAnualTCell key={`anual-${i}`} id={`anual-${i}`} colors={colors}>
                       <EditableValue value={a.valor} onChange={(v) => updateAnualValor(i, v)} colors={colors} />
-                    </TCell>
+                    </SortableAnualTCell>
                   ))}
                   <TCell colors={colors}>
                     <EditableValue value={fluxo.decoracao} onChange={(v) => setFluxo((p) => ({ ...p, decoracao: v }))} colors={colors} />
@@ -561,6 +643,8 @@ export default function FluxoPage() {
               </tbody>
             </table>
           </div>
+          </SortableContext>
+          </DndContext>
         </motion.div>
 
         {/* DISTRIBUIÇÃO VISUAL */}
