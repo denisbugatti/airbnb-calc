@@ -29,6 +29,7 @@ export function encodeShareLink(
       ato: fluxo.ato,
       valorMensal: fluxo.valorMensal,
       numMensais: fluxo.numMensais,
+      semestrais: fluxo.semestrais,
       anuais: fluxo.anuais,
       decoracao: fluxo.decoracao,
       valorImovel: fluxo.valorImovel,

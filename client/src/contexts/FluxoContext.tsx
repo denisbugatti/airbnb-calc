@@ -17,6 +17,11 @@ export interface ParcelaAnual {
   valor: number;
 }
 
+export interface ParcelaSemestral {
+  mes: string;     // ex: "Nov/2026"
+  valor: number;
+}
+
 export interface FluxoInputs {
   // Ato
   percentualAto: number;        // % do valor do imóvel (padrão 13.80, mín 9.8)
@@ -26,6 +31,9 @@ export interface FluxoInputs {
   // Mensais
   valorMensal: number;          // valor por parcela mensal
   numMensais: number;           // 25 a 37 meses
+
+  // Semestrais
+  semestrais: ParcelaSemestral[]; // array de parcelas semestrais (0 a N)
 
   // Anuais
   anuais: ParcelaAnual[];       // array de parcelas anuais (0 a N)
@@ -40,6 +48,7 @@ export interface FluxoInputs {
 export interface FluxoResults {
   totalAto: number;
   totalMensais: number;
+  totalSemestrais: number;
   totalAnuais: number;
   totalInvestido: number;       // base do ROI
   financiamento: number;        // valorImovel - totalInvestido
@@ -95,6 +104,7 @@ const defaultFluxo: FluxoInputs = {
   ato: buildAto(13.80, 2, defaultValorImovel),
   valorMensal: 560,
   numMensais: 24,
+  semestrais: [],
   anuais: buildAnuais(2, defaultValorImovel),
   decoracao: 40_000,
   valorImovel: defaultValorImovel,
@@ -103,11 +113,12 @@ const defaultFluxo: FluxoInputs = {
 function calcularFluxo(inputs: FluxoInputs): FluxoResults {
   const totalAto = inputs.ato.reduce((s, p) => s + p.valor, 0);
   const totalMensais = inputs.valorMensal * inputs.numMensais;
+  const totalSemestrais = (inputs.semestrais ?? []).reduce((s, p) => s + p.valor, 0);
   const totalAnuais = inputs.anuais.reduce((s, p) => s + p.valor, 0);
   // Decoração NÃO entra na base do ROI — apenas informativa na tabela
-  const totalInvestido = totalAto + totalMensais + totalAnuais;
+  const totalInvestido = totalAto + totalMensais + totalSemestrais + totalAnuais;
   const financiamento = Math.max(0, inputs.valorImovel - totalInvestido);
-  return { totalAto, totalMensais, totalAnuais, totalInvestido, financiamento };
+  return { totalAto, totalMensais, totalSemestrais, totalAnuais, totalInvestido, financiamento };
 }
 
 interface FluxoContextType {
@@ -125,6 +136,13 @@ interface FluxoContextType {
   removeAnual: () => void;
   removeAnualAt: (idx: number) => void;
   reorderAnuais: (fromIdx: number, toIdx: number) => void;
+  // Semestrais
+  updateSemestralMes: (idx: number, mes: string) => void;
+  updateSemestralValor: (idx: number, valor: number) => void;
+  addSemestral: () => void;
+  removeSemestral: () => void;
+  removeSemestralAt: (idx: number) => void;
+  reorderSemestrais: (fromIdx: number, toIdx: number) => void;
   /** Chamado pela Calculadora para sincronizar o valor do imóvel → Fluxo */
   syncValorImovel: (valor: number) => void;
   /** Chamado pelo Fluxo para sincronizar o valor do imóvel → Calculadora */
@@ -193,7 +211,6 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
 
   const addAnual = useCallback(() => {
     setFluxoState((prev) => {
-      // Sem limite máximo
       const lastMes = prev.anuais.length > 0 ? prev.anuais[prev.anuais.length - 1].mes : mesAtual();
       return {
         ...prev,
@@ -204,7 +221,6 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
 
   const removeAnual = useCallback(() => {
     setFluxoState((prev) => {
-      // Permite chegar a 0 anuais
       if (prev.anuais.length === 0) return prev;
       return { ...prev, anuais: prev.anuais.slice(0, -1) };
     });
@@ -226,6 +242,61 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // ── Semestrais ──────────────────────────────────────────────────────────────
+
+  const updateSemestralMes = useCallback((idx: number, mes: string) => {
+    setFluxoState((prev) => {
+      const semestrais = [...(prev.semestrais ?? [])];
+      semestrais[idx] = { ...semestrais[idx], mes };
+      return { ...prev, semestrais };
+    });
+  }, []);
+
+  const updateSemestralValor = useCallback((idx: number, valor: number) => {
+    setFluxoState((prev) => {
+      const semestrais = [...(prev.semestrais ?? [])];
+      semestrais[idx] = { ...semestrais[idx], valor };
+      return { ...prev, semestrais };
+    });
+  }, []);
+
+  const addSemestral = useCallback(() => {
+    setFluxoState((prev) => {
+      const sem = prev.semestrais ?? [];
+      const lastMes = sem.length > 0 ? sem[sem.length - 1].mes : mesAtual();
+      return {
+        ...prev,
+        semestrais: [...sem, { mes: proximoMes(lastMes, 6), valor: sem[0]?.valor ?? 0 }],
+      };
+    });
+  }, []);
+
+  const removeSemestral = useCallback(() => {
+    setFluxoState((prev) => {
+      const sem = prev.semestrais ?? [];
+      if (sem.length === 0) return prev;
+      return { ...prev, semestrais: sem.slice(0, -1) };
+    });
+  }, []);
+
+  const removeSemestralAt = useCallback((idx: number) => {
+    setFluxoState((prev) => ({
+      ...prev,
+      semestrais: (prev.semestrais ?? []).filter((_, i) => i !== idx),
+    }));
+  }, []);
+
+  const reorderSemestrais = useCallback((fromIdx: number, toIdx: number) => {
+    setFluxoState((prev) => {
+      const arr = [...(prev.semestrais ?? [])];
+      const [moved] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, moved);
+      return { ...prev, semestrais: arr };
+    });
+  }, []);
+
+  // ── Sync ────────────────────────────────────────────────────────────────────
+
   /** Chamado pela Calculadora (Home.tsx) — atualiza o Fluxo sem loop */
   const syncValorImovel = useCallback((valor: number) => {
     setFluxoState((prev) => {
@@ -245,7 +316,6 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
       valorImovel: valor,
       ato: buildAto(prev.percentualAto, prev.parcelasAto, valor),
     }));
-    // Notifica a Calculadora para atualizar o campo valorImovel
     if (calcCallbackRef.current) {
       calcCallbackRef.current(valor);
     }
@@ -260,6 +330,8 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
       updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
       updateAnualMes, updateAnualValor,
       addAnual, removeAnual, removeAnualAt, reorderAnuais,
+      updateSemestralMes, updateSemestralValor,
+      addSemestral, removeSemestral, removeSemestralAt, reorderSemestrais,
       syncValorImovel,
       syncValorImovelParaCalc,
       registerValorImovelCallback,

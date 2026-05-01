@@ -2,13 +2,18 @@
  * Fluxo.tsx — Fluxo de Pagamento do Investimento
  * Dual theme: Dark Cosmos / Slate Premium
  * Exportação PNG via Canvas API nativa (sem html2canvas)
+ * Suporta: parcelas do Ato, Mensais, Semestrais, Anuais, Decoração
+ * Export PNG: tema claro ou escuro selecionável
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useFluxo } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
-import { Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2, GripVertical, ImagePlus, X as XIcon } from "lucide-react";
+import {
+  Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2,
+  GripVertical, ImagePlus, X as XIcon, Sun, Moon,
+} from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
   DndContext,
@@ -49,6 +54,12 @@ function useColors(isDark: boolean) {
     greenCell: isDark ? "oklch(0.55 0.18 145 / 0.15)" : "oklch(0.48 0.18 145 / 0.08)",
     amber: isDark ? "oklch(0.78 0.18 70)" : "oklch(0.6 0.18 70)",
     amberBg: isDark ? "oklch(0.78 0.18 70 / 0.08)" : "oklch(0.6 0.18 70 / 0.07)",
+    // Violeta para semestrais
+    violet: isDark ? "oklch(0.78 0.18 290)" : "oklch(0.52 0.22 290)",
+    violetBg: isDark ? "oklch(0.78 0.18 290 / 0.08)" : "oklch(0.52 0.22 290 / 0.07)",
+    violetBorder: isDark ? "oklch(0.78 0.18 290 / 0.2)" : "oklch(0.52 0.22 290 / 0.25)",
+    violetHead: isDark ? "oklch(0.78 0.18 290 / 0.18)" : "oklch(0.52 0.22 290 / 0.12)",
+    violetCell: isDark ? "oklch(0.78 0.18 290 / 0.04)" : "oklch(0.52 0.22 290 / 0.03)",
     mono: isDark ? "oklch(0.95 0 0)" : "oklch(0.18 0.01 260)",
     cardShadow: isDark ? "none" : "0 1px 3px oklch(0 0 0 / 0.06), 0 4px 16px oklch(0 0 0 / 0.05)",
   };
@@ -75,8 +86,6 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [editing, setEditing] = useState(false);
-  // Sincroniza valor externo no input apenas quando NAO está sendo editado
-  // (evita reset durante digitação e perda de foco com `key={value}`).
   useEffect(() => {
     if (!editing && inputRef.current) {
       inputRef.current.value = fFormat(value);
@@ -133,12 +142,13 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
             borderBottom: editing ? `1px solid ${colors.blue}` : "none",
           }}
           autoComplete="off"
-           title="Clique para editar"
+          title="Clique para editar"
         />
       </div>
     </div>
   );
 }
+
 function EditableMes({ value, onChange, colors }: {
   value: string; onChange: (v: string) => void; colors: ReturnType<typeof useColors>;
 }) {
@@ -161,29 +171,32 @@ function EditableMes({ value, onChange, colors }: {
   );
 }
 
-function THead({ children, green = false, colors }: {
-  children: React.ReactNode; green?: boolean; colors: ReturnType<typeof useColors>;
+function THead({ children, green = false, violet = false, colors }: {
+  children: React.ReactNode; green?: boolean; violet?: boolean; colors: ReturnType<typeof useColors>;
 }) {
+  const bg = green ? colors.greenHead : violet ? colors.violetHead : colors.blueHead;
+  const color = green ? colors.green : violet ? colors.violet : colors.blue;
   return (
     <th className="px-2 py-2.5 text-center text-xs font-black tracking-wider uppercase"
       style={{
-        background: green ? colors.greenHead : colors.blueHead,
+        background: bg,
         borderRight: `1px solid ${colors.divider}`,
         borderBottom: `1px solid ${colors.divider}`,
-        color: green ? colors.green : colors.blue,
+        color,
       }}>
       {children}
     </th>
   );
 }
 
-function TCell({ children, green = false, colors }: {
-  children: React.ReactNode; green?: boolean; colors: ReturnType<typeof useColors>;
+function TCell({ children, green = false, violet = false, colors }: {
+  children: React.ReactNode; green?: boolean; violet?: boolean; colors: ReturnType<typeof useColors>;
 }) {
+  const bg = green ? colors.greenCell : violet ? colors.violetCell : colors.blueCell;
   return (
     <td className="px-2 py-2.5 text-center align-middle"
       style={{
-        background: green ? colors.greenCell : colors.blueCell,
+        background: bg,
         borderRight: `1px solid ${colors.divider}`,
         borderBottom: `1px solid ${colors.divider}`,
       }}>
@@ -192,9 +205,10 @@ function TCell({ children, green = false, colors }: {
   );
 }
 
-// Sortable THead para colunas anuais (drag-and-drop horizontal)
-function SortableAnualTHead({ id, children, colors }: {
+// Sortable THead genérico (para anuais e semestrais)
+function SortableTHead({ id, children, colors, accentColor, accentBg }: {
   id: string; children: React.ReactNode; colors: ReturnType<typeof useColors>;
+  accentColor: string; accentBg: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
@@ -202,10 +216,10 @@ function SortableAnualTHead({ id, children, colors }: {
       ref={setNodeRef}
       className="px-2 py-2.5 text-center text-xs font-black tracking-wider uppercase"
       style={{
-        background: colors.blueHead,
+        background: accentBg,
         borderRight: `1px solid ${colors.divider}`,
         borderBottom: `1px solid ${colors.divider}`,
-        color: colors.blue,
+        color: accentColor,
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
@@ -220,8 +234,8 @@ function SortableAnualTHead({ id, children, colors }: {
   );
 }
 
-function SortableAnualTCell({ id, children, colors }: {
-  id: string; children: React.ReactNode; colors: ReturnType<typeof useColors>;
+function SortableTCell({ id, children, colors, accentBg }: {
+  id: string; children: React.ReactNode; colors: ReturnType<typeof useColors>; accentBg: string;
 }) {
   const { setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
@@ -229,7 +243,7 @@ function SortableAnualTCell({ id, children, colors }: {
       ref={setNodeRef}
       className="px-2 py-2.5 text-center align-middle"
       style={{
-        background: colors.blueCell,
+        background: accentBg,
         borderRight: `1px solid ${colors.divider}`,
         borderBottom: `1px solid ${colors.divider}`,
         transform: CSS.Transform.toString(transform),
@@ -242,7 +256,10 @@ function SortableAnualTCell({ id, children, colors }: {
   );
 }
 
-// Gera o PNG e retorna o dataURL (Promise)
+// ── PNG Export ────────────────────────────────────────────────────────────────
+
+type ExportTheme = "dark" | "light";
+
 function gerarFluxoPNG(
   fluxo: ReturnType<typeof useFluxo>["fluxo"],
   results: ReturnType<typeof useFluxo>["results"],
@@ -251,17 +268,42 @@ function gerarFluxoPNG(
   nome?: string,
   incluirDecoracao = true,
   logoDataUrl?: string,
+  exportTheme: ExportTheme = "dark",
 ): Promise<string> {
   return new Promise((resolve) => {
     const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-    const cols: { header: string; sub: string; value: string; isGreen?: boolean }[] = [];
+    const cols: { header: string; sub: string; value: string; isGreen?: boolean; isViolet?: boolean }[] = [];
     fluxo.ato.forEach((p) => cols.push({ header: p.label, sub: p.mes, value: fmt(p.valor) }));
     cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
+    (fluxo.semestrais ?? []).forEach((s, i) => cols.push({ header: `SEMESTRAL ${i + 1}`, sub: s.mes, value: fmt(s.valor), isViolet: true }));
     fluxo.anuais.forEach((a, i) => cols.push({ header: `ANUAL ${i + 1}`, sub: a.mes, value: fmt(a.valor) }));
     if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
     cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
     cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
     cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(fluxo.valorImovel) });
+
+    // Paleta de cores por tema
+    const isDarkTheme = exportTheme === "dark";
+    const palette = {
+      bg: isDarkTheme ? "#0a0f1a" : "#f8fafc",
+      titleColor: isDarkTheme ? "#ffffff" : "#0f172a",
+      subtitleColor: isDarkTheme ? "#38bdf8" : "#0284c7",
+      headerBlue: isDarkTheme ? "#1a4a7a" : "#3b82f6",
+      headerGreen: isDarkTheme ? "#16a34a" : "#16a34a",
+      headerViolet: isDarkTheme ? "#6d28d9" : "#7c3aed",
+      headerTextColor: "#ffffff",
+      headerSubBlue: isDarkTheme ? "#bae6fd" : "#dbeafe",
+      headerSubGreen: isDarkTheme ? "#bbf7d0" : "#dcfce7",
+      headerSubViolet: isDarkTheme ? "#ddd6fe" : "#ede9fe",
+      cellBlueBg: isDarkTheme ? "#0f1e30" : "#eff6ff",
+      cellGreenBg: isDarkTheme ? "#dcfce7" : "#f0fdf4",
+      cellVioletBg: isDarkTheme ? "#1e1040" : "#f5f3ff",
+      cellBlueText: isDarkTheme ? "#e0f2fe" : "#1e3a5f",
+      cellGreenText: isDarkTheme ? "#15803d" : "#15803d",
+      cellVioletText: isDarkTheme ? "#c4b5fd" : "#4c1d95",
+      divider: isDarkTheme ? "#1e3a5f" : "#cbd5e1",
+      colDivider: isDarkTheme ? "#e2e8f0" : "#94a3b8",
+    };
 
     const PADDING = 40;
     const COL_W = 148;
@@ -278,17 +320,17 @@ function gerarFluxoPNG(
     const ctx = canvas.getContext("2d")!;
     ctx.scale(2, 2);
 
-    ctx.fillStyle = "#0a0f1a";
+    ctx.fillStyle = palette.bg;
     ctx.fillRect(0, 0, totalW, totalH);
 
     const drawTable = () => {
       const titleY = PADDING + LOGO_H + 26;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = palette.titleColor;
       ctx.font = "bold 22px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Fluxo de Pagamento", totalW / 2, titleY);
       if (nome && nome.trim()) {
-        ctx.fillStyle = "#38bdf8";
+        ctx.fillStyle = palette.subtitleColor;
         ctx.font = "bold 14px system-ui, sans-serif";
         ctx.fillText(nome.trim(), totalW / 2, titleY + 22);
       }
@@ -297,25 +339,31 @@ function gerarFluxoPNG(
       cols.forEach((col, i) => {
         const x = tableX + i * COL_W;
         const isGreen = col.isGreen;
-        ctx.fillStyle = isGreen ? "#16a34a" : "#1a9fc7";
+        const isViolet = col.isViolet;
+        // Header background
+        ctx.fillStyle = isGreen ? palette.headerGreen : isViolet ? palette.headerViolet : palette.headerBlue;
         ctx.fillRect(x, tableY, COL_W, HEADER_H);
-        ctx.fillStyle = "#ffffff";
+        // Header text
+        ctx.fillStyle = palette.headerTextColor;
         ctx.font = "bold 11px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(col.header, x + COL_W / 2, tableY + 26);
         if (col.sub) {
-          ctx.fillStyle = isGreen ? "#bbf7d0" : "#bae6fd";
+          ctx.fillStyle = isGreen ? palette.headerSubGreen : isViolet ? palette.headerSubViolet : palette.headerSubBlue;
           ctx.font = "10px system-ui, sans-serif";
           ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
         }
-        ctx.fillStyle = isGreen ? "#dcfce7" : "#ffffff";
+        // Cell background
+        ctx.fillStyle = isGreen ? palette.cellGreenBg : isViolet ? palette.cellVioletBg : palette.cellBlueBg;
         ctx.fillRect(x, tableY + HEADER_H, COL_W, ROW_H);
-        ctx.fillStyle = isGreen ? "#15803d" : "#1e293b";
+        // Cell text
+        ctx.fillStyle = isGreen ? palette.cellGreenText : isViolet ? palette.cellVioletText : palette.cellBlueText;
         ctx.font = "bold 13px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(col.value, x + COL_W / 2, tableY + HEADER_H + ROW_H / 2 + 5);
+        // Column divider
         if (i < cols.length - 1) {
-          ctx.strokeStyle = "#e2e8f0";
+          ctx.strokeStyle = palette.colDivider;
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(x + COL_W, tableY);
@@ -323,7 +371,8 @@ function gerarFluxoPNG(
           ctx.stroke();
         }
       });
-      ctx.strokeStyle = "#1e3a5f";
+      // Table border
+      ctx.strokeStyle = palette.divider;
       ctx.lineWidth = 1;
       ctx.strokeRect(tableX, tableY, cols.length * COL_W, HEADER_H + ROW_H);
       resolve(canvas.toDataURL("image/png"));
@@ -345,10 +394,15 @@ function gerarFluxoPNG(
     img.src = effectiveLogo;
   });
 }
+
+// ── FluxoPage ─────────────────────────────────────────────────────────────────
+
 export default function FluxoPage() {
   const {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
-    updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, reorderAnuais, setFluxo, syncValorImovelParaCalc,
+    updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, reorderAnuais,
+    updateSemestralMes, updateSemestralValor, addSemestral, removeSemestral, removeSemestralAt, reorderSemestrais,
+    setFluxo, syncValorImovelParaCalc,
     nomeEmpreendimento, setNomeEmpreendimento,
   } = useFluxo();
   const { theme } = useTheme();
@@ -357,6 +411,7 @@ export default function FluxoPage() {
   const [exporting, setExporting] = useState(false);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [exportTheme, setExportTheme] = useState<"dark" | "light">("dark");
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,23 +431,38 @@ export default function FluxoPage() {
   const handleExport = useCallback(async (incluirDecoracao = true) => {
     setExporting(true);
     try {
-      const dataUrl = await gerarFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao, logoDataUrl ?? undefined);
+      const dataUrl = await gerarFluxoPNG(
+        fluxo, results, pctInvestido, pctFinanciamento,
+        nomeEmpreendimento, incluirDecoracao, logoDataUrl ?? undefined, exportTheme,
+      );
       setPreviewUrl(dataUrl);
     } finally {
       setExporting(false);
     }
-  }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, logoDataUrl]);
+  }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, logoDataUrl, exportTheme]);
 
   // DnD sensors — require 8px movement to start drag (prevents accidental drags on click)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  // Combinamos anuais e semestrais em um único DnD context por tipo
+  const handleDragEndAnual = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const fromIdx = fluxo.anuais.findIndex((_, i) => `anual-${i}` === active.id);
     const toIdx = fluxo.anuais.findIndex((_, i) => `anual-${i}` === over.id);
     if (fromIdx !== -1 && toIdx !== -1) reorderAnuais(fromIdx, toIdx);
   }, [fluxo.anuais, reorderAnuais]);
+
+  const handleDragEndSemestral = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const sem = fluxo.semestrais ?? [];
+    const fromIdx = sem.findIndex((_, i) => `semestral-${i}` === active.id);
+    const toIdx = sem.findIndex((_, i) => `semestral-${i}` === over.id);
+    if (fromIdx !== -1 && toIdx !== -1) reorderSemestrais(fromIdx, toIdx);
+  }, [fluxo.semestrais, reorderSemestrais]);
+
+  const semestrais = fluxo.semestrais ?? [];
 
   return (
     <div className="w-full pb-16" style={{ fontFamily: "'Geist', sans-serif" }}>
@@ -475,7 +545,7 @@ export default function FluxoPage() {
             </div>
             <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>Configurações</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {/* % do Ato */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -524,10 +594,36 @@ export default function FluxoPage() {
                 <span className="text-xs" style={{ color: colors.text4 }}>37</span>
               </div>
             </div>
+            {/* Parcelas Semestrais */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Semestrais</label>
+                <div className="flex items-center gap-1">
+                  <button onClick={removeSemestral} disabled={semestrais.length === 0}
+                    className="w-5 h-5 rounded-md flex items-center justify-center disabled:opacity-30"
+                    style={{ background: colors.amberBg, color: colors.amber }}>
+                    <MinusIcon size={11} />
+                  </button>
+                  <span className="text-xs font-bold px-2" style={{ color: colors.violet, fontFamily: "'Geist Mono', monospace" }}>
+                    {semestrais.length}x
+                  </span>
+                  <button onClick={addSemestral}
+                    className="w-5 h-5 rounded-md flex items-center justify-center"
+                    style={{ background: colors.violetBg, color: colors.violet }}>
+                    <Plus size={11} />
+                  </button>
+                </div>
+              </div>
+              <div className="text-xs py-2 px-3 rounded-xl" style={{ background: colors.inputBg, color: colors.text3 }}>
+                {semestrais.length === 0
+                  ? "Sem parcelas semestrais"
+                  : `${semestrais.length} semestral${semestrais.length > 1 ? "is" : ""} — edite na tabela`}
+              </div>
+            </div>
             {/* Parcelas Anuais */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Parcelas Anuais</label>
+                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Anuais</label>
                 <div className="flex items-center gap-1">
                   <button onClick={removeAnual} disabled={fluxo.anuais.length === 0}
                     className="w-5 h-5 rounded-md flex items-center justify-center disabled:opacity-30"
@@ -547,7 +643,7 @@ export default function FluxoPage() {
               <div className="text-xs py-2 px-3 rounded-xl" style={{ background: colors.inputBg, color: colors.text3 }}>
                 {fluxo.anuais.length === 0
                   ? "Sem parcelas anuais"
-                  : `${fluxo.anuais.length} parcela${fluxo.anuais.length > 1 ? "s" : ""} anual${fluxo.anuais.length > 1 ? "is" : ""} — edite na tabela`}
+                  : `${fluxo.anuais.length} anual${fluxo.anuais.length > 1 ? "is" : ""} — edite na tabela`}
               </div>
             </div>
           </div>
@@ -557,7 +653,7 @@ export default function FluxoPage() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
           className="rounded-2xl overflow-hidden"
           style={{ border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
-          <div className="flex items-center justify-between px-4 py-3"
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
             style={{ background: colors.surface, borderBottom: `1px solid ${colors.divider}` }}>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: colors.blueBg, color: colors.blue }}>
@@ -565,7 +661,33 @@ export default function FluxoPage() {
               </div>
               <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>Fluxo de Pagamento</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Seletor de tema do PNG */}
+              <div className="flex items-center rounded-xl overflow-hidden"
+                style={{ border: `1px solid ${colors.border}` }}>
+                <button
+                  onClick={() => setExportTheme("dark")}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold transition-all"
+                  style={{
+                    background: exportTheme === "dark" ? colors.blueBg : "transparent",
+                    color: exportTheme === "dark" ? colors.blue : colors.text3,
+                  }}
+                  title="PNG tema escuro">
+                  <Moon size={11} />
+                  Escuro
+                </button>
+                <button
+                  onClick={() => setExportTheme("light")}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold transition-all"
+                  style={{
+                    background: exportTheme === "light" ? colors.amberBg : "transparent",
+                    color: exportTheme === "light" ? colors.amber : colors.text3,
+                  }}
+                  title="PNG tema claro">
+                  <Sun size={11} />
+                  Claro
+                </button>
+              </div>
               <button onClick={() => handleExport(true)} disabled={exporting}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
                 style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}
@@ -582,47 +704,82 @@ export default function FluxoPage() {
               </button>
             </div>
           </div>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={fluxo.anuais.map((_, i) => `anual-${i}`)} strategy={horizontalListSortingStrategy}>
+
+          {/* Tabela com DnD para semestrais e anuais em contextos separados */}
           <div className="overflow-x-auto" style={{ background: colors.surface }}>
             <table className="w-full" style={{ borderCollapse: "collapse", minWidth: "700px" }}>
               <thead>
                 <tr>
+                  {/* Colunas do Ato */}
                   {fluxo.ato.map((p) => (
                     <THead key={p.label} colors={colors}>
                       <div className="font-black">{p.label}</div>
                       <EditableMes value={p.mes} onChange={(v) => updateParcelaAtoMes(fluxo.ato.indexOf(p), v)} colors={colors} />
                     </THead>
                   ))}
+                  {/* Mensais */}
                   <THead colors={colors}>
                     <div className="font-black">{fluxo.numMensais} MENSAIS</div>
                     <div className="text-xs font-normal opacity-70">por parcela</div>
                   </THead>
-                  {fluxo.anuais.map((a, i) => (
-                    <SortableAnualTHead key={`anual-${i}`} id={`anual-${i}`} colors={colors}>
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1">
-                          <GripVertical size={10} className="opacity-40" />
-                          <span className="font-black">ANUAL {i + 1}</span>
-                        </div>
-                        <button
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); removeAnualAt(i); }}
-                          className="w-4 h-4 rounded flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
-                          style={{ background: colors.amberBg, color: colors.amber }}
-                          title={`Remover Anual ${i + 1}`}
-                        >
-                          <MinusIcon size={9} />
-                        </button>
-                      </div>
-                      <EditableMes value={a.mes} onChange={(v) => updateAnualMes(i, v)} colors={colors} />
-                    </SortableAnualTHead>
-                  ))}
+                  {/* Semestrais (DnD) */}
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSemestral}>
+                    <SortableContext items={semestrais.map((_, i) => `semestral-${i}`)} strategy={horizontalListSortingStrategy}>
+                      {semestrais.map((s, i) => (
+                        <SortableTHead key={`semestral-${i}`} id={`semestral-${i}`} colors={colors}
+                          accentColor={colors.violet} accentBg={colors.violetHead}>
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1">
+                              <GripVertical size={10} className="opacity-40" />
+                              <span className="font-black">SEM {i + 1}</span>
+                            </div>
+                            <button
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); removeSemestralAt(i); }}
+                              className="w-4 h-4 rounded flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                              style={{ background: colors.amberBg, color: colors.amber }}
+                              title={`Remover Semestral ${i + 1}`}
+                            >
+                              <MinusIcon size={9} />
+                            </button>
+                          </div>
+                          <EditableMes value={s.mes} onChange={(v) => updateSemestralMes(i, v)} colors={colors} />
+                        </SortableTHead>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  {/* Anuais (DnD) */}
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndAnual}>
+                    <SortableContext items={fluxo.anuais.map((_, i) => `anual-${i}`)} strategy={horizontalListSortingStrategy}>
+                      {fluxo.anuais.map((a, i) => (
+                        <SortableTHead key={`anual-${i}`} id={`anual-${i}`} colors={colors}
+                          accentColor={colors.blue} accentBg={colors.blueHead}>
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1">
+                              <GripVertical size={10} className="opacity-40" />
+                              <span className="font-black">ANUAL {i + 1}</span>
+                            </div>
+                            <button
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); removeAnualAt(i); }}
+                              className="w-4 h-4 rounded flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                              style={{ background: colors.amberBg, color: colors.amber }}
+                              title={`Remover Anual ${i + 1}`}
+                            >
+                              <MinusIcon size={9} />
+                            </button>
+                          </div>
+                          <EditableMes value={a.mes} onChange={(v) => updateAnualMes(i, v)} colors={colors} />
+                        </SortableTHead>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  {/* Decoração */}
                   <THead colors={colors}>
                     <div className="font-black">+DECORAÇÃO</div>
                     <div className="text-xs font-normal opacity-70">(opcional)</div>
-
                   </THead>
+                  {/* Totais */}
                   <THead green colors={colors}>
                     <div className="font-black">TOTAL</div>
                     <div className="font-black">INVESTIDO</div>
@@ -638,36 +795,56 @@ export default function FluxoPage() {
               </thead>
               <tbody>
                 <tr>
+                  {/* Células do Ato */}
                   {fluxo.ato.map((p, i) => (
                     <TCell key={p.label} colors={colors}>
                       <EditableValue value={p.valor} onChange={(v) => updateParcelaAtoValor(i, v)} colors={colors} />
                     </TCell>
                   ))}
+                  {/* Mensais */}
                   <TCell colors={colors}>
                     <EditableValue value={fluxo.valorMensal} onChange={(v) => setFluxo((p) => ({ ...p, valorMensal: v }))} colors={colors} />
                     <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>= {formatCurrency(results.totalMensais)} total</div>
                   </TCell>
-                  {fluxo.anuais.map((a, i) => (
-                    <SortableAnualTCell key={`anual-${i}`} id={`anual-${i}`} colors={colors}>
-                      <EditableValue value={a.valor} onChange={(v) => updateAnualValor(i, v)} colors={colors} />
-                    </SortableAnualTCell>
-                  ))}
+                  {/* Semestrais (DnD) */}
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndSemestral}>
+                    <SortableContext items={semestrais.map((_, i) => `semestral-${i}`)} strategy={horizontalListSortingStrategy}>
+                      {semestrais.map((s, i) => (
+                        <SortableTCell key={`semestral-${i}`} id={`semestral-${i}`} colors={colors} accentBg={colors.violetCell}>
+                          <EditableValue value={s.valor} onChange={(v) => updateSemestralValor(i, v)} colors={colors} />
+                        </SortableTCell>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  {/* Anuais (DnD) */}
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndAnual}>
+                    <SortableContext items={fluxo.anuais.map((_, i) => `anual-${i}`)} strategy={horizontalListSortingStrategy}>
+                      {fluxo.anuais.map((a, i) => (
+                        <SortableTCell key={`anual-${i}`} id={`anual-${i}`} colors={colors} accentBg={colors.blueCell}>
+                          <EditableValue value={a.valor} onChange={(v) => updateAnualValor(i, v)} colors={colors} />
+                        </SortableTCell>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  {/* Decoração */}
                   <TCell colors={colors}>
                     <EditableValue value={fluxo.decoracao} onChange={(v) => setFluxo((p) => ({ ...p, decoracao: v }))} colors={colors} />
-
                   </TCell>
+                  {/* Total Investido */}
                   <TCell green colors={colors}>
                     <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
                       {formatCurrency(results.totalInvestido)}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: colors.green }}>{pctInvestido.toFixed(1)}% do imóvel</div>
                   </TCell>
+                  {/* Financiamento */}
                   <TCell colors={colors}>
                     <div className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
                       {formatCurrency(results.financiamento)}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>{pctFinanciamento.toFixed(1)}% do imóvel</div>
                   </TCell>
+                  {/* Valor do Imóvel */}
                   <TCell colors={colors}>
                     <EditableValue value={fluxo.valorImovel} onChange={(v) => syncValorImovelParaCalc(v)} colors={colors} />
                   </TCell>
@@ -675,8 +852,6 @@ export default function FluxoPage() {
               </tbody>
             </table>
           </div>
-          </SortableContext>
-          </DndContext>
         </motion.div>
 
         {/* DISTRIBUIÇÃO VISUAL */}
@@ -764,7 +939,13 @@ export default function FluxoPage() {
               className="flex items-center justify-between px-5 py-3"
               style={{ borderBottom: `1px solid ${colors.divider}` }}
             >
-              <span className="text-sm font-bold" style={{ color: colors.text1 }}>Preview — Fluxo de Pagamento</span>
+              <span className="text-sm font-bold" style={{ color: colors.text1 }}>
+                Preview — Fluxo de Pagamento
+                <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-lg"
+                  style={{ background: exportTheme === "dark" ? colors.blueBg : colors.amberBg, color: exportTheme === "dark" ? colors.blue : colors.amber }}>
+                  {exportTheme === "dark" ? "Tema escuro" : "Tema claro"}
+                </span>
+              </span>
               <button
                 onClick={() => setPreviewUrl(null)}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
