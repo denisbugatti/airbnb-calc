@@ -293,7 +293,7 @@ function exportFluxoPNG(
 export default function FluxoPage() {
   const {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
-    updateAnualMes, updateAnualValor, addAnual, removeAnual, setFluxo, syncValorImovelParaCalc,
+    updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, setFluxo, syncValorImovelParaCalc,
     nomeEmpreendimento, setNomeEmpreendimento,
   } = useFluxo();
   const { theme } = useTheme();
@@ -421,7 +421,7 @@ export default function FluxoPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium" style={{ color: colors.text3 }}>Parcelas Anuais</label>
                 <div className="flex items-center gap-1">
-                  <button onClick={removeAnual} disabled={fluxo.anuais.length <= 1}
+                  <button onClick={removeAnual} disabled={fluxo.anuais.length === 0}
                     className="w-5 h-5 rounded-md flex items-center justify-center disabled:opacity-30"
                     style={{ background: colors.amberBg, color: colors.amber }}>
                     <MinusIcon size={11} />
@@ -429,15 +429,17 @@ export default function FluxoPage() {
                   <span className="text-xs font-bold px-2" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
                     {fluxo.anuais.length}x
                   </span>
-                  <button onClick={addAnual} disabled={fluxo.anuais.length >= 3}
-                    className="w-5 h-5 rounded-md flex items-center justify-center disabled:opacity-30"
+                  <button onClick={addAnual}
+                    className="w-5 h-5 rounded-md flex items-center justify-center"
                     style={{ background: colors.greenBg, color: colors.green }}>
                     <Plus size={11} />
                   </button>
                 </div>
               </div>
               <div className="text-xs py-2 px-3 rounded-xl" style={{ background: colors.inputBg, color: colors.text3 }}>
-                {fluxo.anuais.length} parcela{fluxo.anuais.length > 1 ? "s" : ""} anual{fluxo.anuais.length > 1 ? "is" : ""} — edite na tabela
+                {fluxo.anuais.length === 0
+                  ? "Sem parcelas anuais"
+                  : `${fluxo.anuais.length} parcela${fluxo.anuais.length > 1 ? "s" : ""} anual${fluxo.anuais.length > 1 ? "is" : ""} — edite na tabela`}
               </div>
             </div>
           </div>
@@ -488,7 +490,17 @@ export default function FluxoPage() {
                   </THead>
                   {fluxo.anuais.map((a, i) => (
                     <THead key={i} colors={colors}>
-                      <div className="font-black">{fluxo.anuais.length}X ANUAIS {i + 1}</div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-black">ANUAL {i + 1}</span>
+                        <button
+                          onClick={() => removeAnualAt(i)}
+                          className="w-4 h-4 rounded flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                          style={{ background: colors.amberBg, color: colors.amber }}
+                          title={`Remover Anual ${i + 1}`}
+                        >
+                          <MinusIcon size={9} />
+                        </button>
+                      </div>
                       <EditableMes value={a.mes} onChange={(v) => updateAnualMes(i, v)} colors={colors} />
                     </THead>
                   ))}

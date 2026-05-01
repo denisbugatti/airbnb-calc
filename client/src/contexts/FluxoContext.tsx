@@ -28,7 +28,7 @@ export interface FluxoInputs {
   numMensais: number;           // 25 a 37 meses
 
   // Anuais
-  anuais: ParcelaAnual[];       // array de parcelas anuais (2 ou 3)
+  anuais: ParcelaAnual[];       // array de parcelas anuais (0 a N)
 
   // Decoração
   decoracao: number;
@@ -123,6 +123,7 @@ interface FluxoContextType {
   updateAnualValor: (idx: number, valor: number) => void;
   addAnual: () => void;
   removeAnual: () => void;
+  removeAnualAt: (idx: number) => void;
   /** Chamado pela Calculadora para sincronizar o valor do imóvel → Fluxo */
   syncValorImovel: (valor: number) => void;
   /** Chamado pelo Fluxo para sincronizar o valor do imóvel → Calculadora */
@@ -191,7 +192,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
 
   const addAnual = useCallback(() => {
     setFluxoState((prev) => {
-      if (prev.anuais.length >= 3) return prev;
+      // Sem limite máximo
       const lastMes = prev.anuais.length > 0 ? prev.anuais[prev.anuais.length - 1].mes : mesAtual();
       return {
         ...prev,
@@ -202,9 +203,17 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
 
   const removeAnual = useCallback(() => {
     setFluxoState((prev) => {
-      if (prev.anuais.length <= 1) return prev;
+      // Permite chegar a 0 anuais
+      if (prev.anuais.length === 0) return prev;
       return { ...prev, anuais: prev.anuais.slice(0, -1) };
     });
+  }, []);
+
+  const removeAnualAt = useCallback((idx: number) => {
+    setFluxoState((prev) => ({
+      ...prev,
+      anuais: prev.anuais.filter((_, i) => i !== idx),
+    }));
   }, []);
 
   /** Chamado pela Calculadora (Home.tsx) — atualiza o Fluxo sem loop */
@@ -240,7 +249,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
       nomeEmpreendimento, setNomeEmpreendimento,
       updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
       updateAnualMes, updateAnualValor,
-      addAnual, removeAnual,
+      addAnual, removeAnual, removeAnualAt,
       syncValorImovel,
       syncValorImovelParaCalc,
       registerValorImovelCallback,
