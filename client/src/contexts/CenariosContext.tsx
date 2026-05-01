@@ -25,6 +25,7 @@ interface CenariosCtx {
   cenarios: Cenario[];
   salvarCenario: (nome: string, inputs: CalculatorInputs, fluxo: FluxoInputs, resultados: Cenario["resultados"]) => void;
   removerCenario: (id: string) => void;
+  duplicarCenario: (id: string) => void;
   limparHistorico: () => void;
 }
 
@@ -82,13 +83,29 @@ export function CenariosProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const duplicarCenario = useCallback((id: string) => {
+    setCenarios(prev => {
+      const original = prev.find(c => c.id === id);
+      if (!original) return prev;
+      const copia: Cenario = {
+        ...original,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        nome: `${original.nome} (cópia)`,
+        criadoEm: new Date().toISOString(),
+      };
+      const updated = [copia, ...prev].slice(0, 20);
+      saveToStorage(updated);
+      return updated;
+    });
+  }, []);
+
   const limparHistorico = useCallback(() => {
     setCenarios([]);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (
-    <CenariosContext.Provider value={{ cenarios, salvarCenario, removerCenario, limparHistorico }}>
+    <CenariosContext.Provider value={{ cenarios, salvarCenario, removerCenario, duplicarCenario, limparHistorico }}>
       {children}
     </CenariosContext.Provider>
   );

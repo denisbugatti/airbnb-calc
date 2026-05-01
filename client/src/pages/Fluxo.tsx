@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useFluxo } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
-import { Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2, GripVertical } from "lucide-react";
+import { Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2, GripVertical, ImagePlus, X as XIcon } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
   DndContext,
@@ -249,6 +249,7 @@ function exportFluxoPNG(
   pctFinanciamento: number,
   nome?: string,
   incluirDecoracao = true,
+  logoDataUrl?: string,
 ) {
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
   const cols: { header: string; sub: string; value: string; isGreen?: boolean }[] = [];
@@ -279,6 +280,8 @@ function exportFluxoPNG(
   ctx.fillStyle = "#0a0f1a";
   ctx.fillRect(0, 0, totalW, totalH);
 
+  // Logo (top-left, drawn synchronously if available)
+  // Note: logo is drawn after table; we do a two-pass approach using a helper
   // Title
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 22px system-ui, sans-serif";
@@ -339,10 +342,28 @@ function exportFluxoPNG(
   ctx.lineWidth = 1;
   ctx.strokeRect(tableX, tableY, cols.length * COL_W, HEADER_H + ROW_H);
 
-  const link = document.createElement("a");
-  link.download = "fluxo-pagamento.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
+  // Draw logo top-left if provided
+  const doDownload = () => {
+    const link = document.createElement("a");
+    link.download = "fluxo-pagamento.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+  if (logoDataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      const maxH = 36;
+      const ratio = img.width / img.height;
+      const h = Math.min(maxH, img.height);
+      const w = h * ratio;
+      ctx.drawImage(img, PADDING, PADDING - 4, w, h);
+      doDownload();
+    };
+    img.onerror = doDownload;
+    img.src = logoDataUrl;
+  } else {
+    doDownload();
+  }
 }
 
 export default function FluxoPage() {
@@ -355,15 +376,28 @@ export default function FluxoPage() {
   const isDark = theme === "dark";
   const colors = useColors(isDark);
   const [exporting, setExporting] = useState(false);
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) setLogoDataUrl(ev.target.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }, []);
 
   const pctInvestido = fluxo.valorImovel > 0 ? (results.totalInvestido / fluxo.valorImovel) * 100 : 0;
   const pctFinanciamento = 100 - pctInvestido;
 
   const handleExport = useCallback((incluirDecoracao = true) => {
     setExporting(true);
-    try { exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao); }
-    finally { setTimeout(() => setExporting(false), 500); }
-  }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento]);
+    exportFluxoPNG(fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, incluirDecoracao, logoDataUrl ?? undefined);
+    setTimeout(() => setExporting(false), 600);
+  }, [fluxo, results, pctInvestido, pctFinanciamento, nomeEmpreendimento, logoDataUrl]);
 
   // DnD sensors — require 8px movement to start drag (prevents accidental drags on click)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -392,8 +426,8 @@ export default function FluxoPage() {
           <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: colors.text2 }}>
             Configure como o investimento será distribuído ao longo do tempo. O Total Investido alimenta automaticamente a base do ROI na calculadora.
           </p>
-          {/* Campo de nome do empreendimento */}
-          <div className="flex items-center justify-center">
+          {/* Campo de nome do empreendimento + logo */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <div
               className="flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-all"
               style={{
@@ -418,6 +452,30 @@ export default function FluxoPage() {
                 }}
               />
             </div>
+            {/* Logo upload */}
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            {logoDataUrl ? (
+              <div className="flex items-center gap-2 rounded-2xl px-3 py-2 transition-all"
+                style={{ background: colors.inputBg, border: `1.5px solid ${colors.greenBorder}` }}>
+                <img src={logoDataUrl} alt="Logo" className="h-7 w-auto object-contain rounded" />
+                <button
+                  onClick={() => setLogoDataUrl(null)}
+                  className="w-5 h-5 rounded-full flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+                  style={{ background: colors.amberBg, color: colors.amber }}
+                  title="Remover logo">
+                  <XIcon size={10} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-semibold transition-all hover:opacity-80"
+                style={{ background: colors.inputBg, border: `1.5px dashed ${colors.border}`, color: colors.text3 }}
+                title="Adicionar logo da incorporadora ao PNG exportado">
+                <ImagePlus size={14} style={{ color: colors.blue }} />
+                Logo no PNG
+              </button>
+            )}
           </div>
         </motion.div>
       </section>
