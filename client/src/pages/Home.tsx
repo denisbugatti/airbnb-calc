@@ -397,6 +397,20 @@ export default function HomePage() {
   const [showSalvarModal, setShowSalvarModal] = useState(false);
   const [nomeCenario, setNomeCenario] = useState("");
 
+  // SEO: define título da página com 30-60 caracteres
+  useEffect(() => {
+    document.title = "Calculadora de Rentabilidade Airbnb | Short Stay";
+    // Meta keywords
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="keywords"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "keywords";
+      document.head.appendChild(meta);
+    }
+    meta.content = "calculadora rentabilidade airbnb, short stay, locação curta temporada, ROI imóvel, simulador aluguel, holding imobiliária, rentabilidade imobiliária";
+    return () => { document.title = "Short Stay — Calculadora de Rentabilidade"; };
+  }, []);
+
   // Decodifica link compartilhado ao montar
   useEffect(() => {
     const payload = decodeShareLink();
@@ -472,6 +486,8 @@ export default function HomePage() {
             style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}>
             <Zap size={11} /> Análise em tempo real
           </div>
+          {/* H2 visível para SEO — descreve a seção principal */}
+          <h2 className="sr-only">Simulador de Rentabilidade para Locação de Curta Temporada</h2>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none mb-4" style={{ color: colors.text1 }}>
             Calcule sua{" "}
             <span style={{ color: colors.blue, textShadow: isDark ? `0 0 40px ${colors.blueGlow}` : "none" }}>
