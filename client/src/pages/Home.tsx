@@ -997,7 +997,7 @@ export default function HomePage() {
               const arrowYears = [1, Math.ceil(anosTotal / 2), anosTotal];
               // SVG layout — mais altura para separar bem as duas linhas
               const svgW = 980; const svgH = 520;
-              const padL = 70; const padR = 130; const padTop = 110; const padBot = 90;
+              const padL = 70; const padR = 130; const padTop = 68; const padBot = 90;
               const plotW = svgW - padL - padR;
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
