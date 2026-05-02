@@ -731,7 +731,7 @@ export default function FluxoPage() {
                           <div className="flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1">
                               <GripVertical size={10} className="opacity-40" />
-                              <span className="font-black">SEM {i + 1}</span>
+                              <span className="font-black">SEMESTRAL {i + 1}</span>
                             </div>
                             <button
                               onPointerDown={(e) => e.stopPropagation()}

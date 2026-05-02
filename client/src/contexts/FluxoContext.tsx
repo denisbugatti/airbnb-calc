@@ -264,10 +264,15 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
     setFluxoState((prev) => {
       const sem = prev.semestrais ?? [];
       const lastMes = sem.length > 0 ? sem[sem.length - 1].mes : mesAtual();
-      return {
-        ...prev,
-        semestrais: [...sem, { mes: proximoMes(lastMes, 6), valor: sem[0]?.valor ?? 0 }],
-      };
+      // Valor proporcional: 3% do imóvel dividido pelo novo total de semestrais
+      const novoTotal = sem.length + 1;
+      const valorProporcional = Math.round((prev.valorImovel * 0.03) / novoTotal);
+      // Se já existem semestrais, redistribui o valor proporcional para todas
+      const novoValor = sem.length === 0 ? valorProporcional : sem[0].valor;
+      const novasSemestrais = sem.length === 0
+        ? [{ mes: proximoMes(lastMes, 6), valor: valorProporcional }]
+        : [...sem, { mes: proximoMes(lastMes, 6), valor: novoValor }];
+      return { ...prev, semestrais: novasSemestrais };
     });
   }, []);
 
