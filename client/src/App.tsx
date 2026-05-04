@@ -45,15 +45,12 @@ function NavBar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0">
-        <div
-          className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center"
-          style={{
-            background: isDark ? "oklch(0.78 0.12 210 / 0.15)" : "oklch(0.52 0.22 250 / 0.1)",
-            border: isDark ? "1px solid oklch(0.78 0.12 210 / 0.3)" : "1px solid oklch(0.52 0.22 250 / 0.25)",
-          }}
-        >
-          <Zap size={14} style={{ color: isDark ? "oklch(0.78 0.12 210)" : "oklch(0.52 0.22 250)" }} />
-        </div>
+        <img
+          src="/manus-storage/logo-user_f8b94069.png"
+          alt="Short Stay"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-xl object-cover"
+          style={{ boxShadow: isDark ? "0 0 8px oklch(0.78 0.12 210 / 0.3)" : "0 1px 4px oklch(0 0 0 / 0.15)" }}
+        />
         <span
           className="text-sm font-bold hidden sm:block"
           style={{ color: isDark ? "oklch(0.95 0 0)" : "oklch(0.18 0.01 260)" }}
