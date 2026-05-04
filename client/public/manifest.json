@@ -13,25 +13,25 @@
   "categories": ["finance", "business", "productivity"],
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "src": "/manus-storage/logo-transparent_2add67e2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "src": "/manus-storage/logo-transparent_2add67e2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "src": "/manus-storage/logo-transparent_2add67e2.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663363661895/YAhEC3ZLyoBUTrFewPAV6a/short-stay-icon-512-6XpoXmoBVs78gXietaQNiq.png",
+      "src": "/manus-storage/logo-transparent_2add67e2.png",
       "sizes": "2048x2048",
       "type": "image/png",
       "purpose": "maskable"
