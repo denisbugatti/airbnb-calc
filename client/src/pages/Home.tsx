@@ -750,13 +750,14 @@ export default function HomePage() {
             <GlassPanel delay={0.2} colors={colors}>
               <SectionHeader icon={<Home size={13} />} label="Custos Fixos Mensais" colors={colors} />
               <div className="space-y-3">
-                <InputField label="Condomínio" prefix="R$" min={0} step={50} {...iF("condominio")} isDark={isDark} colors={colors} />
-                <InputField label="IPTU" prefix="R$" min={0} step={10} tooltip="Valor mensal do IPTU (total anual ÷ 12)" {...iF("iptuMensal")} isDark={isDark} colors={colors} />
-                <div className="grid grid-cols-3 gap-2">
-                  <InputField label="Wi-Fi" prefix="R$" min={0} step={10} icon={<Wifi size={11} />} {...iF("wifi")} isDark={isDark} colors={colors} />
-                  <InputField label="Água" prefix="R$" min={0} step={10} icon={<Droplets size={11} />} {...iF("agua")} isDark={isDark} colors={colors} />
-                  <InputField label="Luz" prefix="R$" min={0} step={10} icon={<Bolt size={11} />} {...iF("luz")} isDark={isDark} colors={colors} />
+                {/* Financiamento */}
+                <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Parcela mensal (Financiamento)</div>
+                  <div className="text-base font-black" style={{ color: colors.amber, fontFamily: "'Geist Mono', monospace" }}>
+                    {formatCurrency(results.parcelaFinanciamento)}
+                  </div>
                 </div>
+                {/* Adm + Seguro */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium" style={{ color: colors.text3 }}>Administração + Seguro</label>
@@ -769,12 +770,17 @@ export default function HomePage() {
                     <span>0%</span><span>20%</span>
                   </div>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
-                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Total custos fixos</div>
-                  <div className="text-base font-black" style={{ color: colors.red, fontFamily: "'Geist Mono', monospace" }}>
-                    {formatCurrency(results.totalDespesas)}
-                  </div>
+                {/* Wi-Fi / Água / Luz */}
+                <div className="grid grid-cols-3 gap-2">
+                  <InputField label="Wi-Fi" prefix="R$" min={0} step={10} icon={<Wifi size={11} />} {...iF("wifi")} isDark={isDark} colors={colors} />
+                  <InputField label="Água" prefix="R$" min={0} step={10} icon={<Droplets size={11} />} {...iF("agua")} isDark={isDark} colors={colors} />
+                  <InputField label="Luz" prefix="R$" min={0} step={10} icon={<Bolt size={11} />} {...iF("luz")} isDark={isDark} colors={colors} />
                 </div>
+                {/* IPTU */}
+                <InputField label="IPTU" prefix="R$" min={0} step={10} tooltip="Valor mensal do IPTU (total anual ÷ 12)" {...iF("iptuMensal")} isDark={isDark} colors={colors} />
+                {/* Condomínio */}
+                <InputField label="Condomínio" prefix="R$" min={0} step={50} {...iF("condominio")} isDark={isDark} colors={colors} />
+
               </div>
             </GlassPanel>
           </div>
