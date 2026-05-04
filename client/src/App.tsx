@@ -46,7 +46,7 @@ function NavBar() {
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0">
         <img
-          src="/manus-storage/logo-user_f8b94069.png"
+          src="/manus-storage/logo-clean_8ab9d2ee.png"
           alt="Short Stay"
           className="w-7 h-7 md:w-8 md:h-8 rounded-xl object-cover"
           style={{ boxShadow: isDark ? "0 0 8px oklch(0.78 0.12 210 / 0.3)" : "0 1px 4px oklch(0 0 0 / 0.15)" }}
