@@ -986,7 +986,7 @@ export default function HomePage() {
 
             {/* ── GRÁFICO DE EVOLUÇÃO DO FINANCIAMENTO ── */}
             {(() => {
-              const saldo = inputsComFluxo.saldoFinanciar;
+              const saldo = inputsComFluxo.saldoFinanciar; // valor financiado (não o total do imóvel)
               const taxa = inputsComFluxo.taxaJurosMensal;
               const prazo = inputsComFluxo.prazoMeses;
               const rendaBase = results.rendaMensalLiquida;
@@ -994,68 +994,85 @@ export default function HomePage() {
               if (saldo <= 0 || taxa <= 0) return null;
               // Inflação anual estimada de 5% para projeção do aluguel
               const inflacaoAnual = 0.05;
-              // Gera dados anuais por até 12 anos (como na imagem)
-              const anosTotal = Math.min(Math.ceil(prazo / 12), 12);
-              // Gera dados anuais com SAC (parcela decrescente)
-              // SAC: amortização constante = saldo/prazo, juros = saldo*taxa
+              // Sempre 10 anos (projeção fixa de 10 anos a partir do ano 1)
+              const anosTotal = 10;
+              // SAC: amortização constante = saldo/prazo
               const amortizacaoMensal = saldo / prazo;
+              // Price: parcela constante (PMT)
+              const parcelaPrice = taxa > 0
+                ? (saldo * taxa * Math.pow(1 + taxa, prazo)) / (Math.pow(1 + taxa, prazo) - 1)
+                : saldo / prazo;
               const chartData: Array<{
-                ano: number; aluguel: number; parcela: number; lucro: number;
+                ano: number; aluguel: number; parcelaSac: number; parcelaPrice: number; lucroSac: number;
               }> = [];
               for (let ano = 1; ano <= anosTotal; ano++) {
-                // Saldo devedor no início do ano (após (ano-1)*12 meses)
+                // Saldo devedor no início do ano (após (ano-1)*12 meses de amortização SAC)
                 const mesesDecorridos = (ano - 1) * 12;
                 const saldoInicioAno = Math.max(0, saldo - amortizacaoMensal * mesesDecorridos);
-                // Parcela SAC do primeiro mês do ano = amort + juros sobre saldo
-                const parcelaAno = saldoInicioAno > 0
-                  ? amortizacaoMensal + saldoInicioAno * taxa
+                // Parcela SAC média do ano = amort + juros médios dos 12 meses do ano
+                // Juros médios = taxa * (saldo_início + saldo_fim) / 2
+                const saldoFimAno = Math.max(0, saldo - amortizacaoMensal * (mesesDecorridos + 12));
+                const jurosMedios = taxa * (saldoInicioAno + saldoFimAno) / 2;
+                const parcelaSacAno = saldoInicioAno > 0
+                  ? amortizacaoMensal + jurosMedios
                   : 0;
                 // Aluguel cresce com inflação
                 const aluguelAno = rendaBase * Math.pow(1 + inflacaoAnual, ano - 1);
                 chartData.push({
                   ano,
                   aluguel: Math.round(aluguelAno),
-                  parcela: Math.round(parcelaAno),
-                  lucro: Math.round(aluguelAno - parcelaAno),
+                  parcelaSac: Math.round(parcelaSacAno),
+                  parcelaPrice: Math.round(parcelaPrice),
+                  lucroSac: Math.round(aluguelAno - parcelaSacAno),
                 });
               }
-              // Anos com seta de lucro: 1, meio, último
-              const arrowYears = [1, Math.ceil(anosTotal / 2), anosTotal];
-              // SVG layout — mais altura para separar bem as duas linhas
-              const svgW = 980; const svgH = 520;
-              const padL = 70; const padR = 130; const padTop = 68; const padBot = 90;
+              // Anos com seta de lucro: 1, 5, 10
+              const arrowYears = [1, 5, 10];
+              // SVG layout
+              const svgW = 980; const svgH = 540;
+              const padL = 70; const padR = 140; const padTop = 72; const padBot = 90;
               const plotW = svgW - padL - padR;
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
-              const allVals = chartData.flatMap(d => [d.aluguel, d.parcela]);
-              // Mantém o intervalo dos dados reais — a maior altura do plot já gera mais separação
-              const minV = Math.min(...allVals) * 0.7;
-              const maxV = Math.max(...allVals) * 1.12;
+              // Escala: inclui aluguel, SAC e Price — com margem generosa para evitar clipping
+              const allVals = chartData.flatMap(d => [d.aluguel, d.parcelaSac, d.parcelaPrice]);
+              const minV = Math.min(...allVals) * 0.82; // margem inferior generosa
+              const maxV = Math.max(...allVals) * 1.10; // margem superior moderada
               const xOf = (i: number) => padL + (i / (n - 1)) * plotW;
               const yOf = (v: number) => padTop + plotH - ((v - minV) / (maxV - minV)) * plotH;
-              // Linha verde (aluguel)
+              // Caminhos SVG
               const greenPath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.aluguel)}`).join(" ");
-              // Linha azul (parcela)
-              const bluePath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.parcela)}`).join(" ");
-              // Cores — adaptam ao tema (claro/escuro)
-              const chartBg = isDark ? "oklch(0.12 0.04 220)" : "oklch(0.985 0.005 220)";
-              const greenC = isDark ? "#4ade80" : "#16a34a";
-              const blueC = isDark ? "#60a5fa" : "#2563eb";
-              const textC = isDark ? "#ffffff" : "oklch(0.18 0.04 220)";
-              const text3C = isDark ? "rgba(255,255,255,0.55)" : "oklch(0.45 0.03 220)";
-              const divC = isDark ? "rgba(255,255,255,0.18)" : "oklch(0.85 0.02 220)";
-              const bgLabel = isDark ? "oklch(0.18 0.06 145 / 0.92)" : "oklch(0.95 0.08 145 / 0.95)";
-              const bgLabelBlue = isDark ? "oklch(0.18 0.06 220 / 0.92)" : "oklch(0.95 0.06 220 / 0.95)";
-              const gridC = isDark ? "rgba(255,255,255,0.06)" : "oklch(0.85 0.02 220 / 0.5)";
-              const yearChipBg = isDark ? "rgba(255,255,255,0.1)" : "oklch(0.92 0.02 220)";
+              const bluePath  = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.parcelaSac)}`).join(" ");
+              // Linha Price: horizontal constante
+              const priceY = yOf(parcelaPrice);
+              const pricePath = `M${xOf(0)},${priceY} L${xOf(n - 1)},${priceY}`;
+              // Cores
+              const chartBg      = isDark ? "oklch(0.12 0.04 220)" : "oklch(0.985 0.005 220)";
+              const greenC       = isDark ? "#4ade80" : "#16a34a";
+              const blueC        = isDark ? "#60a5fa" : "#2563eb";
+              const orangeC      = isDark ? "#fb923c" : "#ea580c"; // cor da linha Price
+              const textC        = isDark ? "#ffffff" : "oklch(0.18 0.04 220)";
+              const text3C       = isDark ? "rgba(255,255,255,0.55)" : "oklch(0.45 0.03 220)";
+              const divC         = isDark ? "rgba(255,255,255,0.18)" : "oklch(0.85 0.02 220)";
+              const bgLabel      = isDark ? "oklch(0.18 0.06 145 / 0.92)" : "oklch(0.95 0.08 145 / 0.95)";
+              const bgLabelBlue  = isDark ? "oklch(0.18 0.06 220 / 0.92)" : "oklch(0.95 0.06 220 / 0.95)";
+              const bgLabelOrange= isDark ? "oklch(0.18 0.06 50 / 0.92)" : "oklch(0.97 0.06 50 / 0.95)";
+              const gridC        = isDark ? "rgba(255,255,255,0.06)" : "oklch(0.85 0.02 220 / 0.5)";
+              const yearChipBg   = isDark ? "rgba(255,255,255,0.1)" : "oklch(0.92 0.02 220)";
               const fmt = (v: number) => v >= 1000
                 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1).replace(".", ",")}k`
                 : v.toLocaleString("pt-BR");
               return (
                 <GlassPanel delay={0.35} colors={colors}>
                   <SectionHeader icon={<TrendingUp size={13} />} label="Evolução do Financiamento" colors={colors} />
-                  <div className="text-xs mb-2" style={{ color: colors.text3 }}>
-                    Aluguel líquido (+5% a.a.) vs. parcela SAC decrescente — lucro mensal ao longo dos anos
+                  <div className="text-xs mb-3" style={{ color: colors.text3 }}>
+                    Aluguel líquido (+5% a.a.) vs. parcela SAC (média anual) e Price (constante) — projeção 10 anos
+                  </div>
+                  {/* Legenda */}
+                  <div className="flex gap-4 mb-3 flex-wrap">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: greenC }}>● Aluguel líquido</span>
+                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: blueC }}>● Parcela SAC</span>
+                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: orangeC }}>– – Parcela Price</span>
                   </div>
                   <div className="w-full overflow-x-auto">
                     <svg
@@ -1063,43 +1080,48 @@ export default function HomePage() {
                       style={{ width: "100%", minWidth: 380, height: "auto", display: "block", borderRadius: 12 }}
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      {/* Fundo dark navy */}
+                      {/* Fundo */}
                       <rect width={svgW} height={svgH} rx={12} fill={chartBg} />
                       {/* Grade sutil */}
                       {[0.25, 0.5, 0.75].map(t => (
                         <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke={gridC} strokeWidth={1} strokeDasharray="4 4" />
                       ))}
                       {/* Label ALUGUEL */}
-                      <text x={padL} y={32} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">ALUGUEL</text>
+                      <text x={padL} y={36} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">ALUGUEL</text>
                       {/* Eixo X */}
                       <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
-                      {/* Label ANOS — à esquerda do eixo, separado dos números */}
+                      {/* Label ANOS */}
                       <text x={8} y={svgH - padBot + 29} fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
+                      {/* Linha Price (tracejada laranja) — desenhada antes das outras para ficar atrás */}
+                      <path d={pricePath} fill="none" stroke={orangeC} strokeWidth={2} strokeDasharray="8 5" strokeOpacity={0.85} />
+                      {/* Label Price no final da linha */}
+                      <rect x={xOf(n - 1) + 10} y={priceY - 14} width={62} height={22} rx={11} fill={bgLabelOrange} stroke={orangeC} strokeWidth={1} strokeOpacity={0.6} />
+                      <text x={xOf(n - 1) + 41} y={priceY + 3} textAnchor="middle" fill={orangeC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
+                        {fmt(parcelaPrice)}
+                      </text>
                       {/* Linha verde (aluguel) */}
-                      <path d={greenPath} fill="none" stroke={greenC} strokeWidth={2} strokeOpacity={0.6} />
-                      {/* Linha azul (parcela) */}
-                      <path d={bluePath} fill="none" stroke={blueC} strokeWidth={2} strokeOpacity={0.6} />
-                      {/* Setas de lucro nos anos selecionados */}
+                      <path d={greenPath} fill="none" stroke={greenC} strokeWidth={2.5} strokeOpacity={0.85} />
+                      {/* Linha azul (parcela SAC) */}
+                      <path d={bluePath} fill="none" stroke={blueC} strokeWidth={2.5} strokeOpacity={0.85} />
+                      {/* Setas de lucro SAC nos anos 1, 5, 10 */}
                       {arrowYears.map((ano) => {
                         const d = chartData[ano - 1];
                         if (!d) return null;
                         const i = ano - 1;
                         const x = xOf(i);
                         const yA = yOf(d.aluguel);
-                        const yP = yOf(d.parcela);
+                        const yP = yOf(d.parcelaSac);
                         const midY = (yA + yP) / 2;
                         const isFirst = ano === 1;
                         return (
                           <g key={`arrow-${ano}`}>
-                            {/* Linha da seta */}
                             <line x1={x} y1={yA + 6} x2={x} y2={yP - 6} stroke={greenC} strokeWidth={2} markerEnd="url(#arrowDown)" markerStart="url(#arrowUp)" />
-                            {/* Valor do lucro — à direita da seta, centralizado verticalmente */}
                             <text
                               x={x + 18} y={midY - 6}
                               fill={textC} fontSize={isFirst ? 22 : 19} fontWeight="900"
                               fontFamily="'Geist', sans-serif"
                             >
-                              {formatCurrency(d.lucro)}
+                              {formatCurrency(d.lucroSac)}
                             </text>
                             {isFirst && (
                               <text x={x + 18} y={midY + 14} fill={text3C} fontSize={11} fontFamily="'Geist', sans-serif" letterSpacing="1">LUCRO MENSAL</text>
@@ -1113,10 +1135,8 @@ export default function HomePage() {
                         const lw = 58; const lh = 24;
                         return (
                           <g key={`g-${i}`}>
-                            {/* Halo */}
                             <circle cx={x} cy={y} r={9} fill={greenC} fillOpacity={0.18} />
                             <circle cx={x} cy={y} r={5} fill={greenC} />
-                            {/* Label pílula acima */}
                             <rect x={x - lw / 2} y={y - lh - 12} width={lw} height={lh} rx={12} fill={bgLabel} stroke={greenC} strokeWidth={1} strokeOpacity={0.5} />
                             <text x={x} y={y - lh - 12 + lh / 2 + 4.5} textAnchor="middle" fill={greenC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
                               {fmt(d.aluguel)}
@@ -1124,24 +1144,22 @@ export default function HomePage() {
                           </g>
                         );
                       })}
-                      {/* Pontos e labels azuis (parcela) */}
+                      {/* Pontos e labels azuis (parcela SAC) */}
                       {chartData.map((d, i) => {
-                        const x = xOf(i); const y = yOf(d.parcela);
+                        const x = xOf(i); const y = yOf(d.parcelaSac);
                         const lw = 58; const lh = 24;
                         return (
                           <g key={`b-${i}`}>
-                            {/* Halo */}
                             <circle cx={x} cy={y} r={9} fill={blueC} fillOpacity={0.18} />
                             <circle cx={x} cy={y} r={5} fill={blueC} />
-                            {/* Label pílula abaixo */}
                             <rect x={x - lw / 2} y={y + 12} width={lw} height={lh} rx={12} fill={bgLabelBlue} stroke={blueC} strokeWidth={1} strokeOpacity={0.5} />
                             <text x={x} y={y + 12 + lh / 2 + 4.5} textAnchor="middle" fill={blueC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
-                              {fmt(d.parcela)}
+                              {fmt(d.parcelaSac)}
                             </text>
                           </g>
                         );
                       })}
-                      {/* Labels do eixo X (anos) — deslocados para não colidir com o label ANOS à esquerda */}
+                      {/* Labels do eixo X (anos) */}
                       {chartData.map((d, i) => (
                         <g key={`x-${i}`}>
                           <rect x={xOf(i) - 14} y={svgH - padBot + 14} width={28} height={22} rx={11} fill={yearChipBg} />
@@ -1150,8 +1168,8 @@ export default function HomePage() {
                           </text>
                         </g>
                       ))}
-                      {/* Label parcela (canto inferior esquerdo) */}
-                      <text x={padL} y={svgH - padBot + 52} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">valor da parcela do financiamento</text>
+                      {/* Legenda inferior */}
+                      <text x={padL} y={svgH - padBot + 55} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">parcela SAC (média do ano) sobre saldo financiado de {fmt(saldo)}</text>
                       {/* Defs para setas */}
                       <defs>
                         <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
