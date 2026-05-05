@@ -863,15 +863,7 @@ export default function FluxoPage() {
                       <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
                         {formatCurrency(incluiDecoracao ? results.totalInvestido + calc.mobilia : results.totalInvestido)}
                       </div>
-                      <div className="text-xs mt-0.5" style={{ color: colors.green }}>
-                        {incluiDecoracao
-                          ? `c/ decoração — ${((results.totalInvestido + calc.mobilia) / calc.valorImovel * 100).toFixed(1)}%`
-                          : `${pctInvestido.toFixed(1)}% do imóvel`}
-                      </div>
-                      <div className="text-xs mt-1 px-1.5 py-0.5 rounded-md inline-block"
-                        style={{ background: incluiDecoracao ? colors.amberBg : colors.greenBg, color: incluiDecoracao ? colors.amber : colors.green, fontSize: "0.6rem" }}>
-                        {incluiDecoracao ? "C/ DECORAÇÃO" : "SEM DECORAÇÃO"}
-                      </div>
+
                     </div>
                   </TCell>
                   {/* Financiamento */}
