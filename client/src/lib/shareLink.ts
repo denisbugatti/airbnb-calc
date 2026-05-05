@@ -31,8 +31,6 @@ export function encodeShareLink(
       numMensais: fluxo.numMensais,
       semestrais: fluxo.semestrais,
       anuais: fluxo.anuais,
-      decoracao: fluxo.decoracao,
-      valorImovel: fluxo.valorImovel,
     },
     nome,
   };

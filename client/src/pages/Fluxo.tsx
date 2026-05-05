@@ -269,6 +269,8 @@ function gerarFluxoPNG(
   incluirDecoracao = true,
   logoDataUrl?: string,
   exportTheme: ExportTheme = "dark",
+  decoracao = 0,
+  valorImovel = 0,
 ): Promise<string> {
   return new Promise((resolve) => {
     const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
@@ -277,10 +279,10 @@ function gerarFluxoPNG(
     cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
     (fluxo.semestrais ?? []).forEach((s, i) => cols.push({ header: `SEMESTRAL ${i + 1}`, sub: s.mes, value: fmt(s.valor), isViolet: true }));
     fluxo.anuais.forEach((a, i) => cols.push({ header: `ANUAL ${i + 1}`, sub: a.mes, value: fmt(a.valor) }));
-    if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(fluxo.decoracao) });
+    if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(decoracao) });
     cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
     cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
-    cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(fluxo.valorImovel) });
+    cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(valorImovel) });
 
     // Paleta de cores por tema
     const isDarkTheme = exportTheme === "dark";
@@ -399,7 +401,7 @@ function gerarFluxoPNG(
 
 export default function FluxoPage() {
   const {
-    fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
+    fluxo, results, calc, setCalcField, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
     updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, reorderAnuais,
     updateSemestralMes, updateSemestralValor, addSemestral, removeSemestral, removeSemestralAt, reorderSemestrais,
     setFluxo, syncValorImovelParaCalc, syncToCalc,
@@ -426,7 +428,7 @@ export default function FluxoPage() {
     e.target.value = "";
   }, []);
 
-  const pctInvestido = fluxo.valorImovel > 0 ? (results.totalInvestido / fluxo.valorImovel) * 100 : 0;
+  const pctInvestido = calc.valorImovel > 0 ? (results.totalInvestido / calc.valorImovel) * 100 : 0;
   const pctFinanciamento = 100 - pctInvestido;
 
   const handleExport = useCallback(async (incluirDecoracao = true) => {
@@ -435,6 +437,7 @@ export default function FluxoPage() {
       const dataUrl = await gerarFluxoPNG(
         fluxo, results, pctInvestido, pctFinanciamento,
         nomeEmpreendimento, incluirDecoracao, logoDataUrl ?? undefined, exportTheme,
+        calc.mobilia, calc.valorImovel,
       );
       setPreviewUrl(dataUrl);
     } finally {
@@ -829,7 +832,7 @@ export default function FluxoPage() {
                   </DndContext>
                   {/* Decoração */}
                   <TCell colors={colors}>
-                    <EditableValue value={fluxo.decoracao} onChange={(v) => syncToCalc({ decoracao: v })} colors={colors} />
+                    <EditableValue value={calc.mobilia} onChange={(v) => setCalcField("mobilia", v)} colors={colors} />
                   </TCell>
                   {/* Total Investido — toggle com/sem mobília */}
                   <TCell green colors={colors}>
@@ -839,11 +842,11 @@ export default function FluxoPage() {
                       title={showComMobilia ? "Clique para ver sem mobília" : "Clique para ver com mobília"}
                     >
                       <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
-                        {formatCurrency(showComMobilia ? results.totalInvestido + fluxo.decoracao : results.totalInvestido)}
+                        {formatCurrency(showComMobilia ? results.totalInvestido + calc.mobilia : results.totalInvestido)}
                       </div>
                       <div className="text-xs mt-0.5" style={{ color: colors.green }}>
                         {showComMobilia
-                          ? `c/ mobília — ${((showComMobilia ? results.totalInvestido + fluxo.decoracao : results.totalInvestido) / fluxo.valorImovel * 100).toFixed(1)}%`
+                          ? `c/ mobília — ${((showComMobilia ? results.totalInvestido + calc.mobilia : results.totalInvestido) / calc.valorImovel * 100).toFixed(1)}%`
                           : `${pctInvestido.toFixed(1)}% do imóvel`}
                       </div>
                       <div className="text-xs mt-1 px-1.5 py-0.5 rounded-md inline-block"
@@ -861,7 +864,7 @@ export default function FluxoPage() {
                   </TCell>
                   {/* Valor do Imóvel */}
                   <TCell colors={colors}>
-                    <EditableValue value={fluxo.valorImovel} onChange={(v) => syncToCalc({ valorImovel: v })} colors={colors} />
+                    <EditableValue value={calc.valorImovel} onChange={(v) => setCalcField("valorImovel", v)} colors={colors} />
                   </TCell>
                 </tr>
               </tbody>
@@ -898,7 +901,7 @@ export default function FluxoPage() {
             {[
               { label: "Total Investido", value: results.totalInvestido, color: colors.green, sub: `${pctInvestido.toFixed(1)}% do imóvel` },
               { label: "Financiamento", value: results.financiamento, color: colors.blue, sub: `${pctFinanciamento.toFixed(1)}% do imóvel` },
-              { label: "Valor do Imóvel", value: fluxo.valorImovel, color: colors.text1, sub: "base de cálculo" },
+              { label: "Valor do Imóvel", value: calc.valorImovel, color: colors.text1, sub: "base de cálculo" },
               { label: "Ato Total", value: results.totalAto, color: colors.amber, sub: `${fluxo.percentualAto.toFixed(2)}% — ${fluxo.parcelasAto}x` },
             ].map(({ label, value, color, sub }) => (
               <div key={label} className="rounded-xl p-3" style={{ background: colors.inputBg }}>

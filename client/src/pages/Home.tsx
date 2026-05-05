@@ -389,10 +389,10 @@ export default function HomePage() {
   const isDark = theme === "dark";
   const colors = useColors(isDark);
 
-  const [inputs, setInputs] = useState<CalculatorInputs>(defaultInputs);
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, syncFromCalc, registerCalcCallback, fluxo, nomeEmpreendimento } = useFluxo();
+  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento } = useFluxo();
+  const inputs = calc;  // alias para compatibilidade com código existente
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
   const [nomeCenario, setNomeCenario] = useState("");
@@ -415,40 +415,19 @@ export default function HomePage() {
   useEffect(() => {
     const payload = decodeShareLink();
     if (payload?.calc) {
-      setInputs(payload.calc);
+      setCalc(() => payload.calc);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Registra callback para receber atualizações do Fluxo → Calculadora (bidirecional)
-  useEffect(() => {
-    registerCalcCallback((payload) => {
-      setInputs((prev) => {
-        const next = { ...prev };
-        let changed = false;
-        if (payload.valorImovel !== undefined && prev.valorImovel !== payload.valorImovel) {
-          next.valorImovel = payload.valorImovel; changed = true;
-        }
-        if (payload.taxaJurosMensal !== undefined && prev.taxaJurosMensal !== payload.taxaJurosMensal) {
-          next.taxaJurosMensal = payload.taxaJurosMensal; changed = true;
-        }
-        if (payload.prazoMeses !== undefined && prev.prazoMeses !== payload.prazoMeses) {
-          next.prazoMeses = payload.prazoMeses; changed = true;
-        }
-        if (payload.decoracao !== undefined && prev.mobilia !== payload.decoracao) {
-          next.mobilia = payload.decoracao; changed = true;
-        }
-        return changed ? next : prev;
-      });
-    });
-  }, [registerCalcCallback]);
+  // registerCalcCallback removido — calc é a fonte única compartilhada via FluxoContext
 
   // Listener para restaurar cenário do histórico
   useEffect(() => {
     const handler = (e: Event) => {
       const cenario = (e as CustomEvent<Cenario>).detail;
       if (cenario?.inputs) {
-        setInputs(cenario.inputs);
+        setCalc(() => cenario.inputs);
         toast.success(`Cenário "${cenario.nome}" restaurado!`);
       }
     };
@@ -456,26 +435,18 @@ export default function HomePage() {
     return () => window.removeEventListener("restaurar-cenario", handler);
   }, []);
 
-  // Calculadora → Fluxo (quando o usuário edita na Ficha Técnica)
-  useEffect(() => {
-    syncFromCalc({
-      valorImovel: inputs.valorImovel,
-      taxaJurosMensal: inputs.taxaJurosMensal,
-      prazoMeses: inputs.prazoMeses,
-      decoracao: inputs.mobilia,
-    });
-  }, [inputs.valorImovel, inputs.taxaJurosMensal, inputs.prazoMeses, inputs.mobilia, syncFromCalc]);
+  // Sync removido — calc é a fonte única compartilhada via FluxoContext
 
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
-    capitalProprio: (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (fluxo.decoracao || 0),
+    capitalProprio: (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (calc.mobilia || 0),
     saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
   }), [inputs, fluxoResults]);
 
   const results = useMemo(() => calcular(inputsComFluxo), [inputsComFluxo]);
   const set = useCallback((key: keyof CalculatorInputs) => (value: number) => {
-    setInputs((prev) => ({ ...prev, [key]: value }));
-  }, []);
+    setCalcField(key, value);
+  }, [setCalcField]);
 
   const handleSalvarCenario = useCallback(() => {
     const nome = nomeCenario.trim() || `Cenário ${new Date().toLocaleDateString("pt-BR")}`;
@@ -943,7 +914,7 @@ export default function HomePage() {
             {/* Breakeven do Total Investido */}
             {(() => {
               // Decoracao soma ao total investido no breakeven (custo de setup do imovel)
-              const totalInv = (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (fluxo.decoracao || 0);
+              const totalInv = (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (calc.mobilia || 0);
               const rendaLiq = results.rendaMensalLiquida;
               const mesesParaBreakeven = rendaLiq > 0 ? Math.ceil(totalInv / rendaLiq) : null;
               const anos = mesesParaBreakeven !== null ? Math.floor(mesesParaBreakeven / 12) : null;
@@ -966,7 +937,7 @@ export default function HomePage() {
                         <div className="text-2xl font-black" style={{ color: colors.red }}>Renda negativa</div>
                       )}
                       <div className="text-xs mt-1" style={{ color: colors.text4 }}>
-                        Base: {formatCurrency(totalInv)} investidos{fluxo.decoracao > 0 ? ` (incl. R$ ${fluxo.decoracao.toLocaleString('pt-BR')} decoracao)` : ''} ÷ {formatCurrency(rendaLiq)}/mês
+                        Base: {formatCurrency(totalInv)} investidos{calc.mobilia > 0 ? ` (incl. R$ ${calc.mobilia.toLocaleString('pt-BR')} decoracao)` : ''} ÷ {formatCurrency(rendaLiq)}/mês
                       </div>
                     </div>
                     <div className="flex-1 w-full">
