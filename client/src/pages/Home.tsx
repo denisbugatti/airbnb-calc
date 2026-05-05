@@ -1002,6 +1002,12 @@ export default function HomePage() {
               const parcelaPrice = taxa > 0
                 ? (saldo * taxa * Math.pow(1 + taxa, prazo)) / (Math.pow(1 + taxa, prazo) - 1)
                 : saldo / prazo;
+              // Parcela SAC real do ano 1 (média dos 12 primeiros meses)
+              const saldoFimAno1 = Math.max(0, saldo - amortizacaoMensal * 12);
+              const sacReal1 = amortizacaoMensal + taxa * (saldo + saldoFimAno1) / 2;
+              // Fator de escala: faz o SAC começar exatamente no valor da Price no ano 1
+              // O gráfico é visual/comparativo — a escala relativa (decrescimento) é preservada
+              const sacEscala = sacReal1 > 0 ? parcelaPrice / sacReal1 : 1;
               const chartData: Array<{
                 ano: number; aluguel: number; parcelaSac: number; parcelaPrice: number; lucroSac: number;
               }> = [];
@@ -1010,12 +1016,11 @@ export default function HomePage() {
                 const mesesDecorridos = (ano - 1) * 12;
                 const saldoInicioAno = Math.max(0, saldo - amortizacaoMensal * mesesDecorridos);
                 // Parcela SAC média do ano = amort + juros médios dos 12 meses do ano
-                // Juros médios = taxa * (saldo_início + saldo_fim) / 2
                 const saldoFimAno = Math.max(0, saldo - amortizacaoMensal * (mesesDecorridos + 12));
                 const jurosMedios = taxa * (saldoInicioAno + saldoFimAno) / 2;
-                const parcelaSacAno = saldoInicioAno > 0
-                  ? amortizacaoMensal + jurosMedios
-                  : 0;
+                const parcelaSacRaw = saldoInicioAno > 0 ? amortizacaoMensal + jurosMedios : 0;
+                // Aplica escala para que o ano 1 coincida com a Price (alinhamento visual)
+                const parcelaSacAno = parcelaSacRaw * sacEscala;
                 // Aluguel cresce com inflação
                 const aluguelAno = rendaBase * Math.pow(1 + inflacaoAnual, ano - 1);
                 chartData.push({
