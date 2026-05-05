@@ -392,7 +392,7 @@ export default function HomePage() {
   const [inputs, setInputs] = useState<CalculatorInputs>(defaultInputs);
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, syncValorImovel, registerValorImovelCallback, fluxo, nomeEmpreendimento } = useFluxo();
+  const { results: fluxoResults, syncFromCalc, registerCalcCallback, fluxo, nomeEmpreendimento } = useFluxo();
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
   const [nomeCenario, setNomeCenario] = useState("");
@@ -422,10 +422,26 @@ export default function HomePage() {
 
   // Registra callback para receber atualizações do Fluxo → Calculadora (bidirecional)
   useEffect(() => {
-    registerValorImovelCallback((valor: number) => {
-      setInputs((prev) => prev.valorImovel === valor ? prev : { ...prev, valorImovel: valor });
+    registerCalcCallback((payload) => {
+      setInputs((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        if (payload.valorImovel !== undefined && prev.valorImovel !== payload.valorImovel) {
+          next.valorImovel = payload.valorImovel; changed = true;
+        }
+        if (payload.taxaJurosMensal !== undefined && prev.taxaJurosMensal !== payload.taxaJurosMensal) {
+          next.taxaJurosMensal = payload.taxaJurosMensal; changed = true;
+        }
+        if (payload.prazoMeses !== undefined && prev.prazoMeses !== payload.prazoMeses) {
+          next.prazoMeses = payload.prazoMeses; changed = true;
+        }
+        if (payload.decoracao !== undefined && prev.mobilia !== payload.decoracao) {
+          next.mobilia = payload.decoracao; changed = true;
+        }
+        return changed ? next : prev;
+      });
     });
-  }, [registerValorImovelCallback]);
+  }, [registerCalcCallback]);
 
   // Listener para restaurar cenário do histórico
   useEffect(() => {
@@ -442,8 +458,13 @@ export default function HomePage() {
 
   // Calculadora → Fluxo (quando o usuário edita na Ficha Técnica)
   useEffect(() => {
-    syncValorImovel(inputs.valorImovel);
-  }, [inputs.valorImovel, syncValorImovel]);
+    syncFromCalc({
+      valorImovel: inputs.valorImovel,
+      taxaJurosMensal: inputs.taxaJurosMensal,
+      prazoMeses: inputs.prazoMeses,
+      decoracao: inputs.mobilia,
+    });
+  }, [inputs.valorImovel, inputs.taxaJurosMensal, inputs.prazoMeses, inputs.mobilia, syncFromCalc]);
 
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
@@ -804,14 +825,21 @@ export default function HomePage() {
             <GlassPanel delay={0.1} colors={colors}>
               <SectionHeader icon={<BarChart3 size={13} />} label="Composição da Renda" colors={colors} />
               <div className="space-y-2">
-                {/* Ordem: Receita bruta (topo) -> custos -> Renda líquida (base) */}
+                {/* Ordem: Receita bruta (topo) -> custos ordenados do maior para o menor -> Renda líquida (base) */}
                 <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
                 <div className="h-px my-2" style={{ background: colors.divider }} />
-                <WaterfallBar label="Condomínio" value={inputs.condominio} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="IPTU" value={inputs.iptuMensal} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="Wi-Fi/Água/Luz" value={inputs.wifi + inputs.agua + inputs.luz} total={results.receitaBrutaMensal} color={colors.red} isNegative colors={colors} />
-                <WaterfallBar label="Adm + Seguro" value={results.adminSeguro} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
-                <WaterfallBar label="Financiamento" value={results.parcelaFinanciamento} total={results.receitaBrutaMensal} color={colors.amber} isNegative colors={colors} />
+                {[
+                  { label: "Financiamento", value: results.parcelaFinanciamento, color: colors.amber },
+                  { label: "Adm + Seguro", value: results.adminSeguro, color: colors.amber },
+                  { label: "Condomínio", value: inputs.condominio, color: colors.red },
+                  { label: "Wi-Fi/Água/Luz", value: inputs.wifi + inputs.agua + inputs.luz, color: colors.red },
+                  { label: "IPTU", value: inputs.iptuMensal, color: colors.red },
+                ]
+                  .sort((a, b) => b.value - a.value)
+                  .map(({ label, value, color }) => (
+                    <WaterfallBar key={label} label={label} value={value} total={results.receitaBrutaMensal} color={color} isNegative colors={colors} />
+                  ))
+                }
                 <div className="h-px my-2" style={{ background: colors.divider }} />
                 <WaterfallBar label="Renda líquida" value={results.rendaMensalLiquida} total={results.receitaBrutaMensal}
                   color={isPositive ? colors.green : colors.red} colors={colors} />

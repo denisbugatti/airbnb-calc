@@ -402,13 +402,14 @@ export default function FluxoPage() {
     fluxo, results, updateAto, updateParcelaAtoMes, updateParcelaAtoValor,
     updateAnualMes, updateAnualValor, addAnual, removeAnual, removeAnualAt, reorderAnuais,
     updateSemestralMes, updateSemestralValor, addSemestral, removeSemestral, removeSemestralAt, reorderSemestrais,
-    setFluxo, syncValorImovelParaCalc,
+    setFluxo, syncValorImovelParaCalc, syncToCalc,
     nomeEmpreendimento, setNomeEmpreendimento,
   } = useFluxo();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const colors = useColors(isDark);
   const [exporting, setExporting] = useState(false);
+  const [showComMobilia, setShowComMobilia] = useState(false);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [exportTheme, setExportTheme] = useState<"dark" | "light">("dark");
@@ -828,14 +829,28 @@ export default function FluxoPage() {
                   </DndContext>
                   {/* Decoração */}
                   <TCell colors={colors}>
-                    <EditableValue value={fluxo.decoracao} onChange={(v) => setFluxo((p) => ({ ...p, decoracao: v }))} colors={colors} />
+                    <EditableValue value={fluxo.decoracao} onChange={(v) => syncToCalc({ decoracao: v })} colors={colors} />
                   </TCell>
-                  {/* Total Investido */}
+                  {/* Total Investido — toggle com/sem mobília */}
                   <TCell green colors={colors}>
-                    <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
-                      {formatCurrency(results.totalInvestido)}
-                    </div>
-                    <div className="text-xs mt-0.5" style={{ color: colors.green }}>{pctInvestido.toFixed(1)}% do imóvel</div>
+                    <button
+                      onClick={() => setShowComMobilia((v) => !v)}
+                      className="w-full text-left transition-opacity hover:opacity-80"
+                      title={showComMobilia ? "Clique para ver sem mobília" : "Clique para ver com mobília"}
+                    >
+                      <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                        {formatCurrency(showComMobilia ? results.totalInvestido + fluxo.decoracao : results.totalInvestido)}
+                      </div>
+                      <div className="text-xs mt-0.5" style={{ color: colors.green }}>
+                        {showComMobilia
+                          ? `c/ mobília — ${((showComMobilia ? results.totalInvestido + fluxo.decoracao : results.totalInvestido) / fluxo.valorImovel * 100).toFixed(1)}%`
+                          : `${pctInvestido.toFixed(1)}% do imóvel`}
+                      </div>
+                      <div className="text-xs mt-1 px-1.5 py-0.5 rounded-md inline-block"
+                        style={{ background: showComMobilia ? colors.amberBg : colors.greenBg, color: showComMobilia ? colors.amber : colors.green, fontSize: "0.6rem" }}>
+                        {showComMobilia ? "COM MOBÍLIA" : "SEM MOBÍLIA"}
+                      </div>
+                    </button>
                   </TCell>
                   {/* Financiamento */}
                   <TCell colors={colors}>
@@ -846,7 +861,7 @@ export default function FluxoPage() {
                   </TCell>
                   {/* Valor do Imóvel */}
                   <TCell colors={colors}>
-                    <EditableValue value={fluxo.valorImovel} onChange={(v) => syncValorImovelParaCalc(v)} colors={colors} />
+                    <EditableValue value={fluxo.valorImovel} onChange={(v) => syncToCalc({ valorImovel: v })} colors={colors} />
                   </TCell>
                 </tr>
               </tbody>

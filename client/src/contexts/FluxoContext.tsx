@@ -1,7 +1,11 @@
 /**
  * FluxoContext — Contexto compartilhado entre Fluxo de Pagamento e Calculadora
- * Sincroniza: Total Investido → Capital Próprio | Financiamento → Saldo a Financiar
- * Sincronização bidirecional do Valor do Imóvel via callback registrado
+ * Sincroniza bidirecionalmente:
+ *   - valorImovel
+ *   - taxaJurosMensal
+ *   - prazoMeses
+ *   - decoracao (mobília)
+ *   - capitalProprio / saldoFinanciar (derivados do totalInvestido / financiamento)
  */
 
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
@@ -24,25 +28,29 @@ export interface ParcelaSemestral {
 
 export interface FluxoInputs {
   // Ato
-  percentualAto: number;        // % do valor do imóvel (padrão 13.80, mín 9.8)
-  parcelasAto: number;          // 1 a 4
-  ato: ParcelaAto[];            // array dinâmico de parcelas do ato
+  percentualAto: number;
+  parcelasAto: number;
+  ato: ParcelaAto[];
 
   // Mensais
-  valorMensal: number;          // valor por parcela mensal
-  numMensais: number;           // 25 a 37 meses
+  valorMensal: number;
+  numMensais: number;
 
   // Semestrais
-  semestrais: ParcelaSemestral[]; // array de parcelas semestrais (0 a N)
+  semestrais: ParcelaSemestral[];
 
   // Anuais
-  anuais: ParcelaAnual[];       // array de parcelas anuais (0 a N)
+  anuais: ParcelaAnual[];
 
-  // Decoração
+  // Decoração / mobília (sincronizado com Calculadora)
   decoracao: number;
 
-  // Valor do imóvel (espelhado da calculadora)
+  // Valor do imóvel (sincronizado com Calculadora)
   valorImovel: number;
+
+  // Financiamento (sincronizado com Calculadora)
+  taxaJurosMensal: number;   // taxa mensal (ex: 0.009)
+  prazoMeses: number;        // prazo em meses (ex: 360)
 }
 
 export interface FluxoResults {
@@ -50,8 +58,8 @@ export interface FluxoResults {
   totalMensais: number;
   totalSemestrais: number;
   totalAnuais: number;
-  totalInvestido: number;       // base do ROI
-  financiamento: number;        // valorImovel - totalInvestido
+  totalInvestido: number;
+  financiamento: number;
 }
 
 const MESES = [
@@ -108,6 +116,8 @@ const defaultFluxo: FluxoInputs = {
   anuais: buildAnuais(2, defaultValorImovel),
   decoracao: 40_000,
   valorImovel: defaultValorImovel,
+  taxaJurosMensal: 0.10 / 12,  // 10% a.a. → mensal
+  prazoMeses: 360,
 };
 
 function calcularFluxo(inputs: FluxoInputs): FluxoResults {
@@ -115,10 +125,17 @@ function calcularFluxo(inputs: FluxoInputs): FluxoResults {
   const totalMensais = inputs.valorMensal * inputs.numMensais;
   const totalSemestrais = (inputs.semestrais ?? []).reduce((s, p) => s + p.valor, 0);
   const totalAnuais = inputs.anuais.reduce((s, p) => s + p.valor, 0);
-  // Decoração NÃO entra na base do ROI — apenas informativa na tabela
   const totalInvestido = totalAto + totalMensais + totalSemestrais + totalAnuais;
   const financiamento = Math.max(0, inputs.valorImovel - totalInvestido);
   return { totalAto, totalMensais, totalSemestrais, totalAnuais, totalInvestido, financiamento };
+}
+
+// Tipo do callback bidirecional: notifica a Calculadora de múltiplos campos
+export interface SyncPayload {
+  valorImovel?: number;
+  taxaJurosMensal?: number;
+  prazoMeses?: number;
+  decoracao?: number;
 }
 
 interface FluxoContextType {
@@ -143,11 +160,15 @@ interface FluxoContextType {
   removeSemestral: () => void;
   removeSemestralAt: (idx: number) => void;
   reorderSemestrais: (fromIdx: number, toIdx: number) => void;
-  /** Chamado pela Calculadora para sincronizar o valor do imóvel → Fluxo */
-  syncValorImovel: (valor: number) => void;
-  /** Chamado pelo Fluxo para sincronizar o valor do imóvel → Calculadora */
-  syncValorImovelParaCalc: (valor: number) => void;
+  /** Calculadora → Fluxo: atualiza campos sem disparar callback de volta */
+  syncFromCalc: (payload: SyncPayload) => void;
+  /** Fluxo → Calculadora: atualiza Fluxo E notifica a Calculadora */
+  syncToCalc: (payload: SyncPayload) => void;
   /** Registra o callback que a Calculadora usa para receber atualizações do Fluxo */
+  registerCalcCallback: (cb: (payload: SyncPayload) => void) => void;
+  // Legado (mantido para compatibilidade)
+  syncValorImovel: (valor: number) => void;
+  syncValorImovelParaCalc: (valor: number) => void;
   registerValorImovelCallback: (cb: (v: number) => void) => void;
 }
 
@@ -157,11 +178,16 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   const [fluxo, setFluxoState] = useState<FluxoInputs>(defaultFluxo);
   const [nomeEmpreendimento, setNomeEmpreendimento] = useState("");
 
-  // Callback registrado pelo Home.tsx para receber atualizações do Fluxo
-  const calcCallbackRef = useRef<((v: number) => void) | null>(null);
+  // Callback registrado pelo Home.tsx
+  const calcCallbackRef = useRef<((payload: SyncPayload) => void) | null>(null);
 
-  const registerValorImovelCallback = useCallback((cb: (v: number) => void) => {
+  const registerCalcCallback = useCallback((cb: (payload: SyncPayload) => void) => {
     calcCallbackRef.current = cb;
+  }, []);
+
+  // Legado
+  const registerValorImovelCallback = useCallback((cb: (v: number) => void) => {
+    calcCallbackRef.current = (p: SyncPayload) => { if (p.valorImovel !== undefined) cb(p.valorImovel); };
   }, []);
 
   const setFluxo = useCallback((fn: (prev: FluxoInputs) => FluxoInputs) => {
@@ -264,10 +290,8 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
     setFluxoState((prev) => {
       const sem = prev.semestrais ?? [];
       const lastMes = sem.length > 0 ? sem[sem.length - 1].mes : mesAtual();
-      // Valor proporcional: 3% do imóvel dividido pelo novo total de semestrais
       const novoTotal = sem.length + 1;
       const valorProporcional = Math.round((prev.valorImovel * 0.03) / novoTotal);
-      // Se já existem semestrais, redistribui o valor proporcional para todas
       const novoValor = sem.length === 0 ? valorProporcional : sem[0].valor;
       const novasSemestrais = sem.length === 0
         ? [{ mes: proximoMes(lastMes, 6), valor: valorProporcional }]
@@ -302,29 +326,58 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
 
   // ── Sync ────────────────────────────────────────────────────────────────────
 
-  /** Chamado pela Calculadora (Home.tsx) — atualiza o Fluxo sem loop */
-  const syncValorImovel = useCallback((valor: number) => {
+  /** Calculadora → Fluxo: atualiza sem disparar callback de volta */
+  const syncFromCalc = useCallback((payload: SyncPayload) => {
     setFluxoState((prev) => {
-      if (prev.valorImovel === valor) return prev;
-      return {
-        ...prev,
-        valorImovel: valor,
-        ato: buildAto(prev.percentualAto, prev.parcelasAto, valor),
-      };
+      const next = { ...prev };
+      let changed = false;
+      if (payload.valorImovel !== undefined && prev.valorImovel !== payload.valorImovel) {
+        next.valorImovel = payload.valorImovel;
+        next.ato = buildAto(prev.percentualAto, prev.parcelasAto, payload.valorImovel);
+        changed = true;
+      }
+      if (payload.taxaJurosMensal !== undefined && prev.taxaJurosMensal !== payload.taxaJurosMensal) {
+        next.taxaJurosMensal = payload.taxaJurosMensal;
+        changed = true;
+      }
+      if (payload.prazoMeses !== undefined && prev.prazoMeses !== payload.prazoMeses) {
+        next.prazoMeses = payload.prazoMeses;
+        changed = true;
+      }
+      if (payload.decoracao !== undefined && prev.decoracao !== payload.decoracao) {
+        next.decoracao = payload.decoracao;
+        changed = true;
+      }
+      return changed ? next : prev;
     });
   }, []);
 
-  /** Chamado pelo Fluxo (Fluxo.tsx) — atualiza o Fluxo E notifica a Calculadora */
-  const syncValorImovelParaCalc = useCallback((valor: number) => {
-    setFluxoState((prev) => ({
-      ...prev,
-      valorImovel: valor,
-      ato: buildAto(prev.percentualAto, prev.parcelasAto, valor),
-    }));
+  /** Fluxo → Calculadora: atualiza Fluxo E notifica a Calculadora */
+  const syncToCalc = useCallback((payload: SyncPayload) => {
+    setFluxoState((prev) => {
+      const next = { ...prev };
+      if (payload.valorImovel !== undefined) {
+        next.valorImovel = payload.valorImovel;
+        next.ato = buildAto(prev.percentualAto, prev.parcelasAto, payload.valorImovel);
+      }
+      if (payload.taxaJurosMensal !== undefined) next.taxaJurosMensal = payload.taxaJurosMensal;
+      if (payload.prazoMeses !== undefined) next.prazoMeses = payload.prazoMeses;
+      if (payload.decoracao !== undefined) next.decoracao = payload.decoracao;
+      return next;
+    });
     if (calcCallbackRef.current) {
-      calcCallbackRef.current(valor);
+      calcCallbackRef.current(payload);
     }
   }, []);
+
+  // Legado: mantém compatibilidade com código existente
+  const syncValorImovel = useCallback((valor: number) => {
+    syncFromCalc({ valorImovel: valor });
+  }, [syncFromCalc]);
+
+  const syncValorImovelParaCalc = useCallback((valor: number) => {
+    syncToCalc({ valorImovel: valor });
+  }, [syncToCalc]);
 
   const results = calcularFluxo(fluxo);
 
@@ -337,6 +390,10 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
       addAnual, removeAnual, removeAnualAt, reorderAnuais,
       updateSemestralMes, updateSemestralValor,
       addSemestral, removeSemestral, removeSemestralAt, reorderSemestrais,
+      syncFromCalc,
+      syncToCalc,
+      registerCalcCallback,
+      // Legado
       syncValorImovel,
       syncValorImovelParaCalc,
       registerValorImovelCallback,
