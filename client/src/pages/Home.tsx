@@ -674,9 +674,11 @@ export default function HomePage() {
                   <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
                     <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio (via Fluxo)</div>
                     <div className="text-base font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
-                      {formatCurrency(fluxoResults.totalInvestido)}
+                      {formatCurrency(inputsComFluxo.capitalProprio)}
                     </div>
-                    <div className="text-xs mt-1" style={{ color: colors.text4 }}>Sincronizado do Fluxo de Pagamento</div>
+                    <div className="text-xs mt-1" style={{ color: colors.text4 }}>
+                      {incluiDecoracao ? "C/ decoração — Fluxo de Pagamento" : "Sem decoração — Fluxo de Pagamento"}
+                    </div>
                   </div>
                 ) : (
                   <InputField label="Capital próprio" prefix="R$" min={0} step={1000} tooltip="Valor investido do próprio bolso (base do ROI)"
