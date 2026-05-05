@@ -406,12 +406,13 @@ export default function FluxoPage() {
     updateSemestralMes, updateSemestralValor, addSemestral, removeSemestral, removeSemestralAt, reorderSemestrais,
     setFluxo, syncValorImovelParaCalc, syncToCalc,
     nomeEmpreendimento, setNomeEmpreendimento,
+    incluiDecoracao, setIncluiDecoracao,
   } = useFluxo();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const colors = useColors(isDark);
   const [exporting, setExporting] = useState(false);
-  const [showComMobilia, setShowComMobilia] = useState(false);
+  // incluiDecoracao vem do FluxoContext (compartilhado com a Calculadora)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [exportTheme, setExportTheme] = useState<"dark" | "light">("dark");
@@ -692,19 +693,41 @@ export default function FluxoPage() {
                   Claro
                 </button>
               </div>
-              <button onClick={() => handleExport(true)} disabled={exporting}
+              {/* Toggle com/sem decoração */}
+              <div className="flex items-center rounded-xl overflow-hidden"
+                style={{ border: `1px solid ${colors.border}` }}>
+                <button
+                  onClick={() => setIncluiDecoracao(false)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold transition-all"
+                  style={{
+                    background: !incluiDecoracao ? colors.greenBg : "transparent",
+                    color: !incluiDecoracao ? colors.green : colors.text3,
+                  }}
+                  title="Total Investido sem decoração">
+                  Sem decor.
+                </button>
+                <button
+                  onClick={() => setIncluiDecoracao(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold transition-all"
+                  style={{
+                    background: incluiDecoracao ? colors.amberBg : "transparent",
+                    color: incluiDecoracao ? colors.amber : colors.text3,
+                  }}
+                  title="Total Investido com decoração">
+                  C/ decor.
+                </button>
+              </div>
+              {/* Botão único de exportar — usa o estado do toggle */}
+              <button onClick={() => handleExport(incluiDecoracao)} disabled={exporting}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
-                style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}
-                title="Exportar com coluna de Decoração">
+                style={{
+                  background: incluiDecoracao ? colors.amberBg : colors.greenBg,
+                  border: `1px solid ${incluiDecoracao ? colors.amber + "44" : colors.greenBorder}`,
+                  color: incluiDecoracao ? colors.amber : colors.green,
+                }}
+                title={`Exportar PNG ${incluiDecoracao ? "com" : "sem"} decoração`}>
                 <Download size={12} />
-                {exporting ? "Gerando..." : "Com decoração"}
-              </button>
-              <button onClick={() => handleExport(false)} disabled={exporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
-                style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}`, color: colors.green }}
-                title="Exportar sem coluna de Decoração">
-                <Download size={12} />
-                Sem decoração
+                {exporting ? "Gerando..." : "Exportar PNG"}
               </button>
             </div>
           </div>
@@ -834,26 +857,22 @@ export default function FluxoPage() {
                   <TCell colors={colors}>
                     <EditableValue value={calc.mobilia} onChange={(v) => setCalcField("mobilia", v)} colors={colors} />
                   </TCell>
-                  {/* Total Investido — toggle com/sem mobília */}
+                  {/* Total Investido — segue toggle incluiDecoracao da toolbar */}
                   <TCell green colors={colors}>
-                    <button
-                      onClick={() => setShowComMobilia((v) => !v)}
-                      className="w-full text-left transition-opacity hover:opacity-80"
-                      title={showComMobilia ? "Clique para ver sem mobília" : "Clique para ver com mobília"}
-                    >
+                    <div className="w-full text-left">
                       <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
-                        {formatCurrency(showComMobilia ? results.totalInvestido + calc.mobilia : results.totalInvestido)}
+                        {formatCurrency(incluiDecoracao ? results.totalInvestido + calc.mobilia : results.totalInvestido)}
                       </div>
                       <div className="text-xs mt-0.5" style={{ color: colors.green }}>
-                        {showComMobilia
-                          ? `c/ mobília — ${((showComMobilia ? results.totalInvestido + calc.mobilia : results.totalInvestido) / calc.valorImovel * 100).toFixed(1)}%`
+                        {incluiDecoracao
+                          ? `c/ decoração — ${((results.totalInvestido + calc.mobilia) / calc.valorImovel * 100).toFixed(1)}%`
                           : `${pctInvestido.toFixed(1)}% do imóvel`}
                       </div>
                       <div className="text-xs mt-1 px-1.5 py-0.5 rounded-md inline-block"
-                        style={{ background: showComMobilia ? colors.amberBg : colors.greenBg, color: showComMobilia ? colors.amber : colors.green, fontSize: "0.6rem" }}>
-                        {showComMobilia ? "COM MOBÍLIA" : "SEM MOBÍLIA"}
+                        style={{ background: incluiDecoracao ? colors.amberBg : colors.greenBg, color: incluiDecoracao ? colors.amber : colors.green, fontSize: "0.6rem" }}>
+                        {incluiDecoracao ? "C/ DECORAÇÃO" : "SEM DECORAÇÃO"}
                       </div>
-                    </button>
+                    </div>
                   </TCell>
                   {/* Financiamento */}
                   <TCell colors={colors}>

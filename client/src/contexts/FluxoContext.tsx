@@ -145,6 +145,10 @@ interface SharedContextType {
   removeSemestralAt: (idx: number) => void;
   reorderSemestrais: (fromIdx: number, toIdx: number) => void;
 
+  // ── Toggle decoração (compartilhado entre Fluxo e Calculadora) ─────────────
+  incluiDecoracao: boolean;
+  setIncluiDecoracao: (v: boolean) => void;
+
   // ── Legado (compatibilidade) ──────────────────────────────────────────────
   syncFromCalc: (payload: SyncPayload) => void;
   syncToCalc: (payload: SyncPayload) => void;
@@ -160,6 +164,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   const [calc, setCalcState] = useState<CalculatorInputs>(defaultInputs);
   const [fluxo, setFluxoState] = useState<FluxoInputs>(defaultFluxo);
   const [nomeEmpreendimento, setNomeEmpreendimento] = useState("");
+  const [incluiDecoracao, setIncluiDecoracao] = useState(false);
 
   // ── Calculadora ──────────────────────────────────────────────────────────
 
@@ -363,6 +368,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   return (
     <FluxoContext.Provider value={{
       calc, setCalc, setCalcField,
+      incluiDecoracao, setIncluiDecoracao,
       fluxo, results, setFluxo,
       nomeEmpreendimento, setNomeEmpreendimento,
       updateAto, updateParcelaAtoMes, updateParcelaAtoValor,

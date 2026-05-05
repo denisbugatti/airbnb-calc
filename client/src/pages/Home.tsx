@@ -391,7 +391,7 @@ export default function HomePage() {
 
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento } = useFluxo();
+  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento, incluiDecoracao } = useFluxo();
   const inputs = calc;  // alias para compatibilidade com código existente
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
@@ -439,9 +439,12 @@ export default function HomePage() {
 
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
-    capitalProprio: (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (calc.mobilia || 0),
+    // Capital próprio segue o toggle com/sem decoração do Fluxo de Pagamento
+    capitalProprio: fluxoResults.totalInvestido > 0
+      ? fluxoResults.totalInvestido + (incluiDecoracao ? (calc.mobilia || 0) : 0)
+      : inputs.capitalProprio,
     saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
-  }), [inputs, fluxoResults]);
+  }), [inputs, fluxoResults, incluiDecoracao, calc.mobilia]);
 
   const results = useMemo(() => calcular(inputsComFluxo), [inputsComFluxo]);
   const set = useCallback((key: keyof CalculatorInputs) => (value: number) => {
