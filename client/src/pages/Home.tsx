@@ -28,6 +28,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { decodeShareLink } from "@/lib/shareLink";
+import { QuadroRentabilidade } from "@/components/QuadroRentabilidade";
 import { BookmarkPlus } from "lucide-react";
 import { useCenarios, type Cenario } from "@/contexts/CenariosContext";
 
@@ -983,6 +984,17 @@ export default function HomePage() {
                 </GlassPanel>
               );
             })()}
+
+            {/* ── QUADRO DE RENTABILIDADE (TEMPLATE AIRBNB) ── */}
+            <GlassPanel delay={0.32} colors={colors}>
+              <SectionHeader icon={<BarChart3 size={13} />} label="Quadro de Rentabilidade" colors={colors} />
+              <QuadroRentabilidade
+                inputs={inputsComFluxo}
+                results={results}
+                incluiDecoracao={incluiDecoracao}
+                nomeEmpreendimento={nomeEmpreendimento}
+              />
+            </GlassPanel>
 
             {/* ── GRÁFICO DE EVOLUÇÃO DO FINANCIAMENTO ── */}
             {(() => {
