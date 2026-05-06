@@ -10,14 +10,8 @@ import { Download, Loader2 } from "lucide-react";
 import type { CalculatorInputs, CalculatorResults } from "@/lib/calculator";
 import { formatCurrency } from "@/lib/calculator";
 
-// ─── Airbnb Logo SVG ──────────────────────────────────────────────────────────
-function AirbnbLogo({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 1000 1000" fill="#FF385C" xmlns="http://www.w3.org/2000/svg">
-      <path d="M499.3 736.7c-51-64-81-120.1-91-168.1-10-39-6-70 11-93 18-24 45-37 80-37s62 13 80 37c17 23 21 54 11 93-11 49-41 105-91 168.1zm362.2 43c-7 47-39 86-83 105-85 37-169-22-241-102 119-149 133-265 84-340-26-39-68-60-122-60s-96 21-122 60c-49 75-35 191 84 340-72 80-156 139-241 102-44-19-76-58-83-105-7-52 11-105 73-174 45-49 109-104 194-165C484.2 354.6 498.3 349 500 349s15.8 5.6 95.8 61.7c85 61 149 116 194 165 62 69 80 122 73 174h-1.3z"/>
-    </svg>
-  );
-}
+// ─── Airbnb Logo Image ──────────────────────────────────────────────────────────
+const AIRBNB_LOGO_URL = "/manus-storage/airbnb-logo_a915ef9c.webp";
 
 // ─── Row Components ───────────────────────────────────────────────────────────
 function HeaderRow({ label, value }: { label: string; value: string }) {
@@ -159,12 +153,11 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
       >
         {/* Header: logo + título */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
-            <AirbnbLogo size={26} />
-            <span style={{ color: "#FF385C", fontSize: 22, fontWeight: 700, fontFamily: "'Geist', sans-serif", letterSpacing: "-0.5px" }}>
-              airbnb
-            </span>
-          </div>
+          <img
+            src={AIRBNB_LOGO_URL}
+            alt="Airbnb"
+            style={{ height: 80, width: "auto", margin: "0 auto 12px", display: "block" }}
+          />
           <div style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700, fontFamily: "'Geist', sans-serif" }}>
             Valores de rentabilidade
           </div>
