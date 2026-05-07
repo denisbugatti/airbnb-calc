@@ -1173,10 +1173,10 @@ export default function HomePage() {
                         </g>
                       ))}
                       {/* Legenda dentro do SVG, abaixo da linha cinza dos anos — alinhada com bolinha do ano 1 */}
-                      <circle cx={padL + 7} cy={svgH - padBot + 90 + axisOffset} r={7} fill={greenC} />
-                      <text x={padL + 20} y={svgH - padBot + 96 + axisOffset} fill={greenC} fontSize={16} fontWeight="700" fontFamily="'Geist', sans-serif">Receita bruta</text>
-                      <circle cx={padL + 170} cy={svgH - padBot + 90 + axisOffset} r={7} fill={blueC} />
-                      <text x={padL + 183} y={svgH - padBot + 96 + axisOffset} fill={blueC} fontSize={16} fontWeight="700" fontFamily="'Geist', sans-serif">Parcela SAC</text>
+                      <circle cx={xOf(0)} cy={svgH - padBot + 90 + axisOffset} r={7} fill={greenC} />
+                      <text x={xOf(0) + 14} y={svgH - padBot + 96 + axisOffset} fill={greenC} fontSize={16} fontWeight="700" fontFamily="'Geist', sans-serif">Receita bruta</text>
+                      <circle cx={xOf(0) + 160} cy={svgH - padBot + 90 + axisOffset} r={7} fill={blueC} />
+                      <text x={xOf(0) + 174} y={svgH - padBot + 96 + axisOffset} fill={blueC} fontSize={16} fontWeight="700" fontFamily="'Geist', sans-serif">Parcela SAC</text>
                       {/* Defs para setas */}
                       <defs>
                         <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
