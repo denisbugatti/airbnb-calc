@@ -1051,7 +1051,7 @@ export default function HomePage() {
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
               // Escala: inclui aluguel, SAC e Price — com margem generosa para evitar clipping
-              const allVals = chartData.flatMap(d => [d.receita, d.parcelaSac, d.parcelaPrice]);
+              const allVals = chartData.flatMap(d => [d.receita, d.parcelaSac]);
               const minV = Math.min(...allVals) * 0.82; // margem inferior generosa
               const maxV = Math.max(...allVals) * 1.10; // margem superior moderada
               const xOf = (i: number) => padL + (i / (n - 1)) * plotW;
@@ -1059,9 +1059,7 @@ export default function HomePage() {
               // Caminhos SVG
               const greenPath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.receita)}`).join(" ");
               const bluePath  = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.parcelaSac)}`).join(" ");
-              // Linha Price: horizontal constante
-              const priceY = yOf(parcelaPrice);
-              const pricePath = `M${xOf(0)},${priceY} L${xOf(n - 1)},${priceY}`;
+              // Linha Price removida a pedido do usuário
               // Cores
               const chartBg      = isDark ? "oklch(0.12 0.04 220)" : "oklch(0.985 0.005 220)";
               const greenC       = isDark ? "#4ade80" : "#16a34a";
@@ -1088,7 +1086,7 @@ export default function HomePage() {
                   <div className="flex gap-4 mb-3 flex-wrap">
                     <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: greenC }}>● Receita bruta</span>
                     <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: blueC }}>● Parcela SAC</span>
-                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: orangeC }}>– – Parcela Price</span>
+
                   </div>
                   <div className="w-full overflow-x-auto">
                     <svg
@@ -1108,13 +1106,7 @@ export default function HomePage() {
                       <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
                       {/* Label ANOS */}
                       <text x={8} y={svgH - padBot + 29} fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
-                      {/* Linha Price (tracejada laranja) — desenhada antes das outras para ficar atrás */}
-                      <path d={pricePath} fill="none" stroke={orangeC} strokeWidth={2} strokeDasharray="8 5" strokeOpacity={0.85} />
-                      {/* Label Price no final da linha */}
-                      <rect x={xOf(n - 1) + 10} y={priceY - 14} width={62} height={22} rx={11} fill={bgLabelOrange} stroke={orangeC} strokeWidth={1} strokeOpacity={0.6} />
-                      <text x={xOf(n - 1) + 41} y={priceY + 3} textAnchor="middle" fill={orangeC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
-                        {fmt(parcelaPrice)}
-                      </text>
+
                       {/* Linha verde (aluguel) */}
                       <path d={greenPath} fill="none" stroke={greenC} strokeWidth={2.5} strokeOpacity={0.85} />
                       {/* Linha azul (parcela SAC) */}
