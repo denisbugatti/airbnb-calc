@@ -182,7 +182,6 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
       display: "flex", justifyContent: "space-between", alignItems: "center",
       borderLeft: T.borderHighlight,
       background: T.bgReceita,
-      border: T.borderReceita,
       borderRadius: "0 8px 8px 0",
       padding: "13px 20px", marginBottom: 2,
     }}>
