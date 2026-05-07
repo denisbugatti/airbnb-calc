@@ -1045,7 +1045,7 @@ export default function HomePage() {
               // Anos com seta de lucro: 1, 5, 10
               const arrowYears = [1, 5, 10];
               // SVG layout
-              const svgW = 980; const svgH = 780;
+              const svgW = 980; const svgH = 680;
               const padL = 70; const padR = 140; const padTop = 80; const padBot = 250;
               const axisOffset = 60; // deslocamento extra da linha cinza para baixo
               const plotW = svgW - padL - padR;
