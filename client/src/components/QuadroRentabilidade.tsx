@@ -97,9 +97,13 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
   const prazoAnos = Math.round(inputs.prazoMeses / 12);
   const taxaMensal = (inputs.taxaJurosMensal * 100).toFixed(1).replace(".", ",");
 
-  // Retorno A.M e A.A sobre total investido
+  // Retorno A.M e A.A sobre total investido (capital próprio)
   const retornoAM = totalInvestido > 0 ? (results.rendaMensalLiquida / totalInvestido) * 100 : 0;
   const retornoAA = retornoAM * 12;
+
+  // Retorno sobre patrimônio A.M e A.A (valor total do imóvel)
+  const patrimonioAM = inputs.valorImovel > 0 ? (results.rendaMensalLiquida / inputs.valorImovel) * 100 : 0;
+  const patrimonioAA = patrimonioAM * 12;
 
   const handleExport = async () => {
     if (!cardRef.current) return;
@@ -206,6 +210,8 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
         <HighlightRow label="Renda anual líquida" value={fmtBRL(results.rendaMensalLiquida * 12)} />
         <HighlightRow label="Retorno sobre investimento A.M" value={fmtPct(retornoAM)} />
         <HighlightRow label="Retorno sobre investimento A.A" value={fmtPct(retornoAA)} />
+        <HighlightRow label="Retorno sobre patrimônio A.M" value={fmtPct(patrimonioAM)} />
+        <HighlightRow label="Retorno sobre patrimônio A.A" value={fmtPct(patrimonioAA)} />
       </div>
     </div>
   );
