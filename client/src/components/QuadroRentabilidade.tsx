@@ -118,7 +118,7 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
 
   // Despesas ordenadas do maior para o menor
   const despesas = [
-    { label: `Valor estimado do condomínio (R$${Math.round(inputs.condominio / (inputs.areaM2 || 1))}/M²)`, value: inputs.condominio },
+    { label: "Valor estimado do condomínio", value: inputs.condominio },
     { label: "IPTU, WIFI, água e luz", value: iptuWifiAguaLuz },
     { label: `Administração + Seguro (${admSeguroPct}%)`, value: results.adminSeguro },
     ...(results.parcelaFinanciamento > 0
