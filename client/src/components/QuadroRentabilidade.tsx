@@ -104,7 +104,8 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
   const T = getTokens(isDark);
 
   // ── Cálculos ────────────────────────────────────────────────────────────────
-  const totalInvestido   = inputs.capitalProprio + (incluiDecoracao ? (inputs.mobilia || 0) : 0);
+  // inputs.capitalProprio já inclui mobilia quando incluiDecoracao=true (calculado em Home.tsx)
+  const totalInvestido   = inputs.capitalProprio;
   const ocupacaoPct      = inputs.diasOcupacao > 0 ? Math.round((inputs.diasOcupacao / 30) * 100) : 0;
   const iptuWifiAguaLuz  = inputs.iptuMensal + inputs.wifi + inputs.agua + inputs.luz;
   const admSeguroPct     = Math.round(inputs.taxaAdminSeguro * 100);

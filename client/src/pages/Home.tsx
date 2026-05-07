@@ -443,7 +443,7 @@ export default function HomePage() {
     // Capital próprio segue o toggle com/sem decoração do Fluxo de Pagamento
     capitalProprio: fluxoResults.totalInvestido > 0
       ? fluxoResults.totalInvestido + (incluiDecoracao ? (calc.mobilia || 0) : 0)
-      : inputs.capitalProprio,
+      : inputs.capitalProprio + (incluiDecoracao ? (calc.mobilia || 0) : 0),
     saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
   }), [inputs, fluxoResults, incluiDecoracao, calc.mobilia]);
 
