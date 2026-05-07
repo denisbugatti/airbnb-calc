@@ -1045,8 +1045,8 @@ export default function HomePage() {
               // Anos com seta de lucro: 1, 5, 10
               const arrowYears = [1, 5, 10];
               // SVG layout
-              const svgW = 980; const svgH = 540;
-              const padL = 70; const padR = 140; const padTop = 72; const padBot = 90;
+              const svgW = 980; const svgH = 580;
+              const padL = 70; const padR = 140; const padTop = 52; const padBot = 130;
               const plotW = svgW - padL - padR;
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
@@ -1100,8 +1100,8 @@ export default function HomePage() {
                       {[0.25, 0.5, 0.75].map(t => (
                         <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke={gridC} strokeWidth={1} strokeDasharray="4 4" />
                       ))}
-                      {/* Label ALUGUEL */}
-                      <text x={padL} y={36} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
+                      {/* Label RECEITA BRUTA — posicionado próximo à linha verde (ano 1) */}
+                      <text x={padL} y={padTop - 8} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
                       {/* Eixo X */}
                       <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
                       {/* Label ANOS */}
