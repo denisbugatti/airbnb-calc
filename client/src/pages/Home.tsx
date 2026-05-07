@@ -1045,8 +1045,9 @@ export default function HomePage() {
               // Anos com seta de lucro: 1, 5, 10
               const arrowYears = [1, 5, 10];
               // SVG layout
-              const svgW = 980; const svgH = 720;
+              const svgW = 980; const svgH = 780;
               const padL = 70; const padR = 140; const padTop = 80; const padBot = 250;
+              const axisOffset = 60; // deslocamento extra da linha cinza para baixo
               const plotW = svgW - padL - padR;
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
@@ -1103,9 +1104,9 @@ export default function HomePage() {
                       {/* Label RECEITA BRUTA — fixo no topo, 40px abaixo do topo do SVG */}
                       <text x={padL} y={padTop + 45} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
                       {/* Eixo X */}
-                      <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
+                      <line x1={padL} y1={svgH - padBot + 10 + axisOffset} x2={svgW - padR} y2={svgH - padBot + 10 + axisOffset} stroke={divC} strokeWidth={1.5} />
                       {/* Label ANOS */}
-                      <text x={8} y={svgH - padBot + 29} fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
+                      <text x={8} y={svgH - padBot + 29 + axisOffset} fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
 
                       {/* Linha verde (aluguel) */}
                       <path d={greenPath} fill="none" stroke={greenC} strokeWidth={2.5} strokeOpacity={0.85} />
@@ -1170,14 +1171,14 @@ export default function HomePage() {
                       {/* Labels do eixo X (anos) */}
                       {chartData.map((d, i) => (
                         <g key={`x-${i}`}>
-                          <rect x={xOf(i) - 14} y={svgH - padBot + 14} width={28} height={22} rx={11} fill={yearChipBg} />
-                          <text x={xOf(i)} y={svgH - padBot + 29} textAnchor="middle" fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">
-                            {d.ano}
-                          </text>
+                          <rect x={xOf(i) - 14} y={svgH - padBot + 14 + axisOffset} width={28} height={22} rx={11} fill={yearChipBg} />
+                           <text x={xOf(i)} y={svgH - padBot + 29 + axisOffset} textAnchor="middle" fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">
+                             {d.ano}
+                           </text>
                         </g>
                       ))}
                       {/* Legenda inferior */}
-                      <text x={padL} y={svgH - padBot + 55} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">Lucro = Receita Bruta − Parcela SAC | saldo financiado: {fmt(saldo)}</text>
+                      <text x={padL} y={svgH - padBot + 55 + axisOffset} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">Lucro = Receita Bruta − Parcela SAC | saldo financiado: {fmt(saldo)}</text>
                       {/* Defs para setas */}
                       <defs>
                         <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
