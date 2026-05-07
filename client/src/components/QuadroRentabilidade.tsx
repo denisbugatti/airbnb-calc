@@ -31,7 +31,7 @@ function HeaderRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DataRow({ label, value }: { label: string; value: string }) {
+function DataRow({ label, value, yellow = false }: { label: string; value: string; yellow?: boolean }) {
   return (
     <div style={{
       display: "flex",
@@ -40,7 +40,7 @@ function DataRow({ label, value }: { label: string; value: string }) {
       padding: "10px 20px",
     }}>
       <span style={{ color: "#94a3b8", fontSize: 13.5, fontFamily: "'Geist', sans-serif" }}>{label}</span>
-      <span style={{ color: "#e2e8f0", fontSize: 13.5, fontWeight: 500, fontFamily: "'Geist Mono', monospace" }}>{value}</span>
+      <span style={{ color: yellow ? "#facc15" : "#e2e8f0", fontSize: 13.5, fontWeight: yellow ? 600 : 500, fontFamily: "'Geist Mono', monospace" }}>{value}</span>
     </div>
   );
 }
@@ -189,19 +189,20 @@ export function QuadroRentabilidade({ inputs, results, incluiDecoracao, nomeEmpr
 
         <Divider />
 
-        {/* Despesas */}
-        <DataRow
-          label={`Valor estimado do condomínio (R$${Math.round(inputs.condominio / (inputs.areaM2 || 1))}/M²)`}
-          value={fmtBRL(inputs.condominio)}
-        />
-        <DataRow label="IPTU, WIFI, água e luz" value={fmtBRL(iptuWifiAguaLuz)} />
-        <DataRow label={`Administração + Seguro (${admSeguroPct}%)`} value={fmtBRL(results.adminSeguro)} />
-        {results.parcelaFinanciamento > 0 && (
-          <DataRow
-            label={`Parcela do financiamento (${prazoAnos} anos com taxa ${taxaMensal}%)`}
-            value={fmtBRL(results.parcelaFinanciamento)}
-          />
-        )}
+        {/* Despesas — ordenadas do maior para o menor valor */}
+        {(() => {
+          const despesas = [
+            { label: `Valor estimado do condomínio (R$${Math.round(inputs.condominio / (inputs.areaM2 || 1))}/M²)`, value: inputs.condominio },
+            { label: "IPTU, WIFI, água e luz", value: iptuWifiAguaLuz },
+            { label: `Administração + Seguro (${admSeguroPct}%)`, value: results.adminSeguro },
+            ...(results.parcelaFinanciamento > 0
+              ? [{ label: `Parcela do financiamento (${prazoAnos} anos com taxa ${taxaMensal}%)`, value: results.parcelaFinanciamento }]
+              : []),
+          ].sort((a, b) => b.value - a.value);
+          return despesas.map((d) => (
+            <DataRow key={d.label} label={d.label} value={fmtBRL(d.value)} yellow />
+          ));
+        })()}
 
         <Divider />
 
