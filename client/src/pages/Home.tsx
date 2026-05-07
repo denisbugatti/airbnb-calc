@@ -1002,12 +1002,16 @@ export default function HomePage() {
               const saldo = inputsComFluxo.saldoFinanciar; // valor financiado (não o total do imóvel)
               const taxa = inputsComFluxo.taxaJurosMensal;
               const prazo = inputsComFluxo.prazoMeses;
-              const rendaBase = results.rendaMensalLiquida;
+              // Linha verde = Receita Bruta Mensal crescendo 5% a.a.
+              // Linha azul  = Parcela SAC real (média anual), decrescendo
+              // Linha laranja tracejada = Parcela Price (constante)
+              // Lucro = Receita Bruta - Parcela SAC
+              const receitaBase = results.receitaBrutaMensal;
               // Só mostra se houver financiamento
               if (saldo <= 0 || taxa <= 0) return null;
-              // Inflação anual estimada de 5% para projeção do aluguel
+              // Reajuste anual da receita bruta (5% a.a.)
               const inflacaoAnual = 0.05;
-              // Sempre 10 anos (projeção fixa de 10 anos a partir do ano 1)
+              // Sempre 10 anos
               const anosTotal = 10;
               // SAC: amortização constante = saldo/prazo
               const amortizacaoMensal = saldo / prazo;
@@ -1015,33 +1019,27 @@ export default function HomePage() {
               const parcelaPrice = taxa > 0
                 ? (saldo * taxa * Math.pow(1 + taxa, prazo)) / (Math.pow(1 + taxa, prazo) - 1)
                 : saldo / prazo;
-              // Parcela SAC real do ano 1 (média dos 12 primeiros meses)
-              const saldoFimAno1 = Math.max(0, saldo - amortizacaoMensal * 12);
-              const sacReal1 = amortizacaoMensal + taxa * (saldo + saldoFimAno1) / 2;
-              // Fator de escala: faz o SAC começar exatamente no valor da Price no ano 1
-              // O gráfico é visual/comparativo — a escala relativa (decrescimento) é preservada
-              const sacEscala = sacReal1 > 0 ? parcelaPrice / sacReal1 : 1;
               const chartData: Array<{
-                ano: number; aluguel: number; parcelaSac: number; parcelaPrice: number; lucroSac: number;
+                ano: number; receita: number; parcelaSac: number; parcelaPrice: number; lucro: number;
               }> = [];
               for (let ano = 1; ano <= anosTotal; ano++) {
-                // Saldo devedor no início do ano (após (ano-1)*12 meses de amortização SAC)
+                // Saldo devedor no início do ano
                 const mesesDecorridos = (ano - 1) * 12;
                 const saldoInicioAno = Math.max(0, saldo - amortizacaoMensal * mesesDecorridos);
                 // Parcela SAC média do ano = amort + juros médios dos 12 meses do ano
                 const saldoFimAno = Math.max(0, saldo - amortizacaoMensal * (mesesDecorridos + 12));
                 const jurosMedios = taxa * (saldoInicioAno + saldoFimAno) / 2;
-                const parcelaSacRaw = saldoInicioAno > 0 ? amortizacaoMensal + jurosMedios : 0;
-                // Aplica escala para que o ano 1 coincida com a Price (alinhamento visual)
-                const parcelaSacAno = parcelaSacRaw * sacEscala;
-                // Aluguel cresce com inflação
-                const aluguelAno = rendaBase * Math.pow(1 + inflacaoAnual, ano - 1);
+                const parcelaSacAno = saldoInicioAno > 0 ? amortizacaoMensal + jurosMedios : 0;
+                // Receita bruta cresce com reajuste anual
+                const receitaAno = receitaBase * Math.pow(1 + inflacaoAnual, ano - 1);
+                // Lucro = Receita Bruta - Parcela SAC
+                const lucro = receitaAno - parcelaSacAno;
                 chartData.push({
                   ano,
-                  aluguel: Math.round(aluguelAno),
+                  receita: Math.round(receitaAno),
                   parcelaSac: Math.round(parcelaSacAno),
                   parcelaPrice: Math.round(parcelaPrice),
-                  lucroSac: Math.round(aluguelAno - parcelaSacAno),
+                  lucro: Math.round(lucro),
                 });
               }
               // Anos com seta de lucro: 1, 5, 10
@@ -1053,13 +1051,13 @@ export default function HomePage() {
               const plotH = svgH - padTop - padBot;
               const n = chartData.length;
               // Escala: inclui aluguel, SAC e Price — com margem generosa para evitar clipping
-              const allVals = chartData.flatMap(d => [d.aluguel, d.parcelaSac, d.parcelaPrice]);
+              const allVals = chartData.flatMap(d => [d.receita, d.parcelaSac, d.parcelaPrice]);
               const minV = Math.min(...allVals) * 0.82; // margem inferior generosa
               const maxV = Math.max(...allVals) * 1.10; // margem superior moderada
               const xOf = (i: number) => padL + (i / (n - 1)) * plotW;
               const yOf = (v: number) => padTop + plotH - ((v - minV) / (maxV - minV)) * plotH;
               // Caminhos SVG
-              const greenPath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.aluguel)}`).join(" ");
+              const greenPath = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.receita)}`).join(" ");
               const bluePath  = chartData.map((d, i) => `${i === 0 ? "M" : "L"}${xOf(i)},${yOf(d.parcelaSac)}`).join(" ");
               // Linha Price: horizontal constante
               const priceY = yOf(parcelaPrice);
@@ -1084,11 +1082,11 @@ export default function HomePage() {
                 <GlassPanel delay={0.35} colors={colors}>
                   <SectionHeader icon={<TrendingUp size={13} />} label="Evolução do Financiamento" colors={colors} />
                   <div className="text-xs mb-3" style={{ color: colors.text3 }}>
-                    Aluguel líquido (+5% a.a.) vs. parcela SAC (média anual) e Price (constante) — projeção 10 anos
+                    Receita bruta (+5% a.a.) vs. parcela SAC (média anual) e Price (constante) — projeção 10 anos
                   </div>
                   {/* Legenda */}
                   <div className="flex gap-4 mb-3 flex-wrap">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: greenC }}>● Aluguel líquido</span>
+                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: greenC }}>● Receita bruta</span>
                     <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: blueC }}>● Parcela SAC</span>
                     <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: orangeC }}>– – Parcela Price</span>
                   </div>
@@ -1105,7 +1103,7 @@ export default function HomePage() {
                         <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke={gridC} strokeWidth={1} strokeDasharray="4 4" />
                       ))}
                       {/* Label ALUGUEL */}
-                      <text x={padL} y={36} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">ALUGUEL</text>
+                      <text x={padL} y={36} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
                       {/* Eixo X */}
                       <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
                       {/* Label ANOS */}
@@ -1127,7 +1125,7 @@ export default function HomePage() {
                         if (!d) return null;
                         const i = ano - 1;
                         const x = xOf(i);
-                        const yA = yOf(d.aluguel);
+                        const yA = yOf(d.receita);
                         const yP = yOf(d.parcelaSac);
                         const midY = (yA + yP) / 2;
                         const isFirst = ano === 1;
@@ -1139,7 +1137,7 @@ export default function HomePage() {
                               fill={textC} fontSize={isFirst ? 22 : 19} fontWeight="900"
                               fontFamily="'Geist', sans-serif"
                             >
-                              {formatCurrency(d.lucroSac)}
+                              {formatCurrency(d.lucro)}
                             </text>
                             {isFirst && (
                               <text x={x + 18} y={midY + 14} fill={text3C} fontSize={11} fontFamily="'Geist', sans-serif" letterSpacing="1">LUCRO MENSAL</text>
@@ -1149,7 +1147,7 @@ export default function HomePage() {
                       })}
                       {/* Pontos e labels verdes (aluguel) */}
                       {chartData.map((d, i) => {
-                        const x = xOf(i); const y = yOf(d.aluguel);
+                        const x = xOf(i); const y = yOf(d.receita);
                         const lw = 58; const lh = 24;
                         return (
                           <g key={`g-${i}`}>
@@ -1157,7 +1155,7 @@ export default function HomePage() {
                             <circle cx={x} cy={y} r={5} fill={greenC} />
                             <rect x={x - lw / 2} y={y - lh - 12} width={lw} height={lh} rx={12} fill={bgLabel} stroke={greenC} strokeWidth={1} strokeOpacity={0.5} />
                             <text x={x} y={y - lh - 12 + lh / 2 + 4.5} textAnchor="middle" fill={greenC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
-                              {fmt(d.aluguel)}
+                              {fmt(d.receita)}
                             </text>
                           </g>
                         );
@@ -1187,7 +1185,7 @@ export default function HomePage() {
                         </g>
                       ))}
                       {/* Legenda inferior */}
-                      <text x={padL} y={svgH - padBot + 55} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">parcela SAC (média do ano) sobre saldo financiado de {fmt(saldo)}</text>
+                      <text x={padL} y={svgH - padBot + 55} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">Lucro = Receita Bruta − Parcela SAC | saldo financiado: {fmt(saldo)}</text>
                       {/* Defs para setas */}
                       <defs>
                         <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
