@@ -1083,12 +1083,7 @@ export default function HomePage() {
                   <div className="text-xs mb-3" style={{ color: colors.text3 }}>
                     Receita bruta (+5% a.a.) vs. parcela SAC (média anual) e Price (constante) — projeção 10 anos
                   </div>
-                  {/* Legenda */}
-                  <div className="flex gap-4 mb-3 flex-wrap">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: greenC }}>● Receita bruta</span>
-                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: blueC }}>● Parcela SAC</span>
 
-                  </div>
                   <div className="w-full overflow-x-auto">
                     <svg
                       viewBox={`0 0 ${svgW} ${svgH}`}
@@ -1177,8 +1172,11 @@ export default function HomePage() {
                            </text>
                         </g>
                       ))}
-                      {/* Legenda inferior */}
-                      <text x={padL} y={svgH - padBot + 55 + axisOffset} fill={text3C} fontSize={10} fontFamily="'Geist', sans-serif">Lucro = Receita Bruta − Parcela SAC | saldo financiado: {fmt(saldo)}</text>
+                      {/* Legenda dentro do SVG, abaixo da linha cinza dos anos */}
+                      <circle cx={padL + 8} cy={svgH - padBot + 48 + axisOffset} r={5} fill={greenC} />
+                      <text x={padL + 18} y={svgH - padBot + 52 + axisOffset} fill={greenC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">Receita bruta</text>
+                      <circle cx={padL + 130} cy={svgH - padBot + 48 + axisOffset} r={5} fill={blueC} />
+                      <text x={padL + 140} y={svgH - padBot + 52 + axisOffset} fill={blueC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">Parcela SAC</text>
                       {/* Defs para setas */}
                       <defs>
                         <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
