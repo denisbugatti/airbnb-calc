@@ -993,6 +993,7 @@ export default function HomePage() {
                 results={results}
                 incluiDecoracao={incluiDecoracao}
                 nomeEmpreendimento={nomeEmpreendimento}
+                isDark={isDark}
               />
             </GlassPanel>
 
