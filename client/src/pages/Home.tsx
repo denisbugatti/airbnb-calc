@@ -1100,8 +1100,8 @@ export default function HomePage() {
                       {[0.25, 0.5, 0.75].map(t => (
                         <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke={gridC} strokeWidth={1} strokeDasharray="4 4" />
                       ))}
-                      {/* Label RECEITA BRUTA — fixo no topo acima da área de plotagem */}
-                      <text x={padL} y={padTop - 22} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
+                      {/* Label RECEITA BRUTA — fixo no topo, 40px abaixo do topo do SVG */}
+                      <text x={padL} y={padTop + 18} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
                       {/* Eixo X */}
                       <line x1={padL} y1={svgH - padBot + 10} x2={svgW - padR} y2={svgH - padBot + 10} stroke={divC} strokeWidth={1.5} />
                       {/* Label ANOS */}
