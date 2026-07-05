@@ -9,6 +9,41 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── ITC Avant Garde Gothic — fonte oficial Vitacon (OTFs locais) ── */
+@font-face {
+  font-family: "Avant Garde";
+  src: url("/fonts/avantgarde-book.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Avant Garde";
+  src: url("/fonts/avantgarde-medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Avant Garde";
+  src: url("/fonts/avantgarde-demi.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Avant Garde";
+  src: url("/fonts/avantgarde-bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: "Avant Garde", "Century Gothic", Futura, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -163,6 +198,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
