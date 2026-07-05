@@ -108,9 +108,9 @@ function calcularFluxo(fluxo: FluxoInputs, valorImovel: number): FluxoResults {
 const defaultValorImovel = defaultInputs.valorImovel;
 
 const defaultFluxo: FluxoInputs = {
-  percentualAto: 13.80,
+  percentualAto: 10, // Ato fixo: 10% do valor do imóvel
   parcelasAto: 2,
-  ato: buildAto(13.80, 2, defaultValorImovel),
+  ato: buildAto(10, 2, defaultValorImovel),
   valorMensal: 560,
   numMensais: 24,
   semestrais: [],

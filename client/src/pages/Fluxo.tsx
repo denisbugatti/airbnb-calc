@@ -521,20 +521,17 @@ export default function FluxoPage() {
             <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>Configurações</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {/* % do Ato */}
+            {/* % do Ato — fixo em 10% */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium" style={{ color: colors.text3 }}>% do Ato</label>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.amberBg, color: colors.amber, fontFamily: "var(--font-mono)" }}>
-                  {fluxo.percentualAto.toFixed(2)}%
+                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
+                  10%
                 </span>
               </div>
-              <Slider min={9.8} max={30} step={0.1} value={[fluxo.percentualAto]}
-                onValueChange={([v]) => updateAto(v, fluxo.parcelasAto)} />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs" style={{ color: colors.text4 }}>9,8%</span>
-                <span className="text-xs" style={{ color: colors.text4 }}>30%</span>
+              <div className="rounded-lg px-3 py-2 text-xs" style={{ background: colors.inputBg, color: colors.text4 }}>
+                Fixo — 10% do valor do imóvel no ato
               </div>
             </div>
             {/* Parcelas do Ato */}
