@@ -102,7 +102,14 @@ mesesRecuperacao      = capitalProprioTotal / rendaLiquida   (e variantes Holdin
 
 - Cores base: `--vit-blue #2800FF`, `--vit-ink #0A0A0B`, `--vit-black #000`, `--vit-white #FFF`, apoio `--olive #4A4A35`, `--wood #7C5A38`.
 - Semânticas: verde para resultado positivo, âmbar para despesas, vermelho para negativo (tons definidos por tema, contraste AA).
-- Tipografia: **Archivo Expanded** (títulos), **Archivo** (texto/UI), **JetBrains Mono** (números, labels uppercase pequenos estilo "REAL ESTATE → URBAN ASSETS"). Fontes via `@fontsource` (self-hosted no bundle, sem dependência externa em runtime).
+- Tipografia: **ITC Avant Garde Gothic** (fonte oficial Vitacon, OTFs fornecidos pelo Denis em `~/Desktop/VITACON/ITC Avant Garde Gothic/`), convertida para WOFF2 e embutida no projeto:
+  - **Demi** — títulos e headings
+  - **Bold** — números grandes / display
+  - **Medium** — botões e ênfase
+  - **Book** — texto e UI
+  - Condensados e oblíquos: fora do escopo.
+  - **JetBrains Mono** (via `@fontsource`) apenas onde monospace é funcional: números animados, tabelas e labels uppercase pequenos. Se o Avant Garde oferecer dígitos tabulares (`tnum`), o mono é dispensado.
+  - Validar cobertura de acentos pt-BR das versões CE (Book/Demi) na implementação; fallback stack: `"ITC Avant Garde Gothic", "Century Gothic", Futura, sans-serif`.
 - Todos os tokens em CSS variables no `index.css`, tema trocado por classe no `<html>` (`.dark`). Fim das cores oklch hardcoded em componentes.
 
 ### Temas
