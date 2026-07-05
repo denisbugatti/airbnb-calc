@@ -32,38 +32,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ONE_INNOVATION_LOGO } from "@/lib/defaultLogo";
 
-function useColors(isDark: boolean) {
-  return {
-    surface: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(1 0 0)",
-    border: isDark ? "oklch(1 0 0 / 0.09)" : "oklch(0.88 0.008 240)",
-    divider: isDark ? "oklch(1 0 0 / 0.07)" : "oklch(0.9 0.006 240)",
-    inputBg: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(0.96 0.005 240)",
-    text1: isDark ? "oklch(0.97 0 0)" : "oklch(0.18 0.01 260)",
-    text2: isDark ? "oklch(0.75 0 0)" : "oklch(0.35 0.01 260)",
-    text3: isDark ? "oklch(0.55 0.01 240)" : "oklch(0.52 0.01 260)",
-    text4: isDark ? "oklch(0.38 0.01 240)" : "oklch(0.65 0.01 260)",
-    blue: isDark ? "oklch(0.78 0.12 210)" : "oklch(0.52 0.22 250)",
-    blueBg: isDark ? "oklch(0.78 0.12 210 / 0.08)" : "oklch(0.52 0.22 250 / 0.07)",
-    blueBorder: isDark ? "oklch(0.78 0.12 210 / 0.2)" : "oklch(0.52 0.22 250 / 0.25)",
-    blueHead: isDark ? "oklch(0.78 0.12 210 / 0.18)" : "oklch(0.52 0.22 250 / 0.12)",
-    blueCell: isDark ? "oklch(0.78 0.12 210 / 0.04)" : "oklch(0.52 0.22 250 / 0.03)",
-    green: isDark ? "oklch(0.72 0.18 145)" : "oklch(0.48 0.18 145)",
-    greenBg: isDark ? "oklch(0.72 0.18 145 / 0.08)" : "oklch(0.48 0.18 145 / 0.07)",
-    greenBorder: isDark ? "oklch(0.72 0.18 145 / 0.2)" : "oklch(0.48 0.18 145 / 0.25)",
-    greenHead: isDark ? "oklch(0.55 0.18 145 / 0.35)" : "oklch(0.48 0.18 145 / 0.15)",
-    greenCell: isDark ? "oklch(0.55 0.18 145 / 0.15)" : "oklch(0.48 0.18 145 / 0.08)",
-    amber: isDark ? "oklch(0.78 0.18 70)" : "oklch(0.6 0.18 70)",
-    amberBg: isDark ? "oklch(0.78 0.18 70 / 0.08)" : "oklch(0.6 0.18 70 / 0.07)",
-    // Semestrais usam mesma cor das anuais (azul)
-    violet: isDark ? "oklch(0.78 0.12 210)" : "oklch(0.52 0.22 250)",
-    violetBg: isDark ? "oklch(0.78 0.12 210 / 0.08)" : "oklch(0.52 0.22 250 / 0.07)",
-    violetBorder: isDark ? "oklch(0.78 0.12 210 / 0.2)" : "oklch(0.52 0.22 250 / 0.25)",
-    violetHead: isDark ? "oklch(0.78 0.12 210 / 0.18)" : "oklch(0.52 0.22 250 / 0.12)",
-    violetCell: isDark ? "oklch(0.78 0.12 210 / 0.04)" : "oklch(0.52 0.22 250 / 0.03)",
-    mono: isDark ? "oklch(0.95 0 0)" : "oklch(0.18 0.01 260)",
-    cardShadow: isDark ? "none" : "0 1px 3px oklch(0 0 0 / 0.06), 0 4px 16px oklch(0 0 0 / 0.05)",
-  };
-}
+// Paleta Vitacon compartilhada (mesma da Calculadora)
+import { useVitaconColors as useColors } from "@/lib/vitaconColors";
 
 // Helpers de milhar para o Fluxo
 function fApplyMask(raw: string): string {

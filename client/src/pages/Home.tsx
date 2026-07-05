@@ -57,52 +57,8 @@ function useAnimatedNumber(value: number, duration = 500) {
   return displayed;
 }
 
-// ─── Theme-aware color tokens ─────────────────────────────────────────────────
-function useColors(isDark: boolean) {
-  return useMemo(() => ({
-    // Surfaces
-    surface: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(1 0 0)",
-    surfaceHover: isDark ? "oklch(1 0 0 / 0.07)" : "oklch(0.98 0.003 80)",
-    border: isDark ? "oklch(1 0 0 / 0.08)" : "oklch(0.88 0.008 240)",
-    borderFocus: isDark ? "oklch(0.78 0.12 210 / 0.5)" : "oklch(0.52 0.22 250 / 0.6)",
-    inputBg: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(0.97 0.004 240)",
-    inputBgFocus: isDark ? "oklch(1 0 0 / 0.07)" : "oklch(1 0 0)",
-    // Text hierarchy
-    text1: isDark ? "oklch(0.97 0 0)" : "oklch(0.18 0.01 260)",      // heading
-    text2: isDark ? "oklch(0.75 0 0)" : "oklch(0.35 0.01 260)",      // subheading
-    text3: isDark ? "oklch(0.55 0.01 240)" : "oklch(0.52 0.01 260)", // label
-    text4: isDark ? "oklch(0.38 0.01 240)" : "oklch(0.65 0.01 260)", // caption
-    // Accents
-    blue: isDark ? "oklch(0.78 0.12 210)" : "oklch(0.52 0.22 250)",
-    blueGlow: isDark ? "oklch(0.78 0.12 210 / 0.15)" : "oklch(0.52 0.22 250 / 0.08)",
-    blueBorder: isDark ? "oklch(0.78 0.12 210 / 0.2)" : "oklch(0.52 0.22 250 / 0.25)",
-    blueBg: isDark ? "oklch(0.78 0.12 210 / 0.06)" : "oklch(0.52 0.22 250 / 0.06)",
-    blueIconBg: isDark ? "oklch(0.78 0.12 210 / 0.12)" : "oklch(0.52 0.22 250 / 0.1)",
-    green: isDark ? "oklch(0.72 0.18 145)" : "oklch(0.48 0.18 145)",
-    greenGlow: isDark ? "oklch(0.72 0.18 145 / 0.15)" : "oklch(0.48 0.18 145 / 0.08)",
-    greenBorder: isDark ? "oklch(0.72 0.18 145 / 0.2)" : "oklch(0.48 0.18 145 / 0.25)",
-    greenBg: isDark ? "oklch(0.72 0.18 145 / 0.06)" : "oklch(0.48 0.18 145 / 0.06)",
-    greenIconBg: isDark ? "oklch(0.72 0.18 145 / 0.12)" : "oklch(0.48 0.18 145 / 0.1)",
-    amber: isDark ? "oklch(0.78 0.18 70)" : "oklch(0.6 0.18 70)",
-    amberGlow: isDark ? "oklch(0.78 0.18 70 / 0.15)" : "oklch(0.6 0.18 70 / 0.08)",
-    amberBorder: isDark ? "oklch(0.78 0.18 70 / 0.2)" : "oklch(0.6 0.18 70 / 0.25)",
-    amberBg: isDark ? "oklch(0.78 0.18 70 / 0.06)" : "oklch(0.6 0.18 70 / 0.06)",
-    amberIconBg: isDark ? "oklch(0.78 0.18 70 / 0.12)" : "oklch(0.6 0.18 70 / 0.1)",
-    red: isDark ? "oklch(0.65 0.22 25)" : "oklch(0.52 0.22 25)",
-    redGlow: isDark ? "oklch(0.65 0.22 25 / 0.15)" : "oklch(0.52 0.22 25 / 0.08)",
-    redBorder: isDark ? "oklch(0.65 0.22 25 / 0.2)" : "oklch(0.52 0.22 25 / 0.25)",
-    redBg: isDark ? "oklch(0.65 0.22 25 / 0.06)" : "oklch(0.52 0.22 25 / 0.06)",
-    // Divider
-    divider: isDark ? "oklch(1 0 0 / 0.06)" : "oklch(0.88 0.008 240)",
-    // Shadow
-    cardShadow: isDark ? "none" : "0 1px 3px oklch(0 0 0 / 0.06), 0 4px 16px oklch(0 0 0 / 0.05)",
-    cardShadowHover: isDark ? "none" : "0 2px 8px oklch(0 0 0 / 0.08), 0 8px 32px oklch(0 0 0 / 0.08)",
-    inputShadow: isDark ? "none" : "inset 0 1px 2px oklch(0 0 0 / 0.04)",
-    focusShadow: isDark ? "0 0 0 3px oklch(0.78 0.12 210 / 0.1)" : "0 0 0 3px oklch(0.52 0.22 250 / 0.12)",
-    // Mono font color
-    mono: isDark ? "oklch(0.95 0 0)" : "oklch(0.18 0.01 260)",
-  }), [isDark]);
-}
+// ─── Theme-aware color tokens (paleta Vitacon compartilhada) ─────────────────
+import { useVitaconColors as useColors } from "@/lib/vitaconColors";
 
 // ─── Helpers de formatação de milhar ─────────────────────────────────────────
 function applyThousandsMask(raw: string): string {
