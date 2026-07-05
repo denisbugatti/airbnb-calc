@@ -630,20 +630,15 @@ export default function FluxoPage() {
               </div>
             );
             return (
-              <div>
-                {/* Séries do fluxo */}
-                {series.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-                    style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
-                    {series.map((c) => <Cartao key={c.label} {...c} />)}
-                  </div>
-                )}
-                {/* Linha de soma */}
-                <div className="my-5" style={{ height: 2, background: "#2800FF" }} />
-                {/* Total (soma das séries) → antes do Financiamento → Valor do Imóvel */}
-                <div className="grid grid-cols-1 md:grid-cols-3"
-                  style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
-                  {resumo.map((c) => <Cartao key={c.label} {...c} />)}
+              /* Todos os blocos numa única linha horizontal: séries → Total → Financiamento → Imóvel */
+              <div className="overflow-x-auto">
+                <div className="flex"
+                  style={{ gap: 1, background: "#242424", border: "1px solid #242424", width: "max-content", minWidth: "100%" }}>
+                  {[...series, ...resumo].map((c) => (
+                    <div key={c.label} style={{ minWidth: 190, flex: "1 0 auto" }}>
+                      <Cartao {...c} />
+                    </div>
+                  ))}
                 </div>
               </div>
             );
