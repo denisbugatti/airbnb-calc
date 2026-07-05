@@ -7,6 +7,7 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import { toPng } from "html-to-image";
 import { useFluxo, mesAtualFn, proximoMes } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
@@ -470,6 +471,21 @@ export default function FluxoPage() {
   // incluiDecoracao vem do FluxoContext (compartilhado com a Calculadora)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [serieMenuOpen, setSerieMenuOpen] = useState(false);
+  const planoRef = useRef<HTMLDivElement>(null);
+  const [exportandoPlano, setExportandoPlano] = useState(false);
+  const baixarPlanoPNG = async () => {
+    if (!planoRef.current) return;
+    setExportandoPlano(true);
+    try {
+      const dataUrl = await toPng(planoRef.current, { pixelRatio: 2, backgroundColor: "#000000" });
+      const link = document.createElement("a");
+      link.download = `plano-pagamento-${nomeEmpreendimento || "vitacon"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      setExportandoPlano(false);
+    }
+  };
   const [exportTheme, setExportTheme] = useState<"dark" | "light">("dark");
 
   const pctInvestido = calc.valorImovel > 0 ? (results.totalInvestido / calc.valorImovel) * 100 : 0;
@@ -583,12 +599,33 @@ export default function FluxoPage() {
         <motion.div
           className="rounded-2xl p-6 md:p-8 overflow-hidden"
           style={{ background: "#000000", border: "1px solid #1F1F1F" }}>
-          {/* Header: traço azul + label mono */}
-          <div className="flex items-center gap-3 mb-6">
-            <div style={{ width: 34, height: 2, background: "#2800FF" }} />
-            <span className="text-[11px] tracking-[0.3em] uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>
-              Plano de Pagamento
-            </span>
+          {/* Baixar a peça (fica fora da área exportada) */}
+          <div className="flex justify-end mb-4">
+            <button onClick={baixarPlanoPNG} disabled={exportandoPlano}
+              className="press flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90"
+              style={{ background: "#2800FF", color: "#fff", boxShadow: "0 2px 8px rgba(40,0,255,0.3)", opacity: exportandoPlano ? 0.7 : 1 }}>
+              <Download size={14} />
+              {exportandoPlano ? "Exportando..." : "Baixar PNG"}
+            </button>
+          </div>
+
+          {/* Área exportável: logo + label + nome + statement + cartões */}
+          <div ref={planoRef} style={{ background: "#000000", padding: "20px 16px 24px" }}>
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <img src="/vitacon-logo.png" alt="Vitacon" style={{ height: 22, width: "auto", display: "block" }} />
+              <div className="flex items-center gap-3 mt-3">
+                <div style={{ width: 34, height: 2, background: "#2800FF" }} />
+                <span className="text-[11px] tracking-[0.3em] uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>
+                  Plano de Pagamento
+                </span>
+              </div>
+            </div>
+            {nomeEmpreendimento && (
+              <span className="text-[10px] tracking-[0.3em] uppercase pt-1" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
+                {nomeEmpreendimento}
+              </span>
+            )}
           </div>
           {/* Statement */}
           <p className="mb-7 text-2xl md:text-4xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, lineHeight: 1.15 }}>
@@ -647,6 +684,8 @@ export default function FluxoPage() {
               </div>
             );
           })()}
+
+          </div>
 
           {/* CONDIÇÃO DE PAGAMENTO — séries editáveis (referência: sistema de vendas) */}
           <div className="mt-7">
