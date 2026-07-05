@@ -126,7 +126,7 @@ const defaultFluxo: FluxoInputs = {
   parcelasAto: 1,
   ato: buildAto(10, 1, defaultValorImovel),
   valorMensal: 0,
-  numMensais: 24,
+  numMensais: 37,
   semestrais: [],
   anuais: buildAnuais(2, defaultValorImovel),
   extras: [{ id: "unica-padrao", tipo: "ÚNICA", parcelas: 1, valor: 0, mes: proximoMes(mesAtual(), 36) }],
@@ -366,8 +366,8 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
           return {
             ...prev,
             ato,
-            numMensais: prev.numMensais || 24,
-            valorMensal: Math.round((0.05 * newVi) / Math.max(1, prev.numMensais || 24)),
+            numMensais: prev.numMensais || 37,
+            valorMensal: Math.round((0.05 * newVi) / Math.max(1, prev.numMensais || 37)),
             anuais: (prev.anuais.length ? prev.anuais : buildAnuais(2, newVi)).map((a) => ({
               ...a, valor: Math.round((0.05 * newVi) / nAnuais),
             })),
