@@ -142,14 +142,15 @@ function EditableMes({ value, onChange, colors }: {
 
 
 // Linha do editor "Condição de pagamento" — módulo-level para não remontar inputs a cada render
-function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete, colors }: {
+function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete, pct, onPct, colors }: {
   serie: string; badge?: string; parcelas: number; onParcelas?: (n: number) => void;
   valorNode: React.ReactNode; venc?: string; onVenc?: (m: string) => void;
   total: string; onRecalc?: () => void; onDelete?: () => void;
+  pct?: number; onPct?: (p: number) => void;
   colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-[1.3fr_.6fr_1fr_.9fr_1fr_auto] gap-2 items-center px-4 py-3"
+    <div className="grid grid-cols-2 md:grid-cols-[1.15fr_.55fr_.95fr_.6fr_.85fr_.95fr_auto] gap-2 items-center px-4 py-3"
       style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
@@ -166,6 +167,18 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
         )}
       </div>
       <div>{valorNode}</div>
+      <div>
+        {onPct ? (
+          <div className="flex items-center gap-1">
+            <EditableValue value={Math.round(pct ?? 0)} onChange={onPct} prefix="" colors={colors} />
+            <span className="text-xs" style={{ color: "#898A8E" }}>%</span>
+          </div>
+        ) : (
+          <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>
+            {pct !== undefined ? `${pct.toFixed(1).replace(".", ",")}%` : "—"}
+          </span>
+        )}
+      </div>
       <div>{onVenc ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} /> : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>}</div>
       <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
       <div className="flex items-center gap-1.5 justify-end">
@@ -590,7 +603,7 @@ export default function FluxoPage() {
             {/* Cabeçalho */}
             <div className="hidden md:grid grid-cols-[1.3fr_.6fr_1fr_.9fr_1fr_auto] gap-2 px-4 py-2"
               style={{ borderBottom: "1px solid #242424" }}>
-              {["Série", "Parcelas", "Valor", "1º Venc.", "Total", "Ações"].map((h) => (
+              {["Série", "Parcelas", "Valor", "%", "1º Venc.", "Total", "Ações"].map((h) => (
                 <div key={h} className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>{h}</div>
               ))}
             </div>
@@ -610,6 +623,8 @@ export default function FluxoPage() {
                       })}
                       venc={fluxo.ato[0]?.mes ?? mesAtualFn()} onVenc={(m) => updateParcelaAtoMes(0, m)}
                       total={formatCurrency(results.totalAto)}
+                      pct={fluxo.percentualAto}
+                      onPct={(p) => updateAto(Math.min(100, p), fluxo.parcelasAto)}
                       onRecalc={() => updateAto(fluxo.percentualAto, fluxo.parcelasAto)}
                       onDelete={() => updateAto(0, 1)} />
                   )}
@@ -620,6 +635,8 @@ export default function FluxoPage() {
                       venc={fluxo.mesInicioMensais ?? proximoMes(mesAtualFn(), 1)}
                       onVenc={(m) => setFluxo((p) => ({ ...p, mesInicioMensais: m }))}
                       total={formatCurrency(results.totalMensais)}
+                      pct={calc.valorImovel > 0 ? (results.totalMensais / calc.valorImovel) * 100 : undefined}
+                      onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, valorMensal: Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / Math.max(1, prev.numMensais)) })) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, numMensais: 0 }))} />
                   )}
                   {semestrais.length > 0 && (
@@ -631,6 +648,8 @@ export default function FluxoPage() {
                       valorNode={num(semestrais[0]?.valor ?? 0, (v) => setFluxo((p) => ({ ...p, semestrais: (p.semestrais ?? []).map((s) => ({ ...s, valor: v })) })))}
                       venc={semestrais[0]?.mes ?? ""} onVenc={(m) => setFluxo((p) => ({ ...p, semestrais: (p.semestrais ?? []).map((s, i) => ({ ...s, mes: proximoMes(m, 6 * i) })) }))}
                       total={formatCurrency(results.totalSemestrais)}
+                      pct={calc.valorImovel > 0 ? (results.totalSemestrais / calc.valorImovel) * 100 : undefined}
+                      onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => { const n = Math.max(1, (prev.semestrais ?? []).length); const v = Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / n); return { ...prev, semestrais: (prev.semestrais ?? []).map((s) => ({ ...s, valor: v })) }; }) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, semestrais: [] }))} />
                   )}
                   {fluxo.anuais.length > 0 && (
@@ -642,12 +661,16 @@ export default function FluxoPage() {
                       valorNode={num(fluxo.anuais[0]?.valor ?? 0, (v) => setFluxo((p) => ({ ...p, anuais: p.anuais.map((a) => ({ ...a, valor: v })) })))}
                       venc={fluxo.anuais[0]?.mes ?? ""} onVenc={(m) => setFluxo((p) => ({ ...p, anuais: p.anuais.map((a, i) => ({ ...a, mes: proximoMes(m, 12 * i) })) }))}
                       total={formatCurrency(results.totalAnuais)}
+                      pct={calc.valorImovel > 0 ? (results.totalAnuais / calc.valorImovel) * 100 : undefined}
+                      onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => { const n = Math.max(1, prev.anuais.length); const v = Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / n); return { ...prev, anuais: prev.anuais.map((a) => ({ ...a, valor: v })) }; }) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, anuais: [] }))} />
                   )}
                   {calc.mobilia > 0 && (
                     <SerieRow colors={colors} serie="Decor" badge="decoração" parcelas={1}
                       valorNode={num(calc.mobilia, (v) => setCalcField("mobilia", v))}
                       total={formatCurrency(calc.mobilia)}
+                      pct={calc.valorImovel > 0 ? (calc.mobilia / calc.valorImovel) * 100 : undefined}
+                      onPct={calc.valorImovel > 0 ? (p) => setCalcField("mobilia", Math.round((Math.min(100, p) / 100) * calc.valorImovel)) : undefined}
                       onDelete={() => setCalcField("mobilia", 0)} />
                   )}
                   {(fluxo.extras ?? []).map((ex) => (
@@ -656,14 +679,28 @@ export default function FluxoPage() {
                       valorNode={num(ex.valor, (v) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: v } : e) })))}
                       venc={ex.mes} onVenc={(m) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, mes: m } : e) }))}
                       total={formatCurrency(ex.valor * ex.parcelas)}
+                      pct={calc.valorImovel > 0 ? ((ex.valor * ex.parcelas) / calc.valorImovel) * 100 : undefined}
+                      onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / Math.max(1, e.parcelas)) } : e) })) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
                   ))}
                   <SerieRow colors={colors} serie="Financiamento" badge="automático" parcelas={calc.prazoMeses}
                     valorNode={<span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>saldo restante</span>}
+                    pct={calc.valorImovel > 0 ? (results.financiamento / calc.valorImovel) * 100 : undefined}
                     total={formatCurrency(results.financiamento)} />
                 </div>
               );
             })()}
+
+            {/* VALOR TOTAL DO IMÓVEL — faixa sólida, editável */}
+            <div className="flex justify-between items-center gap-4 px-5 py-4 mt-0"
+              style={{ background: "#2800FF" }}>
+              <span className="text-sm md:text-base font-semibold" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}>
+                Valor total do imóvel
+              </span>
+              <div className="w-44 text-right">
+                <EditableValue value={calc.valorImovel} onChange={(v) => syncValorImovelParaCalc(v)} colors={colors} />
+              </div>
+            </div>
 
             {/* + ADICIONAR SÉRIE */}
             <div className="relative mt-4 flex justify-end">
