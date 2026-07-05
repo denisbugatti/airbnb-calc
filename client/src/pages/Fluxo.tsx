@@ -254,27 +254,27 @@ function gerarFluxoPNG(
     cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
     cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(valorImovel) });
 
-    // Paleta de cores por tema
+    // Paleta de cores por tema — identidade Vitacon (azul elétrico #2800FF)
     const isDarkTheme = exportTheme === "dark";
     const palette = {
-      bg: isDarkTheme ? "#0a0f1a" : "#f8fafc",
-      titleColor: isDarkTheme ? "#ffffff" : "#0f172a",
-      subtitleColor: isDarkTheme ? "#38bdf8" : "#0284c7",
-      headerBlue: isDarkTheme ? "#1a4a7a" : "#3b82f6",
-      headerGreen: isDarkTheme ? "#16a34a" : "#16a34a",
-      headerViolet: isDarkTheme ? "#1a4a7a" : "#3b82f6",
+      bg: isDarkTheme ? "#0a0a0b" : "#f5f5f5",
+      titleColor: isDarkTheme ? "#ffffff" : "#0a0a0b",
+      subtitleColor: isDarkTheme ? "#a99cff" : "#2800ff",
+      headerBlue: isDarkTheme ? "#3d2bb8" : "#2800ff",
+      headerGreen: "#0e8a4a",
+      headerViolet: isDarkTheme ? "#3d2bb8" : "#2800ff",
       headerTextColor: "#ffffff",
-      headerSubBlue: isDarkTheme ? "#bae6fd" : "#dbeafe",
+      headerSubBlue: isDarkTheme ? "#cfc8ff" : "#dcd6ff",
       headerSubGreen: isDarkTheme ? "#bbf7d0" : "#dcfce7",
-      headerSubViolet: isDarkTheme ? "#bae6fd" : "#dbeafe",
-      cellBlueBg: isDarkTheme ? "#0f1e30" : "#eff6ff",
+      headerSubViolet: isDarkTheme ? "#cfc8ff" : "#dcd6ff",
+      cellBlueBg: isDarkTheme ? "#16141f" : "#f4f2ff",
       cellGreenBg: isDarkTheme ? "#dcfce7" : "#f0fdf4",
-      cellVioletBg: isDarkTheme ? "#0f1e30" : "#eff6ff",
-      cellBlueText: isDarkTheme ? "#e0f2fe" : "#1e3a5f",
-      cellGreenText: isDarkTheme ? "#15803d" : "#15803d",
-      cellVioletText: isDarkTheme ? "#e0f2fe" : "#1e3a5f",
-      divider: isDarkTheme ? "#1e3a5f" : "#cbd5e1",
-      colDivider: isDarkTheme ? "#e2e8f0" : "#94a3b8",
+      cellVioletBg: isDarkTheme ? "#16141f" : "#f4f2ff",
+      cellBlueText: isDarkTheme ? "#e6e2ff" : "#1b1263",
+      cellGreenText: "#15803d",
+      cellVioletText: isDarkTheme ? "#e6e2ff" : "#1b1263",
+      divider: isDarkTheme ? "#262626" : "#e5e5e5",
+      colDivider: isDarkTheme ? "#3a3a3a" : "#c9c9c9",
     };
 
     const PADDING = 40;
@@ -443,16 +443,16 @@ export default function FluxoPage() {
     <div className="w-full pb-16" style={{ fontFamily: "var(--font-sans)" }}>
       {/* HERO */}
       <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5"
-            style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}`, color: colors.green }}>
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase mb-5"
+            style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue, fontFamily: "var(--font-mono)" }}>
             <Zap size={11} /> Distribuição do capital
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none mb-4" style={{ color: colors.text1 }}>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight mb-4" style={{ color: colors.text1, fontWeight: 600 }}>
             Fluxo de{" "}
-            <span style={{ color: colors.green }}>Pagamento</span>
+            <span style={{ color: colors.blue }}>pagamento</span>
           </h1>
-          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: colors.text2 }}>
+          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: colors.text3 }}>
             Configure como o investimento será distribuído ao longo do tempo. O Total Investido alimenta automaticamente a base do ROI na calculadora.
           </p>
           {/* Campo de nome do empreendimento + logo */}
@@ -506,12 +506,12 @@ export default function FluxoPage() {
               </button>
             )}
           </div>
-        </motion.div>
+        </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-4">
         {/* CONFIGURAÇÕES */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+        <motion.div
           className="rounded-2xl p-4 md:p-5"
           style={{ background: colors.surface, border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
           <div className="flex items-center gap-2 mb-4">
@@ -625,7 +625,7 @@ export default function FluxoPage() {
         </motion.div>
 
         {/* TABELA */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
+        <motion.div
           className="rounded-2xl overflow-hidden"
           style={{ border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
@@ -854,7 +854,7 @@ export default function FluxoPage() {
         </motion.div>
 
         {/* DISTRIBUIÇÃO VISUAL */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+        <motion.div
           className="rounded-2xl p-4 md:p-5"
           style={{ background: colors.surface, border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
           <div className="flex items-center gap-2 mb-4">
@@ -867,14 +867,14 @@ export default function FluxoPage() {
             <motion.div animate={{ width: `${pctInvestido}%` }} transition={{ duration: 0.6 }}
               className="h-full flex items-center justify-center text-xs font-bold text-white"
               style={{
-                background: isDark ? "oklch(0.55 0.18 145 / 0.8)" : "oklch(0.48 0.18 145 / 0.85)",
+                background: colors.green,
                 minWidth: pctInvestido > 10 ? "auto" : 0,
               }}>
               {pctInvestido > 8 && `${pctInvestido.toFixed(1)}%`}
             </motion.div>
             <motion.div animate={{ width: `${pctFinanciamento}%` }} transition={{ duration: 0.6 }}
               className="h-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: isDark ? "oklch(0.78 0.12 210 / 0.6)" : "oklch(0.52 0.22 250 / 0.7)" }}>
+              style={{ background: colors.blue }}>
               {pctFinanciamento > 8 && `${pctFinanciamento.toFixed(1)}%`}
             </motion.div>
           </div>
@@ -895,19 +895,19 @@ export default function FluxoPage() {
           <div className="mt-3 flex gap-4 text-xs" style={{ color: colors.text4 }}>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm"
-                style={{ background: isDark ? "oklch(0.55 0.18 145 / 0.8)" : "oklch(0.48 0.18 145 / 0.85)" }} />
+                style={{ background: colors.green }} />
               Investimento próprio (base do ROI)
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm"
-                style={{ background: isDark ? "oklch(0.78 0.12 210 / 0.6)" : "oklch(0.52 0.22 250 / 0.7)" }} />
+                style={{ background: colors.blue }} />
               Financiamento bancário
             </div>
           </div>
         </motion.div>
 
         {/* NOTA ROI */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+        <motion.div
           className="rounded-xl px-4 py-3 text-xs"
           style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}`, color: colors.green }}>
           <strong>ROI calculado sobre o Total Investido ({formatCurrency(results.totalInvestido)}).</strong>{" "}
@@ -927,7 +927,7 @@ export default function FluxoPage() {
             style={{
               maxWidth: "95vw",
               maxHeight: "90vh",
-              background: isDark ? "oklch(0.14 0.01 240)" : "oklch(0.98 0.005 240)",
+              background: colors.surface,
               border: `1px solid ${colors.border}`,
               boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
             }}
