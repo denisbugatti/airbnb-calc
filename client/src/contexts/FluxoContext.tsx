@@ -5,7 +5,7 @@
  * aba é imediatamente refletida na outra, sem callbacks ou sincronização manual.
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
 import { type CalculatorInputs, defaultInputs } from "@/lib/calculator";
 
 export interface ParcelaAto {
@@ -120,15 +120,16 @@ function calcularFluxo(fluxo: FluxoInputs, valorImovel: number): FluxoResults {
 
 const defaultValorImovel = defaultInputs.valorImovel;
 
+// Tabela padrão: ATO 10% · MENSAL 5% · ANUAL 5% · ÚNICA 10% · FINANCIAMENTO 70% (automático)
 const defaultFluxo: FluxoInputs = {
-  percentualAto: 10, // Ato fixo: 10% do valor do imóvel
-  parcelasAto: 2,
-  ato: buildAto(10, 2, defaultValorImovel),
-  valorMensal: 560,
+  percentualAto: 10,
+  parcelasAto: 1,
+  ato: buildAto(10, 1, defaultValorImovel),
+  valorMensal: 0,
   numMensais: 24,
   semestrais: [],
   anuais: buildAnuais(2, defaultValorImovel),
-  extras: [],
+  extras: [{ id: "unica-padrao", tipo: "ÚNICA", parcelas: 1, valor: 0, mes: proximoMes(mesAtual(), 36) }],
 };
 
 interface SharedContextType {
@@ -179,6 +180,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   const [fluxo, setFluxoState] = useState<FluxoInputs>(defaultFluxo);
   const [nomeEmpreendimento, setNomeEmpreendimento] = useState("");
   const [incluiDecoracao, setIncluiDecoracao] = useState(false);
+  const viRef = useRef(defaultValorImovel);
 
   // ── Calculadora ──────────────────────────────────────────────────────────
 
@@ -346,12 +348,44 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
       }
       return changed ? next : prev;
     });
-    // Atualiza ato quando valorImovel muda
+    // Quando o valorImovel muda: aplica a tabela padrão (se tudo zerado) ou escala proporcionalmente
     if (payload.valorImovel !== undefined) {
-      setFluxoState((prev) => ({
-        ...prev,
-        ato: buildAto(prev.percentualAto, prev.parcelasAto, payload.valorImovel!),
-      }));
+      const oldVi = viRef.current;
+      const newVi = payload.valorImovel;
+      viRef.current = newVi;
+      setFluxoState((prev) => {
+        const totalOutros =
+          prev.valorMensal * prev.numMensais +
+          prev.anuais.reduce((s, a) => s + a.valor, 0) +
+          (prev.semestrais ?? []).reduce((s, x) => s + x.valor, 0) +
+          (prev.extras ?? []).reduce((s, e) => s + e.valor * e.parcelas, 0);
+        const ato = buildAto(prev.percentualAto, prev.parcelasAto, newVi);
+        if (totalOutros === 0 && newVi > 0) {
+          // Tabela padrão: 5% mensais + 5% anuais + 10% única
+          const nAnuais = Math.max(1, prev.anuais.length || 2);
+          return {
+            ...prev,
+            ato,
+            numMensais: prev.numMensais || 24,
+            valorMensal: Math.round((0.05 * newVi) / Math.max(1, prev.numMensais || 24)),
+            anuais: (prev.anuais.length ? prev.anuais : buildAnuais(2, newVi)).map((a) => ({
+              ...a, valor: Math.round((0.05 * newVi) / nAnuais),
+            })),
+            extras: (prev.extras && prev.extras.length
+              ? prev.extras.map((e) => e.tipo === "ÚNICA" ? { ...e, valor: Math.round(0.10 * newVi) } : e)
+              : [{ id: "unica-padrao", tipo: "ÚNICA", parcelas: 1, valor: Math.round(0.10 * newVi), mes: proximoMes(mesAtual(), 36) }]),
+          };
+        }
+        const ratio = oldVi > 0 && newVi > 0 ? newVi / oldVi : 1;
+        return {
+          ...prev,
+          ato,
+          valorMensal: Math.round(prev.valorMensal * ratio),
+          anuais: prev.anuais.map((a) => ({ ...a, valor: Math.round(a.valor * ratio) })),
+          semestrais: (prev.semestrais ?? []).map((s) => ({ ...s, valor: Math.round(s.valor * ratio) })),
+          extras: (prev.extras ?? []).map((e) => ({ ...e, valor: Math.round(e.valor * ratio) })),
+        };
+      });
     }
   }, []);
 
