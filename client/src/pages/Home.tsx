@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { toast } from "sonner";
 import { decodeShareLink } from "@/lib/shareLink";
 import { QuadroRentabilidade } from "@/components/QuadroRentabilidade";
+import { MobileSummaryBar } from "@/components/MobileSummaryBar";
 import { BookmarkPlus } from "lucide-react";
 import { useCenarios, type Cenario } from "@/contexts/CenariosContext";
 
@@ -186,11 +187,14 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
   );
 }
 
+// ─── Estados vazios ───────────────────────────────────────────────────────────
+const DASH = "—";
+
 // ─── Metric Card ──────────────────────────────────────────────────────────────
-function MetricCard({ value, label, formatter, icon, accent, size = "md", isDark, colors }: {
+function MetricCard({ value, label, formatter, icon, accent, size = "md", isDark, colors, valido = true }: {
   value: number; label: string; formatter: (v: number) => string;
   icon: React.ReactNode; accent: "blue" | "green" | "amber" | "red";
-  size?: "md" | "lg"; isDark: boolean; colors: ReturnType<typeof useColors>;
+  size?: "md" | "lg"; isDark: boolean; colors: ReturnType<typeof useColors>; valido?: boolean;
 }) {
   const animated = useAnimatedNumber(value);
   const accentColor = colors[accent as keyof typeof colors] as string;
@@ -212,8 +216,8 @@ function MetricCard({ value, label, formatter, icon, accent, size = "md", isDark
         {icon}
       </div>
       <div className={`font-bold tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`}
-        style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
-        {formatter(animated)}
+        style={{ color: valido ? accentColor : colors.text4, fontFamily: "var(--font-mono)" }}>
+        {valido ? formatter(animated) : DASH}
       </div>
       <div className="text-xs mt-0.5 font-medium" style={{ color: colors.text3 }}>{label}</div>
     </div>
@@ -257,10 +261,10 @@ function WaterfallBar({ label, value, total, color, isNegative = false, colors }
 }
 
 // ─── Fiscal Card ──────────────────────────────────────────────────────────────
-function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, isHighlight = false, isDark, colors }: {
+function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, isHighlight = false, isDark, colors, valido = true, validoPct = true }: {
   label: string; renda: number; rentabilidade: number; receitaBruta: number;
   icon: React.ReactNode; accent: "blue" | "green" | "amber"; isHighlight?: boolean;
-  isDark: boolean; colors: ReturnType<typeof useColors>;
+  isDark: boolean; colors: ReturnType<typeof useColors>; valido?: boolean; validoPct?: boolean;
 }) {
   const accentColor = colors[accent as keyof typeof colors] as string;
   const accentGlow = colors[`${accent}Glow` as keyof typeof colors] as string;
@@ -291,31 +295,31 @@ function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, i
       <div>
         <div className="text-xs font-medium" style={{ color: colors.text4 }}>Receita bruta</div>
         <div className="text-sm font-bold" style={{ color: colors.text2, fontFamily: "var(--font-mono)" }}>
-          {formatCurrency(receitaBruta)}
+          {valido ? formatCurrency(receitaBruta) : DASH}
         </div>
       </div>
       {/* Renda Líquida (mensal + anual) */}
       <div>
         <div className="text-xs font-medium" style={{ color: colors.text4 }}>Renda líquida / mês</div>
-        <div className="text-lg md:text-2xl font-black" style={{ color: accentColor, fontFamily: "var(--font-sans)", textShadow: isDark ? `0 0 20px ${accentGlow}` : "none" }}>
-          {formatCurrency(animRenda)}
+        <div className="text-lg md:text-2xl font-black" style={{ color: valido ? accentColor : colors.text4, fontFamily: "var(--font-sans)", textShadow: isDark && valido ? `0 0 20px ${accentGlow}` : "none" }}>
+          {valido ? formatCurrency(animRenda) : DASH}
         </div>
         <div className="text-xs font-medium mt-1.5" style={{ color: colors.text4 }}>Renda líquida / ano</div>
         <div className="text-sm md:text-base font-bold" style={{ color: colors.text2, fontFamily: "var(--font-mono)" }}>
-          {formatCurrency(animRenda * 12)}
+          {valido ? formatCurrency(animRenda * 12) : DASH}
         </div>
       </div>
       {/* Rentabilidade Mensal + Anual */}
       <div className="pt-2 border-t grid grid-cols-2 gap-2" style={{ borderColor: colors.divider }}>
         <div>
-          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
-            {formatPercent(animRentMensal)} a.m.
+          <div className="text-base font-bold" style={{ color: validoPct ? accentColor : colors.text4, fontFamily: "var(--font-mono)" }}>
+            {validoPct ? `${formatPercent(animRentMensal)} a.m.` : DASH}
           </div>
           <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rent. mensal</div>
         </div>
         <div>
-          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
-            {formatPercent(animRent)} a.a.
+          <div className="text-base font-bold" style={{ color: validoPct ? accentColor : colors.text4, fontFamily: "var(--font-mono)" }}>
+            {validoPct ? `${formatPercent(animRent)} a.a.` : DASH}
           </div>
           <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rent. anual</div>
         </div>
@@ -354,7 +358,7 @@ export default function HomePage() {
 
   // SEO: define título da página com 30-60 caracteres
   useEffect(() => {
-    document.title = "Calculadora de Rentabilidade Airbnb | Short Stay";
+    document.title = "Calculadora de Rentabilidade Airbnb | Vitacon";
     // Meta keywords
     let meta = document.querySelector<HTMLMetaElement>('meta[name="keywords"]');
     if (!meta) {
@@ -363,7 +367,7 @@ export default function HomePage() {
       document.head.appendChild(meta);
     }
     meta.content = "calculadora rentabilidade airbnb, short stay, locação curta temporada, ROI imóvel, simulador aluguel, holding imobiliária, rentabilidade imobiliária";
-    return () => { document.title = "Short Stay — Calculadora de Rentabilidade"; };
+    return () => { document.title = "Vitacon — Calculadora de Rentabilidade"; };
   }, []);
 
   // Decodifica link compartilhado ao montar
@@ -527,9 +531,9 @@ export default function HomePage() {
 
       {/* ── MOBILE KPIs ── */}
       <div className="md:hidden px-4 mb-4 grid grid-cols-2 gap-2">
-        <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
+        <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês" valido={results.temReceita}
           formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="md" isDark={isDark} colors={colors} />
-        <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital"
+        <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital" valido={results.temReceita && results.temBaseCapital}
           formatter={(v) => `${formatPercent(v)} a.m.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="md" isDark={isDark} colors={colors} />
       </div>
 
@@ -551,7 +555,7 @@ export default function HomePage() {
       </div>
 
       {/* ── MAIN LAYOUT ── */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-24 md:pb-8">
         <div className="md:grid md:grid-cols-[380px_1fr] md:gap-5">
 
           {/* ── LEFT: INPUTS ── */}
@@ -727,18 +731,18 @@ export default function HomePage() {
             </GlassPanel>
           </div>
 
-          {/* ── RIGHT: RESULTS ── */}
-          <div className={`space-y-3 ${activeTab === "inputs" ? "hidden md:block" : ""}`}>
+          {/* ── RIGHT: RESULTS (sticky no desktop) ── */}
+          <div id="resultados" className={`space-y-3 ${activeTab === "inputs" ? "hidden md:block" : ""} lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1`}>
 
             {/* KPI Grid — 2 colunas mobile, 4 desktop */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
-              <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês"
+              <MetricCard value={results.rendaMensalLiquida} label="Renda líquida / mês" valido={results.temReceita}
                 formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
-              <MetricCard value={results.rendaMensalLiquida * 12} label="Renda líquida / ano"
+              <MetricCard value={results.rendaMensalLiquida * 12} label="Renda líquida / ano" valido={results.temReceita}
                 formatter={formatCurrency} icon={<TrendingUp size={14} />} accent="green" size="lg" isDark={isDark} colors={colors} />
-              <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital"
+              <MetricCard value={results.ganhoFinanceiroMensal} label="Rentabilidade / mês s/ capital" valido={results.temReceita && results.temBaseCapital}
                 formatter={(v) => `${formatPercent(v)} a.m.`} icon={<Percent size={14} />} accent={rentAccent as "green"|"amber"|"red"} size="lg" isDark={isDark} colors={colors} />
-              <MetricCard value={results.receitaBrutaMensal} label="Receita bruta / mês"
+              <MetricCard value={results.receitaBrutaMensal} label="Receita bruta / mês" valido={results.temReceita}
                 formatter={formatCurrency} icon={<DollarSign size={14} />} accent="blue" isDark={isDark} colors={colors} />
             </div>
 
@@ -773,15 +777,15 @@ export default function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
                 <FiscalCard label="Lucro" renda={results.rendaMensalLiquida}
                   rentabilidade={results.rentabilidadeAnual} receitaBruta={results.receitaBrutaMensal}
-                  icon={<DollarSign size={13} />}
+                  icon={<DollarSign size={13} />} valido={results.temReceita} validoPct={results.temReceita && results.temBaseCapital}
                   accent="blue" isHighlight isDark={isDark} colors={colors} />
                 <FiscalCard label="Holding" renda={results.rendaHolding}
                   rentabilidade={results.rentabilidadeHoldingAnual} receitaBruta={results.receitaBrutaMensal}
-                  icon={<Shield size={13} />}
+                  icon={<Shield size={13} />} valido={results.temReceita} validoPct={results.temReceita && results.temBaseCapital}
                   accent="green" isDark={isDark} colors={colors} />
                 <FiscalCard label="PF" renda={results.rendaPF}
                   rentabilidade={results.rentabilidadePFAnual} receitaBruta={results.receitaBrutaMensal}
-                  icon={<User size={13} />}
+                  icon={<User size={13} />} valido={results.temReceita} validoPct={results.temReceita && results.temBaseCapital}
                   accent="amber" isDark={isDark} colors={colors} />
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: colors.text4 }}>
@@ -882,11 +886,13 @@ export default function HomePage() {
                           </span>
                           <span className="text-xs" style={{ color: colors.text3 }}>({mesesParaBreakeven} meses)</span>
                         </div>
+                      ) : !results.temReceita ? (
+                        <div className="text-lg font-bold" style={{ color: colors.text4 }}>Preencha receita e despesas para calcular</div>
                       ) : (
                         <div className="text-2xl font-black" style={{ color: colors.red }}>Renda negativa</div>
                       )}
                       <div className="text-xs mt-1" style={{ color: colors.text4 }}>
-                        Base: {formatCurrency(totalInv)} investidos{calc.mobilia > 0 ? ` (incl. R$ ${calc.mobilia.toLocaleString('pt-BR')} decoracao)` : ''} ÷ {formatCurrency(rendaLiq)}/mês
+                        Base: {formatCurrency(totalInv)} investidos{calc.mobilia > 0 ? ` (incl. R$ ${calc.mobilia.toLocaleString('pt-BR')} decoração)` : ''} ÷ {formatCurrency(rendaLiq)}/mês
                       </div>
                     </div>
                     <div className="flex-1 w-full">
@@ -1136,11 +1142,14 @@ export default function HomePage() {
         </div>
       </div>
       {/* FOOTER */}
-      <footer className="py-6 px-4 text-center" style={{ borderTop: `1px solid ${colors.divider}` }}>
+      <footer className="py-6 px-4 pb-24 md:pb-6 text-center" style={{ borderTop: `1px solid ${colors.divider}` }}>
         <p className="text-xs" style={{ color: colors.text4 }}>
-          Calculadora de rentabilidade para locacao de curta temporada. Os valores sao estimativas e nao constituem assessoria financeira.
+          Calculadora de rentabilidade para locação de curta temporada. Os valores são estimativas e não constituem assessoria financeira.
         </p>
       </footer>
+
+      {/* Barra-resumo fixa (mobile) */}
+      <MobileSummaryBar results={results} isDark={isDark} />
     </div>
   );
 }
