@@ -1,8 +1,9 @@
 /**
  * QuadroRentabilidade.tsx
- * Quadro de rentabilidade exportável em PNG — peça de apresentação para clientes.
- * Exporta SEMPRE em fundo claro (independente do tema do site): logo Airbnb no topo,
- * números com a base corrigida (capital próprio + decoração) e rodapé Vitacon.
+ * "Simulação de Rentabilidade" — fiel ao brochure ON Paulista (Claude Design).
+ * Extrato sobre preto: linhas hairline, despesas em azul com "−",
+ * receita destacada com borda azul e renda anual como faixa sólida #2800FF.
+ * Exporta em PNG (peça de apresentação).
  */
 
 import { useRef, useState } from "react";
@@ -10,30 +11,22 @@ import { toPng } from "html-to-image";
 import { Download, Loader2 } from "lucide-react";
 import type { CalculatorInputs, CalculatorResults } from "@/lib/calculator";
 
-const AIRBNB_LOGO_URL = "/airbnb-logo.svg";
-
-// ─── Paleta fixa do quadro (peça de exportação, não segue o tema) ────────────
+// ─── Paleta fixa do quadro (brochure — não segue o tema do site) ─────────────
 const Q = {
-  bgOuter: "#F5F5F5",
-  bgCard: "#FFFFFF",
-  cardShadow: "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
-  titulo: "#0A0A0B",
-  subtitulo: "#999999",
-  label: "#666666",
-  valor: "#0A0A0B",
-  despesa: "#B45309",
-  receita: "#0E8A4A",
+  bg: "#000000",
+  banda: "#1A1A1A",
   azul: "#2800FF",
-  azulBg: "rgba(40,0,255,0.05)",
-  azulBorda: "rgba(40,0,255,0.18)",
-  verdeBg: "rgba(14,138,74,0.06)",
-  verdeBorda: "3px solid #0E8A4A",
-  divider: "#ECECEC",
-  fontSans: '"Avant Garde", "Century Gothic", Futura, sans-serif',
-  fontMono: '"JetBrains Mono", ui-monospace, monospace',
+  azulTexto: "#5A43FF",
+  azulBg: "rgba(40,0,255,0.16)",
+  branco: "#FFFFFF",
+  cinza: "#B3B3B3",
+  cinzaEscuro: "#898A8E",
+  hairline: "#2A2A2A",
+  fontDisplay: 'var(--font-display)',
+  fontSans: 'var(--font-sans)',
+  fontMono: 'var(--font-mono)',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 }
@@ -41,7 +34,6 @@ function fmtPct(v: number) {
   return `${v.toFixed(2).replace(".", ",")}%`;
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
 interface Props {
   inputs: CalculatorInputs;
   results: CalculatorResults;
@@ -52,22 +44,20 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
-  const totalInvestido = results.capitalProprioTotal;
   const ocupacaoPct = inputs.diasOcupacao > 0 ? Math.round((inputs.diasOcupacao / 30) * 100) : 0;
   const iptuWifiAguaLuz = inputs.iptuMensal + inputs.wifi + inputs.agua + inputs.luz;
-  const admSeguroPct = Math.round(inputs.taxaAdminSeguro * 100);
   const prazoAnos = Math.round(inputs.prazoMeses / 12);
   const taxaMensal = (inputs.taxaJurosMensal * 100).toFixed(1).replace(".", ",");
   const okPct = results.temReceita && results.temBaseCapital;
 
-  // Despesas ordenadas do maior para o menor (linhas zeradas de custos opcionais ficam de fora)
+  // Despesas — maior para menor; opcionais zeradas ficam de fora
   const despesas = [
-    { label: "Valor estimado do condomínio", value: inputs.condominio },
-    { label: "IPTU, WIFI, água e luz", value: iptuWifiAguaLuz },
-    { label: `Administração + Seguro (${admSeguroPct}%)`, value: results.adminSeguro },
     ...(results.parcelaFinanciamento > 0
-      ? [{ label: `Parcela do financiamento (${prazoAnos} anos com taxa ${taxaMensal}%)`, value: results.parcelaFinanciamento }]
+      ? [{ label: `Parcela do financiamento (${prazoAnos} anos · ${taxaMensal}%)`, value: results.parcelaFinanciamento }]
       : []),
+    { label: `Administração + Seguro (${Math.round(inputs.taxaAdminSeguro * 100)}%)`, value: results.adminSeguro },
+    { label: "IPTU, WiFi, água e luz", value: iptuWifiAguaLuz },
+    { label: "Condomínio estimado", value: inputs.condominio },
     ...(results.taxaPlataformaValor > 0
       ? [{ label: `Taxa da plataforma (${Math.round(inputs.taxaPlataforma * 100)}%)`, value: results.taxaPlataformaValor }]
       : []),
@@ -83,9 +73,9 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
     if (!cardRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, backgroundColor: Q.bgOuter });
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, backgroundColor: Q.bg });
       const link = document.createElement("a");
-      link.download = `rentabilidade-${nomeEmpreendimento || "airbnb"}.png`;
+      link.download = `rentabilidade-${nomeEmpreendimento || "vitacon"}.png`;
       link.href = dataUrl;
       link.click();
     } catch (e) {
@@ -95,39 +85,16 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
     }
   };
 
-  // ── Sub-components ──────────────────────────────────────────────────────────
-  const Divider = () => <div style={{ height: 1, background: Q.divider, margin: "6px 0" }} />;
-
-  const DataRow = ({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "10px 20px" }}>
-      <span style={{ color: Q.label, fontSize: 13, fontFamily: Q.fontSans }}>{label}</span>
-      <span style={{ color: valueColor ?? Q.valor, fontSize: 13, fontWeight: 500, fontFamily: Q.fontMono, whiteSpace: "nowrap" }}>{value}</span>
-    </div>
-  );
-
-  const TotalRow = ({ label, value }: { label: string; value: string }) => (
+  const Linha = ({ label, value, valueColor, strong = false }: { label: string; value: string; valueColor?: string; strong?: boolean }) => (
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
-      background: Q.azulBg, border: `1px solid ${Q.azulBorda}`,
-      borderRadius: 10, padding: "14px 20px", margin: "0 12px 4px",
+      padding: "14px 20px", borderBottom: `1px solid ${Q.hairline}`,
     }}>
-      <span style={{ color: Q.titulo, fontSize: 14, fontWeight: 600, fontFamily: Q.fontSans }}>{label}</span>
-      <span style={{ color: Q.azul, fontSize: 18, fontWeight: 700, fontFamily: Q.fontMono, whiteSpace: "nowrap" }}>{value}</span>
+      <span style={{ color: strong ? Q.branco : Q.cinza, fontSize: 14, fontWeight: strong ? 500 : 400, fontFamily: Q.fontSans }}>{label}</span>
+      <span style={{ color: valueColor ?? Q.branco, fontSize: 14, fontWeight: 500, fontFamily: Q.fontSans, whiteSpace: "nowrap" }}>{value}</span>
     </div>
   );
 
-  const HighlightRow = ({ label, value }: { label: string; value: string }) => (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
-      borderLeft: Q.verdeBorda, background: Q.verdeBg,
-      borderRadius: "0 8px 8px 0", padding: "12px 20px", marginBottom: 2,
-    }}>
-      <span style={{ color: Q.receita, fontSize: 13.5, fontWeight: 600, fontFamily: Q.fontSans }}>{label}</span>
-      <span style={{ color: Q.receita, fontSize: 15, fontWeight: 700, fontFamily: Q.fontMono, whiteSpace: "nowrap" }}>{value}</span>
-    </div>
-  );
-
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-3">
       {/* Botão exportar */}
@@ -143,73 +110,97 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
         </button>
       </div>
 
-      {/* Card exportável */}
-      <div ref={cardRef} style={{ background: Q.bgOuter, borderRadius: 16, padding: 20, fontFamily: Q.fontSans, minWidth: 340 }}>
-        <div style={{ background: Q.bgCard, borderRadius: 14, boxShadow: Q.cardShadow, overflow: "hidden", padding: "0 0 4px" }}>
+      {/* Peça exportável — brochure ON Paulista */}
+      <div ref={cardRef} style={{ background: Q.bg, borderRadius: 16, padding: "28px 26px 20px", minWidth: 340, fontFamily: Q.fontSans }}>
 
-          {/* HEADER */}
-          <div style={{ borderBottom: `1px solid ${Q.divider}`, padding: "24px 24px 18px", textAlign: "center" }}>
-            <img
-              src={AIRBNB_LOGO_URL}
-              alt="Airbnb"
-              style={{ height: 52, width: "auto", margin: "0 auto 10px", display: "block" }}
-            />
-            <div style={{ color: Q.titulo, fontSize: 19, fontWeight: 600, fontFamily: Q.fontSans }}>
-              Valores de rentabilidade
+        {/* HEADER — logo + traço azul + label mono */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
+          <div>
+            <img src="/vitacon-logo.png" alt="Vitacon" style={{ height: 22, width: "auto", display: "block" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+              <div style={{ width: 34, height: 2, background: Q.azul }} />
+              <span style={{ color: Q.azulTexto, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: Q.fontMono }}>
+                Simulação de Rentabilidade
+              </span>
             </div>
-            {nomeEmpreendimento && (
-              <div style={{ color: Q.subtitulo, fontSize: 11, marginTop: 4, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: Q.fontMono }}>
-                {nomeEmpreendimento}
-              </div>
-            )}
           </div>
-
-          {/* TOTAL INVESTIDO */}
-          <div style={{ padding: "14px 0 0" }}>
-            <TotalRow label="Total investido" value={fmtBRL(totalInvestido)} />
-          </div>
-
-          <Divider />
-
-          {/* OCUPAÇÃO */}
-          <DataRow label="Diárias praticadas na região" value={fmtBRL(inputs.diaria)} />
-          <DataRow label="Ocupação (%)" value={`${ocupacaoPct}%`} />
-          <DataRow label="Ocupação (Dias)" value={`${inputs.diasOcupacao}`} />
-
-          <Divider />
-
-          {/* RECEITA BRUTA */}
-          <HighlightRow label="Receita bruta mensal" value={fmtBRL(results.receitaBrutaMensal)} />
-
-          <Divider />
-
-          {/* DESPESAS */}
-          {despesas.map((d) => (
-            <DataRow key={d.label} label={d.label} value={fmtBRL(d.value)} valueColor={Q.despesa} />
-          ))}
-
-          <Divider />
-
-          {/* RESULTADOS */}
-          <HighlightRow label="Renda mensal líquida" value={fmtBRL(results.rendaMensalLiquida)} />
-          <HighlightRow label="Renda anual líquida" value={fmtBRL(results.rendaMensalLiquida * 12)} />
-          <HighlightRow label="Retorno sobre investimento A.M" value={okPct ? fmtPct(results.ganhoFinanceiroMensal) : "—"} />
-          <HighlightRow label="Retorno sobre investimento A.A" value={okPct ? fmtPct(results.rentabilidadeAnual) : "—"} />
-          <HighlightRow label="Retorno sobre patrimônio A.M" value={okPct ? fmtPct(results.retornoPatrimonioMensal) : "—"} />
-          <HighlightRow label="Retorno sobre patrimônio A.A" value={okPct ? fmtPct(results.retornoPatrimonioAnual) : "—"} />
-
-          {/* RODAPÉ VITACON */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", opacity: 0.8 }}>
-            <img
-              src="/vitacon-logo.png"
-              alt="Vitacon"
-              style={{ height: 13, width: "auto", filter: "invert(1)" }}
-            />
-            <span style={{ color: Q.subtitulo, fontSize: 10, fontFamily: Q.fontMono }}>
-              Simulação — {new Date().toLocaleDateString("pt-BR")}
+          {nomeEmpreendimento && (
+            <span style={{ color: Q.cinzaEscuro, fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: Q.fontMono, paddingTop: 4 }}>
+              {nomeEmpreendimento}
             </span>
-          </div>
+          )}
+        </div>
 
+        {/* TOTAL INVESTIDO — banda grafite */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+          background: Q.banda, padding: "18px 20px", marginBottom: 2,
+        }}>
+          <span style={{ color: Q.branco, fontSize: 16, fontWeight: 500, fontFamily: Q.fontSans }}>Total investido</span>
+          <span style={{ color: Q.azulTexto, fontSize: 24, fontWeight: 700, fontFamily: Q.fontDisplay, whiteSpace: "nowrap" }}>
+            {fmtBRL(results.capitalProprioTotal)}
+          </span>
+        </div>
+
+        {/* OCUPAÇÃO */}
+        <Linha label="Diárias praticadas na região" value={fmtBRL(inputs.diaria)} />
+        <Linha label="Ocupação" value={`${ocupacaoPct}% · ${inputs.diasOcupacao} dias`} />
+
+        {/* RECEITA BRUTA — destaque com borda azul */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+          background: Q.azulBg, borderLeft: `3px solid ${Q.azul}`,
+          padding: "15px 20px 15px 17px",
+        }}>
+          <span style={{ color: Q.branco, fontSize: 14, fontWeight: 500, fontFamily: Q.fontSans }}>Receita bruta mensal</span>
+          <span style={{ color: Q.branco, fontSize: 14, fontWeight: 600, fontFamily: Q.fontSans, whiteSpace: "nowrap" }}>
+            {fmtBRL(results.receitaBrutaMensal)}
+          </span>
+        </div>
+
+        {/* DESPESAS — valores em azul com "−" */}
+        {despesas.map((d) => (
+          <Linha key={d.label} label={d.label} value={`− ${fmtBRL(d.value)}`} valueColor={Q.azulTexto} />
+        ))}
+
+        {/* RENDA MENSAL LÍQUIDA */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+          padding: "18px 20px",
+        }}>
+          <span style={{ color: Q.branco, fontSize: 16, fontWeight: 500, fontFamily: Q.fontSans }}>Renda mensal líquida</span>
+          <span style={{ color: Q.azulTexto, fontSize: 22, fontWeight: 700, fontFamily: Q.fontDisplay, whiteSpace: "nowrap" }}>
+            {fmtBRL(results.rendaMensalLiquida)}
+          </span>
+        </div>
+
+        {/* RENDA ANUAL LÍQUIDA — faixa sólida azul */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+          background: Q.azul, padding: "18px 20px",
+        }}>
+          <span style={{ color: Q.branco, fontSize: 16, fontWeight: 500, fontFamily: Q.fontSans }}>Renda anual líquida</span>
+          <span style={{ color: Q.branco, fontSize: 22, fontWeight: 700, fontFamily: Q.fontDisplay, whiteSpace: "nowrap" }}>
+            {fmtBRL(results.rendaMensalLiquida * 12)}
+          </span>
+        </div>
+
+        {/* RETORNOS */}
+        <div style={{ marginTop: 2 }}>
+          <Linha label="Retorno sobre investimento A.M" value={okPct ? fmtPct(results.ganhoFinanceiroMensal) : "—"} strong />
+          <Linha label="Retorno sobre investimento A.A" value={okPct ? fmtPct(results.rentabilidadeAnual) : "—"} strong />
+          <Linha label="Retorno sobre patrimônio A.M" value={okPct ? fmtPct(results.retornoPatrimonioMensal) : "—"} />
+          <Linha label="Retorno sobre patrimônio A.A" value={okPct ? fmtPct(results.retornoPatrimonioAnual) : "—"} />
+        </div>
+
+        {/* RODAPÉ */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16 }}>
+          <span style={{ color: Q.cinzaEscuro, fontSize: 10, letterSpacing: "0.2em", fontFamily: Q.fontMono }}>
+            VALORIZE COM A CIDADE
+          </span>
+          <span style={{ color: Q.cinzaEscuro, fontSize: 10, fontFamily: Q.fontMono }}>
+            {new Date().toLocaleDateString("pt-BR")}
+          </span>
         </div>
       </div>
     </div>

@@ -832,56 +832,46 @@ export default function FluxoPage() {
           </div>
         </motion.div>
 
-        {/* DISTRIBUIÇÃO VISUAL */}
+        {/* PLANO DE PAGAMENTO — brochure ON Paulista (sempre preto, fiel ao material) */}
         <motion.div
-          className="rounded-2xl p-4 md:p-5"
-          style={{ background: colors.surface, border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: colors.greenBg, color: colors.green }}>
-              <BarChart3 size={13} />
-            </div>
-            <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.green }}>Distribuição do Capital</span>
+          className="rounded-2xl p-6 md:p-8 overflow-hidden"
+          style={{ background: "#000000", border: "1px solid #1F1F1F" }}>
+          {/* Header: traço azul + label mono */}
+          <div className="flex items-center gap-3 mb-6">
+            <div style={{ width: 34, height: 2, background: "#2800FF" }} />
+            <span className="text-[11px] tracking-[0.3em] uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>
+              Plano de Pagamento
+            </span>
           </div>
-          <div className="h-8 rounded-xl overflow-hidden flex mb-3" style={{ border: `1px solid ${colors.divider}` }}>
-            <motion.div animate={{ width: `${pctInvestido}%` }} transition={{ duration: 0.6 }}
-              className="h-full flex items-center justify-center text-xs font-bold text-white"
-              style={{
-                background: colors.green,
-                minWidth: pctInvestido > 10 ? "auto" : 0,
-              }}>
-              {pctInvestido > 8 && `${pctInvestido.toFixed(1)}%`}
-            </motion.div>
-            <motion.div animate={{ width: `${pctFinanciamento}%` }} transition={{ duration: 0.6 }}
-              className="h-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: colors.blue }}>
-              {pctFinanciamento > 8 && `${pctFinanciamento.toFixed(1)}%`}
-            </motion.div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Statement */}
+          <p className="mb-7 text-2xl md:text-4xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, lineHeight: 1.15 }}>
+            Entrada de {pctInvestido.toFixed(0)}%, o resto financiado.
+          </p>
+          {/* Cartões chapados — o primeiro sólido em azul */}
+          <div className="grid grid-cols-1 md:grid-cols-3">
             {[
-              { label: "Total Investido", value: results.totalInvestido, color: colors.green, sub: `${pctInvestido.toFixed(1)}% do imóvel` },
-              { label: "Financiamento", value: results.financiamento, color: colors.blue, sub: `${pctFinanciamento.toFixed(1)}% do imóvel` },
-              { label: "Valor do Imóvel", value: calc.valorImovel, color: colors.text1, sub: "base de cálculo" },
-              { label: "Ato Total", value: results.totalAto, color: colors.amber, sub: `${fluxo.percentualAto.toFixed(2)}% — ${fluxo.parcelasAto}x` },
-            ].map(({ label, value, color, sub }) => (
-              <div key={label} className="rounded-xl p-3" style={{ background: colors.inputBg }}>
-                <div className="text-xs mb-1" style={{ color: colors.text3 }}>{label}</div>
-                <div className="text-base font-black" style={{ color, fontFamily: "var(--font-mono)" }}>{formatCurrency(value)}</div>
-                <div className="text-xs mt-0.5" style={{ color: colors.text4 }}>{sub}</div>
+              { label: "Total Investido", pct: `${pctInvestido.toFixed(0)}%`, value: results.totalInvestido, solid: true },
+              { label: "Financiamento", pct: `${pctFinanciamento.toFixed(0)}%`, value: results.financiamento, solid: false },
+              { label: "Valor do Imóvel", pct: "", value: calc.valorImovel, solid: false },
+            ].map(({ label, pct, value, solid }, i) => (
+              <div key={label} className={`rise rise-${i + 1} p-6 md:p-7`}
+                style={{
+                  background: solid ? "#2800FF" : "#0A0A0A",
+                  border: solid ? "1px solid #2800FF" : "1px solid #242424",
+                  marginLeft: i > 0 ? -1 : 0,
+                }}>
+                <div className="text-[11px] tracking-[0.25em] uppercase mb-4"
+                  style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
+                  {label}
+                </div>
+                <div className="text-2xl md:text-3xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
+                  {pct}
+                </div>
+                <div className="text-3xl md:text-4xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
+                  {formatCurrency(value)}
+                </div>
               </div>
             ))}
-          </div>
-          <div className="mt-3 flex gap-4 text-xs" style={{ color: colors.text4 }}>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm"
-                style={{ background: colors.green }} />
-              Investimento próprio (base do ROI)
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm"
-                style={{ background: colors.blue }} />
-              Financiamento bancário
-            </div>
           </div>
         </motion.div>
 
