@@ -503,17 +503,20 @@ export default function FluxoPage() {
             <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>Configurações</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {/* % do Ato — fixo em 10% */}
+            {/* % do Ato — pré-preenchido em 10%, ajustável */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium" style={{ color: colors.text3 }}>% do Ato</label>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
                   style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
-                  10%
+                  {fluxo.percentualAto.toFixed(1).replace(".", ",")}%
                 </span>
               </div>
-              <div className="rounded-lg px-3 py-2 text-xs" style={{ background: colors.inputBg, color: colors.text4 }}>
-                Fixo — 10% do valor do imóvel no ato
+              <Slider min={5} max={30} step={0.5} value={[fluxo.percentualAto]}
+                onValueChange={([v]) => updateAto(v, fluxo.parcelasAto)} />
+              <div className="flex justify-between mt-1">
+                <span className="text-xs" style={{ color: colors.text4 }}>5%</span>
+                <span className="text-xs" style={{ color: colors.text4 }}>30%</span>
               </div>
             </div>
             {/* Parcelas do Ato */}
@@ -872,6 +875,64 @@ export default function FluxoPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* PARCELAS — mesmas funções da tabela: editar valor, adicionar e remover colunas */}
+          <div className="mt-7">
+            <div className="text-[11px] tracking-[0.25em] uppercase mb-3" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
+              Parcelas — clique para editar
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+              {fluxo.ato.map((p, i) => (
+                <div key={`ato-${i}`} className="p-4" style={{ background: "#0A0A0A", border: "1px solid #242424", marginLeft: i > 0 ? -1 : 0 }}>
+                  <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{p.label}</div>
+                  <EditableMes value={p.mes} onChange={(m) => updateParcelaAtoMes(i, m)} colors={colors} />
+                  <EditableValue value={p.valor} onChange={(v) => updateParcelaAtoValor(i, v)} colors={colors} />
+                </div>
+              ))}
+              <div className="p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+                <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{fluxo.numMensais} mensais</div>
+                <div className="text-xs mb-1" style={{ color: "#898A8E" }}>por parcela</div>
+                <EditableValue value={fluxo.valorMensal} onChange={(v) => setFluxo((prev) => ({ ...prev, valorMensal: v }))} colors={colors} />
+              </div>
+              {semestrais.map((s, i) => (
+                <div key={`sem-${i}`} className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover semestral"
+                    onClick={() => removeSemestralAt(i)}>
+                    <XIcon size={10} />
+                  </button>
+                  <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>Semestral {i + 1}</div>
+                  <EditableMes value={s.mes} onChange={(m) => updateSemestralMes(i, m)} colors={colors} />
+                  <EditableValue value={s.valor} onChange={(v) => updateSemestralValor(i, v)} colors={colors} />
+                </div>
+              ))}
+              {fluxo.anuais.map((a, i) => (
+                <div key={`anu-${i}`} className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover anual"
+                    onClick={() => removeAnualAt(i)}>
+                    <XIcon size={10} />
+                  </button>
+                  <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>Anual {i + 1}</div>
+                  <EditableMes value={a.mes} onChange={(m) => updateAnualMes(i, m)} colors={colors} />
+                  <EditableValue value={a.valor} onChange={(v) => updateAnualValor(i, v)} colors={colors} />
+                </div>
+              ))}
+              <div className="p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+                <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>+ Decoração</div>
+                <div className="text-xs mb-1" style={{ color: "#898A8E" }}>opcional</div>
+                <EditableValue value={calc.mobilia} onChange={(v) => setCalcField("mobilia", v)} colors={colors} />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={addAnual}>
+                + Anual
+              </button>
+              <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={addSemestral}>
+                + Semestral
+              </button>
+            </div>
           </div>
         </motion.div>
 
