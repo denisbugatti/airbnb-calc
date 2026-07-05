@@ -117,7 +117,9 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
 
   // === RECEITA ===
   const receitaBrutaMensal = diaria * diasOcupacao;
-  const taxaPlataformaValor = receitaBrutaMensal * taxaPlataforma;
+  // Taxa da plataforma excluída do cálculo (decisão de 05/07/2026); campo mantido por compatibilidade
+  void taxaPlataforma;
+  const taxaPlataformaValor = 0;
   const custoLimpezaMensal = custoLimpeza * checkInsMes;
   const receitaLiquidaPlataforma = receitaBrutaMensal - taxaPlataformaValor;
 
@@ -149,7 +151,7 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
 
   // === BREAKEVEN ===
   const despesasFixasBreakeven = condominio + iptuMensal + wifi + agua + luz + parcelaFinanciamento + custoLimpezaMensal;
-  const percentualVariavel = taxaAdminSeguro + taxaGestao + taxaPlataforma;
+  const percentualVariavel = taxaAdminSeguro + taxaGestao;
   const receitaNecessaria = percentualVariavel < 1
     ? safeDiv(despesasFixasBreakeven, 1 - percentualVariavel) : 0;
   const diasBreakeven = diaria > 0 ? Math.ceil(receitaNecessaria / diaria) : 0;
@@ -196,7 +198,7 @@ export const defaultInputs: CalculatorInputs = {
   agua: 80,
   luz: 150,
   taxaAdminSeguro: 0.15,
-  taxaPlataforma: 0.03,
+  taxaPlataforma: 0,
   custoLimpeza: 120,
   checkInsMes: 4,
   taxaGestao: 0,

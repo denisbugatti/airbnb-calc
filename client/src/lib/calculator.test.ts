@@ -33,24 +33,24 @@ describe("calcular — cenário de referência", () => {
     expect(r.parcelaFinanciamento).toBeCloseTo(3944.18, 0);
   });
   it("total de despesas", () => {
-    expect(r.totalDespesas).toBeCloseTo(8455.18, 0);
+    expect(r.totalDespesas).toBeCloseTo(8006.68, 0);
   });
   it("renda líquida", () => {
-    expect(r.rendaMensalLiquida).toBeCloseTo(6494.82, 0);
+    expect(r.rendaMensalLiquida).toBeCloseTo(6943.32, 0);
   });
   it("CORREÇÃO: base do ROI = capital próprio + mobília", () => {
     expect(r.capitalProprioTotal).toBe(133_576);
   });
   it("CORREÇÃO: retorno mensal sobre capital próprio total", () => {
-    expect(r.ganhoFinanceiroMensal).toBeCloseTo(4.862, 2);
-    expect(r.rentabilidadeAnual).toBeCloseTo(58.34, 1);
+    expect(r.ganhoFinanceiroMensal).toBeCloseTo(5.198, 2);
+    expect(r.rentabilidadeAnual).toBeCloseTo(62.38, 1);
   });
   it("CORREÇÃO: total da unidade inclui mobília", () => {
     expect(r.totalUnidade).toBe(517_000);
     expect(r.patrimonioTotal).toBe(517_000);
   });
   it("retorno sobre patrimônio inclui mobília no denominador", () => {
-    expect(r.retornoPatrimonioMensal).toBeCloseTo(1.256, 2);
+    expect(r.retornoPatrimonioMensal).toBeCloseTo(1.343, 2);
   });
   it("impostos editáveis aplicados sobre a renda líquida", () => {
     expect(r.rendaHolding).toBeCloseTo(r.rendaMensalLiquida * 0.91, 6);
