@@ -1,0 +1,12 @@
+# App isolado: calculadora de rentabilidade (airbnbcalculadora.com.br)
+# Não interfere em nenhum outro container do servidor.
+services:
+  airbnb-calc:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: airbnb-calc
+    restart: unless-stopped
+    ports:
+      # Porta do host definida no deploy (ajustar se 8090 estiver ocupada)
+      - "8090:80"
