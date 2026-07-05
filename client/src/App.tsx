@@ -18,6 +18,7 @@ import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
 import { Calculator, GitBranch, Sun, Moon } from "lucide-react";
 import { useVitaconColors } from "@/lib/vitaconColors";
+import { SplashScreen } from "./components/SplashScreen";
 
 // ─── Wordmark Vitacon (SVG inline, herda a cor via currentColor) ──────────────
 export function VitaconWordmark({ className = "" }: { className?: string }) {
@@ -164,6 +165,7 @@ function App() {
           <CenariosProvider>
             <TooltipProvider>
               <Toaster />
+              <SplashScreen />
               <Router />
             </TooltipProvider>
           </CenariosProvider>
