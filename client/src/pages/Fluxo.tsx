@@ -514,15 +514,27 @@ export default function FluxoPage() {
   const planoRef = useRef<HTMLDivElement>(null);
   const [exportandoPlano, setExportandoPlano] = useState(false);
   const baixarPlanoPNG = async () => {
-    if (!planoRef.current) return;
+    const el = planoRef.current;
+    if (!el) return;
     setExportandoPlano(true);
+    // Alarga temporariamente a peça para caber TODOS os blocos numa imagem só
+    const scroller = el.querySelector<HTMLElement>(".overflow-x-auto");
+    const inner = scroller?.firstElementChild as HTMLElement | null;
+    const larguraFileira = inner ? inner.scrollWidth : 0;
+    const larguraAlvo = Math.max(el.clientWidth, larguraFileira + 40);
+    const prevWidth = el.style.width;
+    const prevOverflow = scroller ? scroller.style.overflow : "";
+    el.style.width = `${larguraAlvo}px`;
+    if (scroller) scroller.style.overflow = "visible";
     try {
-      const dataUrl = await toPng(planoRef.current, { pixelRatio: 2, backgroundColor: "#000000" });
+      const dataUrl = await toPng(el, { pixelRatio: 2, backgroundColor: "#000000" });
       const link = document.createElement("a");
       link.download = `plano-pagamento-${nomeEmpreendimento || "vitacon"}.png`;
       link.href = dataUrl;
       link.click();
     } finally {
+      el.style.width = prevWidth;
+      if (scroller) scroller.style.overflow = prevOverflow;
       setExportandoPlano(false);
     }
   };
