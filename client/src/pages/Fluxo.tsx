@@ -142,7 +142,8 @@ function EditableMes({ value, onChange, colors }: {
 }
 
 
-// Linha do editor "Condição de pagamento" — módulo-level para não remontar inputs a cada render
+// Linha do editor "Condição de pagamento" — módulo-level para não remontar inputs a cada render.
+// Desktop: linha de tabela em 7 colunas. Mobile: card com labels e alvos de toque confortáveis.
 function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete, pct, onPct, onPctParcela, onDesconto, onAbsorver, colors }: {
   serie: string; badge?: string; parcelas: number; onParcelas?: (n: number) => void;
   valorNode: React.ReactNode; venc?: string; onVenc?: (m: string) => void;
@@ -157,71 +158,110 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
     const p = parseFloat(raw.replace(",", "."));
     if (!isNaN(p) && p > 0) cb(p);
   };
+
+  const parcelasNode = onParcelas ? (
+    <input type="number" min={1} value={parcelas}
+      onChange={(e) => onParcelas(Math.max(1, parseInt(e.target.value) || 1))}
+      className="w-full md:w-14 bg-transparent text-center text-sm font-bold rounded-lg py-2 md:py-1 outline-none"
+      style={{ color: "#FFFFFF", border: "1px solid #2A2A2A", fontFamily: "var(--font-mono)", minHeight: 40 }} />
+  ) : (
+    <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>{parcelas}</span>
+  );
+
+  const pctNode = onPct ? (
+    <div className="flex items-center gap-1">
+      <EditableValue value={Math.round(pct ?? 0)} onChange={onPct} prefix="" colors={colors} />
+      <span className="text-xs" style={{ color: "#898A8E" }}>%</span>
+    </div>
+  ) : (
+    <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>
+      {pct !== undefined ? `${pct.toFixed(1).replace(".", ",")}%` : "—"}
+    </span>
+  );
+
+  const vencNode = onVenc
+    ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} />
+    : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>;
+
+  const acoesNode = (
+    <div className="flex items-center gap-1.5 justify-end">
+      {onPctParcela && (
+        <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Definir valor da PARCELA por % do imóvel"
+          style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
+          onClick={() => pedirPct("Valor de CADA parcela, em % do valor do imóvel:", onPctParcela)}>
+          <Percent size={12} />
+        </button>
+      )}
+      {onDesconto && (
+        <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Aplicar desconto (%) sobre o total da série"
+          style={{ background: "rgba(63,214,143,0.12)", color: "#3FD68F" }}
+          onClick={() => pedirPct("Desconto em % sobre o total desta série:", onDesconto)}>
+          <BadgePercent size={12} />
+        </button>
+      )}
+      {onAbsorver && (
+        <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Absorver o saldo restante (zera o financiamento) nesta série"
+          style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }} onClick={onAbsorver}>
+          <ArrowDownToLine size={12} />
+        </button>
+      )}
+      {onRecalc && (
+        <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
+          style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
+          <RefreshCw size={12} />
+        </button>
+      )}
+      {onDelete ? (
+        <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Excluir série"
+          style={{ background: "rgba(255,107,87,0.12)", color: "#FF6B57" }} onClick={onDelete}>
+          <Trash2 size={12} />
+        </button>
+      ) : <div className="w-7 h-7 hidden md:block" />}
+    </div>
+  );
+
+  const Campo = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="rounded-xl px-3 py-2" style={{ background: "#111111", border: "1px solid #242424" }}>
+      <div className="text-[9px] tracking-[0.2em] uppercase mb-1" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>{label}</div>
+      <div className="flex items-center" style={{ minHeight: 28 }}>{children}</div>
+    </div>
+  );
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-[1.15fr_.55fr_.95fr_.6fr_.85fr_.95fr_auto] gap-2 items-center px-4 py-3"
-      style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
-        {badge && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
+    <div style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
+      {/* Desktop: linha de tabela */}
+      <div className="hidden md:grid md:grid-cols-[1.15fr_.55fr_.95fr_.6fr_.85fr_.95fr_auto] gap-2 items-center px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
+          {badge && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
+        </div>
+        <div>{parcelasNode}</div>
+        <div>{valorNode}</div>
+        <div>{pctNode}</div>
+        <div>{vencNode}</div>
+        <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
+        {acoesNode}
       </div>
-      <div>
-        {onParcelas ? (
-          <input type="number" min={1} value={parcelas}
-            onChange={(e) => onParcelas(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-14 bg-transparent text-center text-sm font-bold rounded-lg py-1 outline-none"
-            style={{ color: "#FFFFFF", border: "1px solid #2A2A2A", fontFamily: "var(--font-mono)" }} />
-        ) : (
-          <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>{parcelas}</span>
-        )}
-      </div>
-      <div>{valorNode}</div>
-      <div>
-        {onPct ? (
-          <div className="flex items-center gap-1">
-            <EditableValue value={Math.round(pct ?? 0)} onChange={onPct} prefix="" colors={colors} />
-            <span className="text-xs" style={{ color: "#898A8E" }}>%</span>
+
+      {/* Mobile: card com labels */}
+      <div className="md:hidden p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-bold tracking-wider uppercase truncate" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
+            {badge && <span className="text-[9px] px-1.5 py-0.5 rounded shrink-0" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
           </div>
-        ) : (
-          <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>
-            {pct !== undefined ? `${pct.toFixed(1).replace(".", ",")}%` : "—"}
-          </span>
-        )}
-      </div>
-      <div>{onVenc ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} /> : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>}</div>
-      <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
-      <div className="flex items-center gap-1.5 justify-end">
-        {onPctParcela && (
-          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Definir valor da PARCELA por % do imóvel"
-            style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
-            onClick={() => pedirPct("Valor de CADA parcela, em % do valor do imóvel:", onPctParcela)}>
-            <Percent size={12} />
-          </button>
-        )}
-        {onDesconto && (
-          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Aplicar desconto (%) sobre o total da série"
-            style={{ background: "rgba(63,214,143,0.12)", color: "#3FD68F" }}
-            onClick={() => pedirPct("Desconto em % sobre o total desta série:", onDesconto)}>
-            <BadgePercent size={12} />
-          </button>
-        )}
-        {onAbsorver && (
-          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Absorver o saldo restante (zera o financiamento) nesta série"
-            style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }} onClick={onAbsorver}>
-            <ArrowDownToLine size={12} />
-          </button>
-        )}
-        {onRecalc && (
-          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
-            style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
-            <RefreshCw size={12} />
-          </button>
-        )}
-        {onDelete ? (
-          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Excluir série"
-            style={{ background: "rgba(255,107,87,0.12)", color: "#FF6B57" }} onClick={onDelete}>
-            <Trash2 size={12} />
-          </button>
-        ) : <div className="w-7 h-7" />}
+          {acoesNode}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Campo label="Parcelas">{parcelasNode}</Campo>
+          <Campo label="1º Venc.">{vencNode}</Campo>
+          <Campo label="Valor">{valorNode}</Campo>
+          <Campo label="%">{pctNode}</Campo>
+        </div>
+        <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid #1E1E1E" }}>
+          <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>Total</span>
+          <span className="text-base font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</span>
+        </div>
       </div>
     </div>
   );
