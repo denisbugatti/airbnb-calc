@@ -12,7 +12,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
 import {
   Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2,
-  GripVertical, X as XIcon, Sun, Moon, RefreshCw, Trash2,
+  GripVertical, X as XIcon, Sun, Moon, RefreshCw, Trash2, Percent, BadgePercent, ArrowDownToLine,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -142,13 +142,20 @@ function EditableMes({ value, onChange, colors }: {
 
 
 // Linha do editor "Condição de pagamento" — módulo-level para não remontar inputs a cada render
-function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete, pct, onPct, colors }: {
+function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete, pct, onPct, onPctParcela, onDesconto, onAbsorver, colors }: {
   serie: string; badge?: string; parcelas: number; onParcelas?: (n: number) => void;
   valorNode: React.ReactNode; venc?: string; onVenc?: (m: string) => void;
   total: string; onRecalc?: () => void; onDelete?: () => void;
   pct?: number; onPct?: (p: number) => void;
+  onPctParcela?: (p: number) => void; onDesconto?: (p: number) => void; onAbsorver?: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
+  const pedirPct = (msg: string, cb: (p: number) => void) => {
+    const raw = window.prompt(msg);
+    if (raw == null) return;
+    const p = parseFloat(raw.replace(",", "."));
+    if (!isNaN(p) && p > 0) cb(p);
+  };
   return (
     <div className="grid grid-cols-2 md:grid-cols-[1.15fr_.55fr_.95fr_.6fr_.85fr_.95fr_auto] gap-2 items-center px-4 py-3"
       style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
@@ -182,6 +189,26 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
       <div>{onVenc ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} /> : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>}</div>
       <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
       <div className="flex items-center gap-1.5 justify-end">
+        {onPctParcela && (
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Definir valor da PARCELA por % do imóvel"
+            style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
+            onClick={() => pedirPct("Valor de CADA parcela, em % do valor do imóvel:", onPctParcela)}>
+            <Percent size={12} />
+          </button>
+        )}
+        {onDesconto && (
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Aplicar desconto (%) sobre o total da série"
+            style={{ background: "rgba(63,214,143,0.12)", color: "#3FD68F" }}
+            onClick={() => pedirPct("Desconto em % sobre o total desta série:", onDesconto)}>
+            <BadgePercent size={12} />
+          </button>
+        )}
+        {onAbsorver && (
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Absorver o saldo restante (zera o financiamento) nesta série"
+            style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }} onClick={onAbsorver}>
+            <ArrowDownToLine size={12} />
+          </button>
+        )}
         {onRecalc && (
           <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
             style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
@@ -626,6 +653,9 @@ export default function FluxoPage() {
                       pct={fluxo.percentualAto}
                       onPct={(p) => updateAto(Math.min(100, p), fluxo.parcelasAto)}
                       onRecalc={() => updateAto(fluxo.percentualAto, fluxo.parcelasAto)}
+                      onPctParcela={calc.valorImovel > 0 ? (p) => updateAto(Math.min(100, p * fluxo.parcelasAto), fluxo.parcelasAto) : undefined}
+                      onDesconto={(p) => updateAto(fluxo.percentualAto * (1 - p / 100), fluxo.parcelasAto)}
+                      onAbsorver={calc.valorImovel > 0 && results.financiamento > 0 ? () => updateAto(((results.totalAto + results.financiamento) / calc.valorImovel) * 100, fluxo.parcelasAto) : undefined}
                       onDelete={() => updateAto(0, 1)} />
                   )}
                   {fluxo.numMensais > 0 && (
@@ -637,6 +667,9 @@ export default function FluxoPage() {
                       total={formatCurrency(results.totalMensais)}
                       pct={calc.valorImovel > 0 ? (results.totalMensais / calc.valorImovel) * 100 : undefined}
                       onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, valorMensal: Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / Math.max(1, prev.numMensais)) })) : undefined}
+                      onPctParcela={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, valorMensal: Math.round((p / 100) * calc.valorImovel) })) : undefined}
+                      onDesconto={(p) => setFluxo((prev) => ({ ...prev, valorMensal: Math.round(prev.valorMensal * (1 - p / 100)) }))}
+                      onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => ({ ...prev, valorMensal: Math.round(prev.valorMensal + results.financiamento / Math.max(1, prev.numMensais)) })) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, numMensais: 0 }))} />
                   )}
                   {semestrais.length > 0 && (
@@ -650,6 +683,9 @@ export default function FluxoPage() {
                       total={formatCurrency(results.totalSemestrais)}
                       pct={calc.valorImovel > 0 ? (results.totalSemestrais / calc.valorImovel) * 100 : undefined}
                       onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => { const n = Math.max(1, (prev.semestrais ?? []).length); const v = Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / n); return { ...prev, semestrais: (prev.semestrais ?? []).map((s) => ({ ...s, valor: v })) }; }) : undefined}
+                      onPctParcela={calc.valorImovel > 0 ? (pp) => setFluxo((prev) => ({ ...prev, semestrais: (prev.semestrais ?? []).map((s) => ({ ...s, valor: Math.round((pp / 100) * calc.valorImovel) })) })) : undefined}
+                      onDesconto={(pp) => setFluxo((prev) => ({ ...prev, semestrais: (prev.semestrais ?? []).map((s) => ({ ...s, valor: Math.round(s.valor * (1 - pp / 100)) })) }))}
+                      onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => { const n = Math.max(1, (prev.semestrais ?? []).length); return { ...prev, semestrais: (prev.semestrais ?? []).map((s) => ({ ...s, valor: Math.round(s.valor + results.financiamento / n) })) }; }) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, semestrais: [] }))} />
                   )}
                   {fluxo.anuais.length > 0 && (
@@ -663,6 +699,9 @@ export default function FluxoPage() {
                       total={formatCurrency(results.totalAnuais)}
                       pct={calc.valorImovel > 0 ? (results.totalAnuais / calc.valorImovel) * 100 : undefined}
                       onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => { const n = Math.max(1, prev.anuais.length); const v = Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / n); return { ...prev, anuais: prev.anuais.map((a) => ({ ...a, valor: v })) }; }) : undefined}
+                      onPctParcela={calc.valorImovel > 0 ? (pp) => setFluxo((prev) => ({ ...prev, anuais: prev.anuais.map((a) => ({ ...a, valor: Math.round((pp / 100) * calc.valorImovel) })) })) : undefined}
+                      onDesconto={(pp) => setFluxo((prev) => ({ ...prev, anuais: prev.anuais.map((a) => ({ ...a, valor: Math.round(a.valor * (1 - pp / 100)) })) }))}
+                      onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => { const n = Math.max(1, prev.anuais.length); return { ...prev, anuais: prev.anuais.map((a) => ({ ...a, valor: Math.round(a.valor + results.financiamento / n) })) }; }) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, anuais: [] }))} />
                   )}
                   {calc.mobilia > 0 && (
@@ -671,6 +710,8 @@ export default function FluxoPage() {
                       total={formatCurrency(calc.mobilia)}
                       pct={calc.valorImovel > 0 ? (calc.mobilia / calc.valorImovel) * 100 : undefined}
                       onPct={calc.valorImovel > 0 ? (p) => setCalcField("mobilia", Math.round((Math.min(100, p) / 100) * calc.valorImovel)) : undefined}
+                      onDesconto={(pp) => setCalcField("mobilia", Math.round(calc.mobilia * (1 - pp / 100)))}
+                      onAbsorver={results.financiamento > 0 ? () => setCalcField("mobilia", Math.round(calc.mobilia + results.financiamento)) : undefined}
                       onDelete={() => setCalcField("mobilia", 0)} />
                   )}
                   {(fluxo.extras ?? []).map((ex) => (
@@ -681,6 +722,9 @@ export default function FluxoPage() {
                       total={formatCurrency(ex.valor * ex.parcelas)}
                       pct={calc.valorImovel > 0 ? ((ex.valor * ex.parcelas) / calc.valorImovel) * 100 : undefined}
                       onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / Math.max(1, e.parcelas)) } : e) })) : undefined}
+                      onPctParcela={calc.valorImovel > 0 ? (pp) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round((pp / 100) * calc.valorImovel) } : e) })) : undefined}
+                      onDesconto={(pp) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor * (1 - pp / 100)) } : e) }))}
+                      onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor + results.financiamento / Math.max(1, e.parcelas)) } : e) })) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
                   ))}
                   <SerieRow colors={colors} serie="Financiamento" badge="automático" parcelas={calc.prazoMeses}
