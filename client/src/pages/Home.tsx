@@ -346,7 +346,7 @@ export default function HomePage() {
 
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento, incluiDecoracao } = useFluxo();
+  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento } = useFluxo();
   const inputs = calc;  // alias para compatibilidade com código existente
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
@@ -617,12 +617,12 @@ export default function HomePage() {
               <div className="space-y-3">
                 {fluxoResults.totalInvestido > 0 ? (
                   <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
-                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio (via Fluxo)</div>
+                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio total (via Fluxo)</div>
                     <div className="text-base font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
-                      {formatCurrency(inputsComFluxo.capitalProprio)}
+                      {formatCurrency(results.capitalProprioTotal)}
                     </div>
                     <div className="text-xs mt-1" style={{ color: colors.text4 }}>
-                      {incluiDecoracao ? "C/ decoração — Fluxo de Pagamento" : "Sem decoração — Fluxo de Pagamento"}
+                      Pago na obra + decoração — base do retorno
                     </div>
                   </div>
                 ) : (
@@ -934,9 +934,7 @@ export default function HomePage() {
               <QuadroRentabilidade
                 inputs={inputsComFluxo}
                 results={results}
-                incluiDecoracao={incluiDecoracao}
                 nomeEmpreendimento={nomeEmpreendimento}
-                isDark={isDark}
               />
             </GlassPanel>
 
