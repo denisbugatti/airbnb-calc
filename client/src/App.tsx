@@ -20,24 +20,15 @@ import { Calculator, GitBranch, Sun, Moon } from "lucide-react";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { SplashScreen } from "./components/SplashScreen";
 
-// ─── Wordmark Vitacon (SVG inline, herda a cor via currentColor) ──────────────
-export function VitaconWordmark({ className = "" }: { className?: string }) {
+// ─── Logo oficial Vitacon (PNG branco; inverte para preto no tema claro) ──────
+export function VitaconLogo({ className = "", dark }: { className?: string; dark: boolean }) {
   return (
-    <svg viewBox="0 0 360 84" fill="currentColor" className={className} role="img" aria-label="Vitacon">
-      <polygon points="8,8 20,8 78,78 66,78" />
-      <rect x="69" y="8" width="9" height="70" />
-      <rect x="89.5" y="24" width="9" height="54" />
-      <rect x="89.5" y="8" width="9" height="9.5" rx="2" />
-      <rect x="111" y="8" width="9" height="70" />
-      <rect x="110" y="24" width="23" height="7" />
-      <rect x="176" y="24" width="9" height="54" />
-      <g fill="none" stroke="currentColor" strokeWidth="9">
-        <ellipse cx="156" cy="51" rx="16" ry="22.4" />
-        <path d="M236.86,65.40 A22.4,22.4 0 1 1 236.86,36.60" strokeLinecap="butt" />
-        <circle cx="275" cy="51" r="22.4" />
-        <path d="M314,78 L314,46 A17,17 0 0 1 348,46 L348,78" strokeLinecap="butt" />
-      </g>
-    </svg>
+    <img
+      src="/vitacon-logo.png"
+      alt="Vitacon"
+      className={className}
+      style={{ filter: dark ? "none" : "invert(1)" }}
+    />
   );
 }
 
@@ -65,8 +56,8 @@ function NavBar() {
       }}
     >
       {/* Logo */}
-      <div className="flex items-center shrink-0" style={{ color: colors.text1 }}>
-        <VitaconWordmark className="h-4 md:h-5 w-auto" />
+      <div className="flex items-center shrink-0">
+        <VitaconLogo dark={isDark} className="h-4 md:h-5 w-auto" />
       </div>
 
       {/* Tabs */}

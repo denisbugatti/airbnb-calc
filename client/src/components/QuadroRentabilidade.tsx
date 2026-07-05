@@ -199,22 +199,12 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
           <HighlightRow label="Retorno sobre patrimônio A.A" value={okPct ? fmtPct(results.retornoPatrimonioAnual) : "—"} />
 
           {/* RODAPÉ VITACON */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", opacity: 0.75 }}>
-            <svg viewBox="0 0 360 84" fill="#0A0A0B" style={{ height: 11, width: "auto" }} role="img" aria-label="Vitacon">
-              <polygon points="8,8 20,8 78,78 66,78" />
-              <rect x="69" y="8" width="9" height="70" />
-              <rect x="89.5" y="24" width="9" height="54" />
-              <rect x="89.5" y="8" width="9" height="9.5" rx="2" />
-              <rect x="111" y="8" width="9" height="70" />
-              <rect x="110" y="24" width="23" height="7" />
-              <rect x="176" y="24" width="9" height="54" />
-              <g fill="none" stroke="#0A0A0B" strokeWidth="9">
-                <ellipse cx="156" cy="51" rx="16" ry="22.4" />
-                <path d="M236.86,65.40 A22.4,22.4 0 1 1 236.86,36.60" strokeLinecap="butt" />
-                <circle cx="275" cy="51" r="22.4" />
-                <path d="M314,78 L314,46 A17,17 0 0 1 348,46 L348,78" strokeLinecap="butt" />
-              </g>
-            </svg>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", opacity: 0.8 }}>
+            <img
+              src="/vitacon-logo.png"
+              alt="Vitacon"
+              style={{ height: 13, width: "auto", filter: "invert(1)" }}
+            />
             <span style={{ color: Q.subtitulo, fontSize: 10, fontFamily: Q.fontMono }}>
               Simulação — {new Date().toLocaleDateString("pt-BR")}
             </span>
