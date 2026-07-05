@@ -7,12 +7,12 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useFluxo } from "@/contexts/FluxoContext";
+import { useFluxo, mesAtualFn, proximoMes } from "@/contexts/FluxoContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
 import {
   Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2,
-  GripVertical, X as XIcon, Sun, Moon,
+  GripVertical, X as XIcon, Sun, Moon, RefreshCw, Trash2,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -383,6 +383,7 @@ export default function FluxoPage() {
   const [exporting, setExporting] = useState(false);
   // incluiDecoracao vem do FluxoContext (compartilhado com a Calculadora)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [serieMenuOpen, setSerieMenuOpen] = useState(false);
   const [exportTheme, setExportTheme] = useState<"dark" | "light">("dark");
 
   const pctInvestido = calc.valorImovel > 0 ? (results.totalInvestido / calc.valorImovel) * 100 : 0;
@@ -492,120 +493,6 @@ export default function FluxoPage() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-4">
-        {/* CONFIGURAÇÕES */}
-        <motion.div
-          className="rounded-2xl p-4 md:p-5"
-          style={{ background: colors.surface, border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: colors.blueBg, color: colors.blue }}>
-              <BarChart3 size={13} />
-            </div>
-            <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>Configurações</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {/* % do Ato — pré-preenchido em 10%, ajustável */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium" style={{ color: colors.text3 }}>% do Ato</label>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
-                  {fluxo.percentualAto.toFixed(1).replace(".", ",")}%
-                </span>
-              </div>
-              <Slider min={5} max={30} step={0.5} value={[fluxo.percentualAto]}
-                onValueChange={([v]) => updateAto(v, fluxo.parcelasAto)} />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs" style={{ color: colors.text4 }}>5%</span>
-                <span className="text-xs" style={{ color: colors.text4 }}>30%</span>
-              </div>
-            </div>
-            {/* Parcelas do Ato */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Parcelas do Ato</label>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
-                  {fluxo.parcelasAto}x
-                </span>
-              </div>
-              <Slider min={1} max={4} step={1} value={[fluxo.parcelasAto]}
-                onValueChange={([v]) => updateAto(fluxo.percentualAto, v)} />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs" style={{ color: colors.text4 }}>1x</span>
-                <span className="text-xs" style={{ color: colors.text4 }}>4x</span>
-              </div>
-            </div>
-            {/* Nº de Mensais */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Nº de Mensais</label>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
-                  {fluxo.numMensais} meses
-                </span>
-              </div>
-              <Slider min={25} max={37} step={1} value={[fluxo.numMensais]}
-                onValueChange={([v]) => setFluxo((p) => ({ ...p, numMensais: v }))} />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs" style={{ color: colors.text4 }}>25</span>
-                <span className="text-xs" style={{ color: colors.text4 }}>37</span>
-              </div>
-            </div>
-            {/* Parcelas Semestrais */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Semestrais</label>
-                <div className="flex items-center gap-1">
-                  <button onClick={removeSemestral} disabled={semestrais.length === 0}
-                    className="w-5 h-5 rounded-md flex items-center justify-center disabled:opacity-30"
-                    style={{ background: colors.amberBg, color: colors.amber }}>
-                    <MinusIcon size={11} />
-                  </button>
-                  <span className="text-xs font-bold px-2" style={{ color: colors.violet, fontFamily: "var(--font-mono)" }}>
-                    {semestrais.length}x
-                  </span>
-                  <button onClick={addSemestral}
-                    className="w-5 h-5 rounded-md flex items-center justify-center"
-                    style={{ background: colors.violetBg, color: colors.violet }}>
-                    <Plus size={11} />
-                  </button>
-                </div>
-              </div>
-              <div className="text-xs py-2 px-3 rounded-xl" style={{ background: colors.inputBg, color: colors.text3 }}>
-                {semestrais.length === 0
-                  ? "Sem parcelas semestrais"
-                  : `${semestrais.length} semestral${semestrais.length > 1 ? "is" : ""} — edite na tabela`}
-              </div>
-            </div>
-            {/* Parcelas Anuais */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium" style={{ color: colors.text3 }}>Anuais</label>
-                <div className="flex items-center gap-1">
-                  <button onClick={removeAnual} disabled={fluxo.anuais.length === 0}
-                    className="w-5 h-5 rounded-md flex items-center justify-center disabled:opacity-30"
-                    style={{ background: colors.amberBg, color: colors.amber }}>
-                    <MinusIcon size={11} />
-                  </button>
-                  <span className="text-xs font-bold px-2" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
-                    {fluxo.anuais.length}x
-                  </span>
-                  <button onClick={addAnual}
-                    className="w-5 h-5 rounded-md flex items-center justify-center"
-                    style={{ background: colors.greenBg, color: colors.green }}>
-                    <Plus size={11} />
-                  </button>
-                </div>
-              </div>
-              <div className="text-xs py-2 px-3 rounded-xl" style={{ background: colors.inputBg, color: colors.text3 }}>
-                {fluxo.anuais.length === 0
-                  ? "Sem parcelas anuais"
-                  : `${fluxo.anuais.length} anual${fluxo.anuais.length > 1 ? "is" : ""} — edite na tabela`}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
         {/* PLANO DE PAGAMENTO — brochure ON Paulista (sempre preto, fiel ao material) */}
         <motion.div
           className="rounded-2xl p-6 md:p-8 overflow-hidden"
@@ -648,91 +535,166 @@ export default function FluxoPage() {
             ))}
           </div>
 
-          {/* PARCELAS — mesmas funções da tabela: editar valor, adicionar e remover colunas */}
+          {/* CONDIÇÃO DE PAGAMENTO — séries editáveis (referência: sistema de vendas) */}
           <div className="mt-7">
             <div className="text-[11px] tracking-[0.25em] uppercase mb-3" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
-              Parcelas — clique para editar
+              Condição de pagamento
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-              {fluxo.percentualAto > 0 && fluxo.ato.map((p, i) => (
-                <div key={`ato-${i}`} className="relative p-4" style={{ background: "#0A0A0A", border: "1px solid #242424", marginLeft: i > 0 ? -1 : 0 }}>
-                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover parcela do ato"
-                    onClick={() => fluxo.ato.length > 1 ? updateAto(fluxo.percentualAto, fluxo.ato.length - 1) : updateAto(0, 1)}>
-                    <XIcon size={10} />
-                  </button>
-                  <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{p.label}</div>
-                  <EditableMes value={p.mes} onChange={(m) => updateParcelaAtoMes(i, m)} colors={colors} />
-                  <EditableValue value={p.valor} onChange={(v) => updateParcelaAtoValor(i, v)} colors={colors} />
-                </div>
+
+            {/* Cabeçalho */}
+            <div className="hidden md:grid grid-cols-[1.3fr_.6fr_1fr_.9fr_1fr_auto] gap-2 px-4 py-2"
+              style={{ borderBottom: "1px solid #242424" }}>
+              {["Série", "Parcelas", "Valor", "1º Venc.", "Total", "Ações"].map((h) => (
+                <div key={h} className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>{h}</div>
               ))}
-              {fluxo.numMensais > 0 && (
-              <div className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
-                <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover mensais"
-                  onClick={() => setFluxo((prev) => ({ ...prev, numMensais: 0 }))}>
-                  <XIcon size={10} />
-                </button>
-                <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{fluxo.numMensais} mensais</div>
-                <div className="text-xs mb-1" style={{ color: "#898A8E" }}>por parcela</div>
-                <EditableValue value={fluxo.valorMensal} onChange={(v) => setFluxo((prev) => ({ ...prev, valorMensal: v }))} colors={colors} />
-              </div>
-              )}
-              {semestrais.map((s, i) => (
-                <div key={`sem-${i}`} className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
-                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover semestral"
-                    onClick={() => removeSemestralAt(i)}>
-                    <XIcon size={10} />
-                  </button>
-                  <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>Semestral {i + 1}</div>
-                  <EditableMes value={s.mes} onChange={(m) => updateSemestralMes(i, m)} colors={colors} />
-                  <EditableValue value={s.valor} onChange={(v) => updateSemestralValor(i, v)} colors={colors} />
-                </div>
-              ))}
-              {fluxo.anuais.map((a, i) => (
-                <div key={`anu-${i}`} className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
-                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover anual"
-                    onClick={() => removeAnualAt(i)}>
-                    <XIcon size={10} />
-                  </button>
-                  <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>Anual {i + 1}</div>
-                  <EditableMes value={a.mes} onChange={(m) => updateAnualMes(i, m)} colors={colors} />
-                  <EditableValue value={a.valor} onChange={(v) => updateAnualValor(i, v)} colors={colors} />
-                </div>
-              ))}
-              <div className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
-                {calc.mobilia > 0 && (
-                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Zerar decoração"
-                    onClick={() => setCalcField("mobilia", 0)}>
-                    <XIcon size={10} />
-                  </button>
-                )}
-                <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>+ Decoração</div>
-                <div className="text-xs mb-1" style={{ color: "#898A8E" }}>opcional</div>
-                <EditableValue value={calc.mobilia} onChange={(v) => setCalcField("mobilia", v)} colors={colors} />
-              </div>
             </div>
-            <div className="flex gap-2 mt-3 flex-wrap">
-              <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={addAnual}>
-                + Anual
+
+            {/* Linha genérica */}
+            {(() => {
+              const Row = ({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete }: {
+                serie: string; badge?: string; parcelas: number; onParcelas?: (n: number) => void;
+                valorNode: React.ReactNode; venc?: string; onVenc?: (m: string) => void;
+                total: string; onRecalc?: () => void; onDelete?: () => void;
+              }) => (
+                <div className="grid grid-cols-2 md:grid-cols-[1.3fr_.6fr_1fr_.9fr_1fr_auto] gap-2 items-center px-4 py-3"
+                  style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
+                    {badge && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
+                  </div>
+                  <div>
+                    {onParcelas ? (
+                      <input type="number" min={1} value={parcelas}
+                        onChange={(e) => onParcelas(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-14 bg-transparent text-center text-sm font-bold rounded-lg py-1 outline-none"
+                        style={{ color: "#FFFFFF", border: "1px solid #2A2A2A", fontFamily: "var(--font-mono)" }} />
+                    ) : (
+                      <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>{parcelas}</span>
+                    )}
+                  </div>
+                  <div>{valorNode}</div>
+                  <div>{onVenc ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} /> : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>}</div>
+                  <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {onRecalc && (
+                      <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
+                        style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
+                        <RefreshCw size={12} />
+                      </button>
+                    )}
+                    {onDelete ? (
+                      <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Excluir série"
+                        style={{ background: "rgba(255,107,87,0.12)", color: "#FF6B57" }} onClick={onDelete}>
+                        <Trash2 size={12} />
+                      </button>
+                    ) : <div className="w-7 h-7" />}
+                  </div>
+                </div>
+              );
+              const num = (v: number, onChange: (n: number) => void) => <EditableValue value={v} onChange={onChange} colors={colors} />;
+              return (
+                <div style={{ border: "1px solid #242424", borderBottom: "none" }}>
+                  {fluxo.percentualAto > 0 && (
+                    <Row serie="Ato" badge={`${fluxo.percentualAto.toFixed(1).replace(".", ",")}% do imóvel`}
+                      parcelas={fluxo.parcelasAto}
+                      onParcelas={(n) => updateAto(fluxo.percentualAto, Math.min(6, n))}
+                      valorNode={num(fluxo.ato[0]?.valor ?? 0, (v) => {
+                        if (calc.valorImovel > 0) updateAto(((v * fluxo.parcelasAto) / calc.valorImovel) * 100, fluxo.parcelasAto);
+                        else updateParcelaAtoValor(0, v);
+                      })}
+                      venc={fluxo.ato[0]?.mes ?? mesAtualFn()} onVenc={(m) => updateParcelaAtoMes(0, m)}
+                      total={formatCurrency(results.totalAto)}
+                      onRecalc={() => updateAto(fluxo.percentualAto, fluxo.parcelasAto)}
+                      onDelete={() => updateAto(0, 1)} />
+                  )}
+                  {fluxo.numMensais > 0 && (
+                    <Row serie="Mensal" parcelas={fluxo.numMensais}
+                      onParcelas={(n) => setFluxo((p) => ({ ...p, numMensais: Math.min(120, n) }))}
+                      valorNode={num(fluxo.valorMensal, (v) => setFluxo((p) => ({ ...p, valorMensal: v })))}
+                      venc={fluxo.mesInicioMensais ?? proximoMes(mesAtualFn(), 1)}
+                      onVenc={(m) => setFluxo((p) => ({ ...p, mesInicioMensais: m }))}
+                      total={formatCurrency(results.totalMensais)}
+                      onDelete={() => setFluxo((p) => ({ ...p, numMensais: 0 }))} />
+                  )}
+                  {semestrais.length > 0 && (
+                    <Row serie="Semestral" parcelas={semestrais.length}
+                      onParcelas={(n) => setFluxo((p) => {
+                        const base = (p.semestrais ?? [])[0] ?? { mes: proximoMes(mesAtualFn(), 6), valor: 0 };
+                        return { ...p, semestrais: Array.from({ length: Math.min(20, n) }, (_, i) => ({ mes: proximoMes(base.mes, 6 * i), valor: base.valor })) };
+                      })}
+                      valorNode={num(semestrais[0]?.valor ?? 0, (v) => setFluxo((p) => ({ ...p, semestrais: (p.semestrais ?? []).map((s) => ({ ...s, valor: v })) })))}
+                      venc={semestrais[0]?.mes ?? ""} onVenc={(m) => setFluxo((p) => ({ ...p, semestrais: (p.semestrais ?? []).map((s, i) => ({ ...s, mes: proximoMes(m, 6 * i) })) }))}
+                      total={formatCurrency(results.totalSemestrais)}
+                      onDelete={() => setFluxo((p) => ({ ...p, semestrais: [] }))} />
+                  )}
+                  {fluxo.anuais.length > 0 && (
+                    <Row serie="Anual" parcelas={fluxo.anuais.length}
+                      onParcelas={(n) => setFluxo((p) => {
+                        const base = p.anuais[0] ?? { mes: proximoMes(mesAtualFn(), 12), valor: 0 };
+                        return { ...p, anuais: Array.from({ length: Math.min(15, n) }, (_, i) => ({ mes: proximoMes(base.mes, 12 * i), valor: base.valor })) };
+                      })}
+                      valorNode={num(fluxo.anuais[0]?.valor ?? 0, (v) => setFluxo((p) => ({ ...p, anuais: p.anuais.map((a) => ({ ...a, valor: v })) })))}
+                      venc={fluxo.anuais[0]?.mes ?? ""} onVenc={(m) => setFluxo((p) => ({ ...p, anuais: p.anuais.map((a, i) => ({ ...a, mes: proximoMes(m, 12 * i) })) }))}
+                      total={formatCurrency(results.totalAnuais)}
+                      onDelete={() => setFluxo((p) => ({ ...p, anuais: [] }))} />
+                  )}
+                  {calc.mobilia > 0 && (
+                    <Row serie="Decor" badge="decoração" parcelas={1}
+                      valorNode={num(calc.mobilia, (v) => setCalcField("mobilia", v))}
+                      total={formatCurrency(calc.mobilia)}
+                      onDelete={() => setCalcField("mobilia", 0)} />
+                  )}
+                  {(fluxo.extras ?? []).map((ex) => (
+                    <Row key={ex.id} serie={ex.tipo.toLowerCase()} parcelas={ex.parcelas}
+                      onParcelas={(n) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, parcelas: n } : e) }))}
+                      valorNode={num(ex.valor, (v) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: v } : e) })))}
+                      venc={ex.mes} onVenc={(m) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, mes: m } : e) }))}
+                      total={formatCurrency(ex.valor * ex.parcelas)}
+                      onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
+                  ))}
+                  <Row serie="Financiamento" badge="automático" parcelas={calc.prazoMeses}
+                    valorNode={<span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>saldo restante</span>}
+                    total={formatCurrency(results.financiamento)} />
+                </div>
+              );
+            })()}
+
+            {/* + ADICIONAR SÉRIE */}
+            <div className="relative mt-4 flex justify-end">
+              <button className="press px-4 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase"
+                style={{ background: "#2800FF", color: "#FFFFFF" }}
+                onClick={() => setSerieMenuOpen((v) => !v)}>
+                + Adicionar série
               </button>
-              <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={addSemestral}>
-                + Semestral
-              </button>
-              {fluxo.numMensais === 0 && (
-                <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
-                  onClick={() => setFluxo((prev) => ({ ...prev, numMensais: 24 }))}>
-                  + Mensais
-                </button>
-              )}
-              {fluxo.percentualAto === 0 && (
-                <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
-                  onClick={() => updateAto(10, 2)}>
-                  + Ato (10%)
-                </button>
+              {serieMenuOpen && (
+                <div className="absolute right-0 bottom-12 z-30 rounded-xl overflow-hidden"
+                  style={{ background: "#1A1A1A", border: "1px solid #2A2A2A", boxShadow: "0 16px 48px rgba(0,0,0,0.6)", minWidth: 240 }}>
+                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
+                    <button key={tipo}
+                      className="block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-black/40"
+                      style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}
+                      onClick={() => {
+                        setSerieMenuOpen(false);
+                        if (tipo === "ANUAL") { addAnual(); return; }
+                        if (tipo === "ATO" || tipo === "SINAL") {
+                          updateAto(fluxo.percentualAto > 0 ? fluxo.percentualAto : 10,
+                            fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : (tipo === "SINAL" ? 2 : 1));
+                          return;
+                        }
+                        if (tipo === "MENSAL") { setFluxo((p) => ({ ...p, numMensais: p.numMensais > 0 ? p.numMensais : 24 })); return; }
+                        if (tipo === "DECOR") { if (calc.mobilia === 0) setCalcField("mobilia", 30000); return; }
+                        setFluxo((p) => ({
+                          ...p,
+                          extras: [...(p.extras ?? []), {
+                            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                            tipo, parcelas: 1, valor: 0, mes: mesAtualFn(),
+                          }],
+                        }));
+                      }}>
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>

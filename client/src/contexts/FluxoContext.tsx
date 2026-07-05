@@ -24,14 +24,25 @@ export interface ParcelaSemestral {
   valor: number;
 }
 
+/** Séries extras do editor "Condição de pagamento" (ÚNICA, ADIMPLÊNCIA PREMIADA, DAÇÃO IMÓVEL, PERIODICIDADE...) */
+export interface SerieExtra {
+  id: string;
+  tipo: string;
+  parcelas: number;
+  valor: number;   // por parcela
+  mes: string;     // 1º vencimento
+}
+
 export interface FluxoInputs {
   percentualAto: number;
   parcelasAto: number;
   ato: ParcelaAto[];
   valorMensal: number;
   numMensais: number;
+  mesInicioMensais?: string;
   semestrais: ParcelaSemestral[];
   anuais: ParcelaAnual[];
+  extras?: SerieExtra[];
 }
 
 export interface FluxoResults {
@@ -39,6 +50,7 @@ export interface FluxoResults {
   totalMensais: number;
   totalSemestrais: number;
   totalAnuais: number;
+  totalExtras: number;
   totalInvestido: number;
   financiamento: number;
 }
@@ -100,9 +112,10 @@ function calcularFluxo(fluxo: FluxoInputs, valorImovel: number): FluxoResults {
   const totalMensais = fluxo.valorMensal * fluxo.numMensais;
   const totalSemestrais = (fluxo.semestrais ?? []).reduce((s, p) => s + p.valor, 0);
   const totalAnuais = fluxo.anuais.reduce((s, p) => s + p.valor, 0);
-  const totalInvestido = totalAto + totalMensais + totalSemestrais + totalAnuais;
+  const totalExtras = (fluxo.extras ?? []).reduce((s, e) => s + e.valor * e.parcelas, 0);
+  const totalInvestido = totalAto + totalMensais + totalSemestrais + totalAnuais + totalExtras;
   const financiamento = Math.max(0, valorImovel - totalInvestido);
-  return { totalAto, totalMensais, totalSemestrais, totalAnuais, totalInvestido, financiamento };
+  return { totalAto, totalMensais, totalSemestrais, totalAnuais, totalExtras, totalInvestido, financiamento };
 }
 
 const defaultValorImovel = defaultInputs.valorImovel;
@@ -115,6 +128,7 @@ const defaultFluxo: FluxoInputs = {
   numMensais: 24,
   semestrais: [],
   anuais: buildAnuais(2, defaultValorImovel),
+  extras: [],
 };
 
 interface SharedContextType {
