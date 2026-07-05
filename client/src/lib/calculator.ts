@@ -2,47 +2,55 @@
  * Motor de Cálculo — Calculadora de Rentabilidade Short Stay
  * Baseado na planilha RENTABILIDADE (NILSON - RENATO 1)
  *
- * Cadeia de cálculo:
- * Inputs do Imóvel → Ocupação → Receita Bruta → Despesas → Renda Líquida → Métricas de Retorno
- *
- * Custos fixos: IPTU | Wi-Fi | Água | Luz | Condomínio | Administração+Seguro | Financiamento
+ * Cadeia: Imóvel → Ocupação → Receita Bruta → Despesas → Renda Líquida → Retornos
+ * Correções v2 (spec 2026-07-05):
+ *  - Base do ROI = capital próprio (Fluxo) + mobília/decoração (capitalProprioTotal)
+ *  - Total da unidade e retorno sobre patrimônio incluem mobília
+ *  - Impostos Holding/PF editáveis (padrão 9% / 27%)
+ *  - Flags de validade p/ estados vazios (sem NaN/Infinity na UI)
  */
 
 export interface CalculatorInputs {
   // === FICHA TÉCNICA ===
-  areaM2: number;           // Área do imóvel em m²
-  valorImovel: number;      // Valor do imóvel (R$)
-  mobilia: number;          // Valor da mobília e decoração (R$)
+  areaM2: number;
+  valorImovel: number;
+  mobilia: number;
 
   // === OCUPAÇÃO ===
-  diaria: number;           // Valor da diária (R$)
-  diasOcupacao: number;     // Dias de ocupação por mês (padrão: 23)
+  diaria: number;
+  diasOcupacao: number;
 
   // === FINANCIAMENTO ===
-  capitalProprio: number;   // Capital próprio investido (R$) — base do Cash-on-Cash
-  saldoFinanciar: number;   // Saldo a financiar (R$)
-  taxaJurosMensal: number;  // Taxa de juros mensal decimal (ex: 0.01 = 1% a.m. = 12% a.a.)
-  prazoMeses: number;       // Prazo do financiamento em meses (padrão: 360)
+  capitalProprio: number;   // total pago no Fluxo (ato+mensais+semestrais+anuais) — SEM mobília
+  saldoFinanciar: number;
+  taxaJurosMensal: number;  // decimal (0.01 = 1% a.m.)
+  prazoMeses: number;
 
   // === DESPESAS FIXAS ===
-  condominio: number;       // Condomínio mensal (R$)
-  iptuMensal: number;       // IPTU mensal (R$)
-  wifi: number;             // Wi-Fi mensal (R$)
-  agua: number;             // Água mensal (R$)
-  luz: number;              // Luz/Energia mensal (R$)
-  taxaAdminSeguro: number;  // Administração + Seguro (% sobre receita bruta, padrão: 15%)
+  condominio: number;
+  iptuMensal: number;
+  wifi: number;
+  agua: number;
+  luz: number;
+  taxaAdminSeguro: number;  // % sobre receita bruta (decimal)
 
-  // === AIRBNB ESPECÍFICO ===
-  taxaPlataforma: number;   // Taxa da plataforma Airbnb (padrão: 3% = 0.03)
-  custoLimpeza: number;     // Custo de limpeza por check-in (R$)
-  checkInsMes: number;      // Número de check-ins por mês (padrão: 4)
-  taxaGestao: number;       // Taxa do property manager (padrão: 0 = sem gestor)
+  // === AIRBNB ===
+  taxaPlataforma: number;
+  custoLimpeza: number;
+  checkInsMes: number;
+  taxaGestao: number;
+
+  // === IMPOSTOS (editáveis) ===
+  impostoHolding: number;   // decimal, padrão 0.09
+  impostoPF: number;        // decimal, padrão 0.27
 }
 
 export interface CalculatorResults {
   // === FICHA TÉCNICA ===
   valorPorM2: number;
-  totalUnidade: number;
+  totalUnidade: number;        // imóvel + mobília
+  capitalProprioTotal: number; // capitalProprio + mobília — base do ROI
+  patrimonioTotal: number;     // = totalUnidade (alias semântico p/ retornos)
 
   // === RECEITA ===
   receitaBrutaMensal: number;
@@ -50,41 +58,47 @@ export interface CalculatorResults {
   custoLimpezaMensal: number;
   receitaLiquidaPlataforma: number;
 
-  // === DESPESAS DETALHADAS ===
+  // === DESPESAS ===
   adminSeguro: number;
   gestaoValor: number;
   parcelaFinanciamento: number;
-  totalDespesasFixas: number;   // condominio + iptu + wifi + agua + luz + parcela
-  totalDespesas: number;        // todas as despesas
+  totalDespesasFixas: number;
+  totalDespesas: number;
 
   // === RESULTADO ===
   rendaMensalLiquida: number;
-  rendaHolding: number;         // rendaLiquida * 0.91 (9% imposto Holding)
-  rendaPF: number;              // rendaLiquida * 0.73
+  rendaHolding: number;
+  rendaPF: number;
 
-  // === MÉTRICAS DE RETORNO ===
-  ganhoFinanceiroMensal: number;
-  rentabilidadeAnual: number;
+  // === RETORNOS ===
+  ganhoFinanceiroMensal: number;      // % a.m. sobre capitalProprioTotal
+  rentabilidadeAnual: number;         // % a.a. (linear ×12)
   rentabilidadeHoldingAnual: number;
   rentabilidadePFAnual: number;
+  retornoPatrimonioMensal: number;    // % a.m. sobre patrimonioTotal
+  retornoPatrimonioAnual: number;
 
   // === BREAKEVEN ===
   diasBreakeven: number;
   ocupacaoBreakeven: number;
+
+  // === VALIDADE (UI mostra "—" quando false) ===
+  temReceita: boolean;
+  temBaseCapital: boolean;
 }
 
-/**
- * Função PMT — equivalente ao PGTO do Excel/Sheets
- */
+/** PMT — equivalente ao PGTO do Excel/Sheets (tabela Price) */
 export function pmt(taxa: number, nper: number, pv: number): number {
-  if (pv === 0) return 0;
+  if (pv === 0 || nper === 0) return 0;
   if (taxa === 0) return pv / nper;
   return (pv * taxa * Math.pow(1 + taxa, nper)) / (Math.pow(1 + taxa, nper) - 1);
 }
 
-/**
- * Calcula todos os resultados da calculadora
- */
+/** Divisão protegida: retorna 0 quando o denominador não é positivo */
+function safeDiv(num: number, den: number): number {
+  return den > 0 ? num / den : 0;
+}
+
 export function calcular(inputs: CalculatorInputs): CalculatorResults {
   const {
     areaM2, valorImovel, mobilia,
@@ -92,11 +106,14 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
     capitalProprio, saldoFinanciar, taxaJurosMensal, prazoMeses,
     condominio, iptuMensal, wifi, agua, luz, taxaAdminSeguro,
     taxaPlataforma, custoLimpeza, checkInsMes, taxaGestao,
+    impostoHolding, impostoPF,
   } = inputs;
 
   // === FICHA TÉCNICA ===
-  const valorPorM2 = areaM2 > 0 ? valorImovel / areaM2 : 0;
-  const totalUnidade = valorImovel; // Mobília não entra no Total da Unidade
+  const valorPorM2 = safeDiv(valorImovel, areaM2);
+  const totalUnidade = valorImovel + mobilia;
+  const capitalProprioTotal = capitalProprio + mobilia;
+  const patrimonioTotal = totalUnidade;
 
   // === RECEITA ===
   const receitaBrutaMensal = diaria * diasOcupacao;
@@ -109,7 +126,6 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
   const gestaoValor = receitaBrutaMensal * taxaGestao;
   const parcelaFinanciamento = pmt(taxaJurosMensal, prazoMeses, saldoFinanciar);
 
-  // Despesas fixas mensais
   const totalDespesasFixas = condominio + iptuMensal + wifi + agua + luz + parcelaFinanciamento;
 
   const totalDespesas =
@@ -120,33 +136,35 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
 
   // === RESULTADO ===
   const rendaMensalLiquida = receitaBrutaMensal - totalDespesas;
-  const rendaHolding = rendaMensalLiquida * 0.91; // Holding: 9% de imposto
-  const rendaPF = rendaMensalLiquida * 0.73;
+  const rendaHolding = rendaMensalLiquida * (1 - impostoHolding);
+  const rendaPF = rendaMensalLiquida * (1 - impostoPF);
 
-  // === MÉTRICAS DE RETORNO ===
-  const ganhoFinanceiroMensal =
-    capitalProprio > 0 ? (rendaMensalLiquida * 100) / capitalProprio : 0;
+  // === RETORNOS (base corrigida) ===
+  const ganhoFinanceiroMensal = safeDiv(rendaMensalLiquida * 100, capitalProprioTotal);
   const rentabilidadeAnual = ganhoFinanceiroMensal * 12;
-  const rentabilidadeHoldingAnual = capitalProprio > 0
-    ? (rendaHolding * 100 / capitalProprio) * 12 : 0; // base: 9% imposto Holding
-  const rentabilidadePFAnual = capitalProprio > 0
-    ? (rendaPF * 100 / capitalProprio) * 12 : 0;
+  const rentabilidadeHoldingAnual = safeDiv(rendaHolding * 100, capitalProprioTotal) * 12;
+  const rentabilidadePFAnual = safeDiv(rendaPF * 100, capitalProprioTotal) * 12;
+  const retornoPatrimonioMensal = safeDiv(rendaMensalLiquida * 100, patrimonioTotal);
+  const retornoPatrimonioAnual = retornoPatrimonioMensal * 12;
 
   // === BREAKEVEN ===
   const despesasFixasBreakeven = condominio + iptuMensal + wifi + agua + luz + parcelaFinanciamento + custoLimpezaMensal;
   const percentualVariavel = taxaAdminSeguro + taxaGestao + taxaPlataforma;
   const receitaNecessaria = percentualVariavel < 1
-    ? despesasFixasBreakeven / (1 - percentualVariavel) : 0;
+    ? safeDiv(despesasFixasBreakeven, 1 - percentualVariavel) : 0;
   const diasBreakeven = diaria > 0 ? Math.ceil(receitaNecessaria / diaria) : 0;
   const ocupacaoBreakeven = (diasBreakeven / 30) * 100;
 
   return {
-    valorPorM2, totalUnidade,
+    valorPorM2, totalUnidade, capitalProprioTotal, patrimonioTotal,
     receitaBrutaMensal, taxaPlataformaValor, custoLimpezaMensal, receitaLiquidaPlataforma,
     adminSeguro, gestaoValor, parcelaFinanciamento, totalDespesasFixas, totalDespesas,
     rendaMensalLiquida, rendaHolding, rendaPF,
     ganhoFinanceiroMensal, rentabilidadeAnual, rentabilidadeHoldingAnual, rentabilidadePFAnual,
+    retornoPatrimonioMensal, retornoPatrimonioAnual,
     diasBreakeven, ocupacaoBreakeven,
+    temReceita: receitaBrutaMensal > 0,
+    temBaseCapital: capitalProprioTotal > 0,
   };
 }
 
@@ -161,24 +179,27 @@ export function formatPercent(value: number, decimals = 2): string {
   return `${value.toFixed(decimals).replace(".", ",")}%`;
 }
 
+/** Campos monetários/quantidades zerados (spec: site abre vazio); taxas com padrão de mercado */
 export const defaultInputs: CalculatorInputs = {
-  areaM2: 29,
-  valorImovel: 477_000,
-  mobilia: 40_000,
-  diaria: 650,
-  diasOcupacao: 23,
-  capitalProprio: 280_000,
-  saldoFinanciar: 197_000,
-  taxaJurosMensal: 0.01,   // 12% a.a. = 1% a.m.
+  areaM2: 0,
+  valorImovel: 0,
+  mobilia: 0,
+  diaria: 0,
+  diasOcupacao: 0,
+  capitalProprio: 0,
+  saldoFinanciar: 0,
+  taxaJurosMensal: 0.01,
   prazoMeses: 360,
-  condominio: 700,
-  iptuMensal: 290,
-  wifi: 120,
-  agua: 80,
-  luz: 150,
+  condominio: 0,
+  iptuMensal: 0,
+  wifi: 0,
+  agua: 0,
+  luz: 0,
   taxaAdminSeguro: 0.15,
   taxaPlataforma: 0.03,
-  custoLimpeza: 120,
-  checkInsMes: 4,
+  custoLimpeza: 0,
+  checkInsMes: 0,
   taxaGestao: 0,
+  impostoHolding: 0.09,
+  impostoPF: 0.27,
 };

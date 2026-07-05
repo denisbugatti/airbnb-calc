@@ -440,12 +440,10 @@ export default function HomePage() {
 
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
-    // Capital próprio segue o toggle com/sem decoração do Fluxo de Pagamento
-    capitalProprio: fluxoResults.totalInvestido > 0
-      ? fluxoResults.totalInvestido + (incluiDecoracao ? (calc.mobilia || 0) : 0)
-      : inputs.capitalProprio + (incluiDecoracao ? (calc.mobilia || 0) : 0),
+    // Capital próprio = total pago no Fluxo (a mobília é somada dentro do motor de cálculo)
+    capitalProprio: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
     saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
-  }), [inputs, fluxoResults, incluiDecoracao, calc.mobilia]);
+  }), [inputs, fluxoResults]);
 
   const results = useMemo(() => calcular(inputsComFluxo), [inputsComFluxo]);
   const set = useCallback((key: keyof CalculatorInputs) => (value: number) => {
@@ -919,8 +917,7 @@ export default function HomePage() {
 
             {/* Breakeven do Total Investido */}
             {(() => {
-              // Decoracao soma ao total investido no breakeven (custo de setup do imovel)
-              const totalInv = (fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio) + (calc.mobilia || 0);
+              const totalInv = results.capitalProprioTotal;
               const rendaLiq = results.rendaMensalLiquida;
               const mesesParaBreakeven = rendaLiq > 0 ? Math.ceil(totalInv / rendaLiq) : null;
               const anos = mesesParaBreakeven !== null ? Math.floor(mesesParaBreakeven / 12) : null;
