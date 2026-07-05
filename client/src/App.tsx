@@ -48,7 +48,7 @@ function NavBar() {
     <nav
       className="sticky top-0 z-50 flex items-center justify-between gap-2 px-3 md:px-6 py-2.5 md:py-4"
       style={{
-        background: isDark ? "rgba(10,10,11,0.88)" : "rgba(255,255,255,0.92)",
+        background: isDark ? "rgba(0,0,0,0.9)" : "rgba(248,247,242,0.92)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         borderBottom: `1px solid ${colors.border}`,
@@ -96,7 +96,7 @@ function NavBar() {
         </span>
         <button
           onClick={toggleTheme}
-          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
+          className="press w-8 h-8 rounded-xl flex items-center justify-center"
           style={{
             background: colors.inputBg,
             border: `1px solid ${colors.border}`,

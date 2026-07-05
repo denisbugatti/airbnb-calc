@@ -427,18 +427,28 @@ export default function FluxoPage() {
 
   return (
     <div className="w-full pb-16" style={{ fontFamily: "var(--font-sans)" }}>
-      {/* HERO */}
-      <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase mb-5"
-            style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue, fontFamily: "var(--font-mono)" }}>
-            <Zap size={11} /> Distribuição do capital
+      {/* HERO — capa do Style Guide: preto absoluto + display azul + grafismo V */}
+      <section className="relative overflow-hidden mb-6" style={{ background: "#000000" }}>
+        <svg
+          className="absolute inset-y-0 right-0 h-full w-auto hidden sm:block"
+          viewBox="0 0 520 420"
+          fill="none"
+          aria-hidden="true"
+          style={{ pointerEvents: "none" }}
+        >
+          <path className="v-line" d="M270 -40 L440 460 L620 -60" stroke="#2800FF" strokeWidth="3" />
+          <path className="v-line" d="M150 -60 L300 380 L460 -80" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" style={{ animationDelay: "450ms" }} />
+        </svg>
+        <div className="relative px-4 md:px-6 pt-10 md:pt-14 pb-9 md:pb-12 max-w-7xl mx-auto">
+          <div className="wipe inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase mb-6"
+            style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
+            <Zap size={11} style={{ color: "#5A43FF" }} /> Distribuição do capital
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight mb-4" style={{ color: colors.text1, fontWeight: 600 }}>
-            Fluxo de{" "}
-            <span style={{ color: colors.blue }}>pagamento</span>
+          <h1 className="uppercase tracking-tight" style={{ fontFamily: "var(--font-display)", fontWeight: 700, lineHeight: 0.98 }}>
+            <span className="wipe block text-4xl sm:text-5xl md:text-6xl" style={{ color: "#FFFFFF" }}>Fluxo de</span>
+            <span className="wipe wipe-2 block text-4xl sm:text-5xl md:text-6xl" style={{ color: "#2800FF" }}>pagamento</span>
           </h1>
-          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-6" style={{ color: colors.text3 }}>
+          <p className="rise rise-3 mt-5 text-sm md:text-base leading-relaxed max-w-xl mb-6" style={{ color: "#B3B3B3" }}>
             Configure como o investimento será distribuído ao longo do tempo. O Total Investido alimenta automaticamente a base do ROI na calculadora.
           </p>
           {/* Campo de nome do empreendimento + logo */}

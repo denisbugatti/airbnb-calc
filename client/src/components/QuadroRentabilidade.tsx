@@ -135,7 +135,7 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
         <button
           onClick={handleExport}
           disabled={exporting}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+          className="press flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90"
           style={{ background: Q.azul, color: "#fff", boxShadow: "0 2px 8px rgba(40,0,255,0.3)", opacity: exporting ? 0.7 : 1 }}
         >
           {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}

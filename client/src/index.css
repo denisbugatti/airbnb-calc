@@ -40,8 +40,14 @@
 }
 
 :root {
-  --font-sans: "Avant Garde", "Century Gothic", Futura, system-ui, sans-serif;
+  /* Poppins = fonte de apoio oficial (textos/descrições, Style Guide p.17) */
+  --font-sans: "Poppins", system-ui, sans-serif;
+  /* Avant Garde = display da marca (títulos, números, wordmark) */
+  --font-display: "Avant Garde", "Century Gothic", Futura, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Easing forte (animations.dev) — entradas e interações */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @theme inline {
@@ -76,30 +82,29 @@
 }
 
 /* ─────────────────────────────────────────────────────────
-   LIGHT THEME — Vitacon
-   Fundo branco puro, azul elétrico #2800FF como única cor
-   de marca, verde para positivo, âmbar para despesas,
-   vermelho para negativo. Bordas hairline e sombras discretas.
+   LIGHT THEME — Vitacon (Style Guide Fev/2025)
+   Fundo off-white #F8F7F2 (paleta Private), cards brancos,
+   azul PANTONE 2736C #2800FF, texto preto.
    ───────────────────────────────────────────────────────── */
 :root {
   --radius: 0.75rem;
 
-  --background: #ffffff;
-  --foreground: #0a0a0b;
+  --background: #f8f7f2;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: #0a0a0b;
+  --card-foreground: #000000;
 
   --popover: #ffffff;
-  --popover-foreground: #0a0a0b;
+  --popover-foreground: #000000;
 
   --primary: #2800ff;
   --primary-foreground: #ffffff;
 
-  --secondary: #f5f5f5;
-  --secondary-foreground: #0a0a0b;
+  --secondary: #f4f3ee;
+  --secondary-foreground: #000000;
 
-  --muted: #f5f5f5;
-  --muted-foreground: #666666;
+  --muted: #f4f3ee;
+  --muted-foreground: #5c5c5c;
 
   --accent: rgba(40, 0, 255, 0.06);
   --accent-foreground: #2800ff;
@@ -107,8 +112,8 @@
   --destructive: #d42600;
   --destructive-foreground: #ffffff;
 
-  --border: #e5e5e5;
-  --input: #f0f0f0;
+  --border: #e6e4dd;
+  --input: #f4f3ee;
   --ring: rgba(40, 0, 255, 0.4);
 
   /* Chart */
@@ -116,64 +121,64 @@
   --chart-2: #0e8a4a;
   --chart-3: #b45309;
   --chart-4: #d42600;
-  --chart-5: #4a4a35;
+  --chart-5: #898a8e;
 
   /* Custom tokens — light */
   --surface-glass: #ffffff;
-  --surface-glass-hover: #fafafa;
-  --border-glass: #e5e5e5;
+  --surface-glass-hover: #fdfdfb;
+  --border-glass: #e6e4dd;
   --border-glass-hover: rgba(40, 0, 255, 0.3);
   --glow-blue: #2800ff;
   --glow-green: #0e8a4a;
 
   /* Shadow tokens */
-  --shadow-card: 0 1px 2px rgba(10, 10, 11, 0.04), 0 8px 24px rgba(10, 10, 11, 0.05);
-  --shadow-card-hover: 0 2px 8px rgba(10, 10, 11, 0.06), 0 12px 32px rgba(10, 10, 11, 0.08);
-  --shadow-input: inset 0 1px 2px rgba(10, 10, 11, 0.03);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
+  --shadow-input: inset 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 /* ─────────────────────────────────────────────────────────
-   DARK THEME — Vitacon Ink
-   Fundo tinta #0A0A0B, superfícies grafite, azul elétrico
-   clareado (#6E5CFF) para contraste AA sobre o escuro.
+   DARK THEME — Vitacon (Style Guide Fev/2025)
+   Preto absoluto #000000, superfícies #1A1A1A (Private),
+   azul #2800FF em fills; #5A43FF para texto pequeno.
    ───────────────────────────────────────────────────────── */
 .dark {
-  --background: #0a0a0b;
+  --background: #000000;
   --foreground: #ffffff;
-  --card: #141414;
+  --card: #1a1a1a;
   --card-foreground: #ffffff;
-  --popover: #141414;
+  --popover: #1a1a1a;
   --popover-foreground: #ffffff;
 
-  --primary: #6e5cff;
+  --primary: #2800ff;
   --primary-foreground: #ffffff;
 
-  --secondary: #1f1f1f;
+  --secondary: #1a1a1a;
   --secondary-foreground: #ffffff;
-  --muted: #1f1f1f;
-  --muted-foreground: #999999;
+  --muted: #1a1a1a;
+  --muted-foreground: #898a8e;
 
-  --accent: rgba(110, 92, 255, 0.12);
-  --accent-foreground: #a99cff;
+  --accent: rgba(40, 0, 255, 0.14);
+  --accent-foreground: #5a43ff;
 
   --destructive: #ff6b57;
   --destructive-foreground: #ffffff;
 
-  --border: #262626;
-  --input: #1a1a1a;
-  --ring: rgba(110, 92, 255, 0.5);
+  --border: #2a2a2a;
+  --input: #111111;
+  --ring: rgba(90, 67, 255, 0.5);
 
-  --chart-1: #6e5cff;
+  --chart-1: #5a43ff;
   --chart-2: #3fd68f;
   --chart-3: #fbbf24;
   --chart-4: #ff6b57;
-  --chart-5: #999999;
+  --chart-5: #898a8e;
 
-  --surface-glass: #141414;
-  --surface-glass-hover: #1a1a1a;
-  --border-glass: #262626;
-  --border-glass-hover: rgba(110, 92, 255, 0.35);
-  --glow-blue: #6e5cff;
+  --surface-glass: #1a1a1a;
+  --surface-glass-hover: #202020;
+  --border-glass: #2a2a2a;
+  --border-glass-hover: rgba(90, 67, 255, 0.4);
+  --glow-blue: #2800ff;
   --glow-green: #3fd68f;
 
   --shadow-card: none;
@@ -363,5 +368,56 @@
     transition-property: background-color, border-color, color, box-shadow;
     transition-duration: 0.2s;
     transition-timing-function: ease;
+  }
+
+  /* ── Press feedback (Emil): todo elemento clicável responde ao toque ── */
+  .press {
+    transition: transform 160ms var(--ease-out-strong);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* ── Entrada com stagger (uma vez, no load — nunca esconde no scroll) ── */
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rise {
+    animation: rise-in 340ms var(--ease-out-strong) both;
+  }
+  .rise-1 { animation-delay: 40ms; }
+  .rise-2 { animation-delay: 80ms; }
+  .rise-3 { animation-delay: 120ms; }
+  .rise-4 { animation-delay: 160ms; }
+
+  /* ── Display da marca: revelação por clip (capas do Style Guide) ── */
+  @keyframes wipe-in {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+  }
+  .wipe {
+    animation: wipe-in 640ms var(--ease-in-out-strong) both;
+  }
+  .wipe-2 { animation-delay: 140ms; }
+
+  /* ── Grafismo do V: traço que se desenha ── */
+  @keyframes v-draw {
+    from { stroke-dashoffset: 1200; }
+    to { stroke-dashoffset: 0; }
+  }
+  .v-line {
+    stroke-dasharray: 1200;
+    animation: v-draw 1.4s var(--ease-in-out-strong) 200ms both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise, .rise-1, .rise-2, .rise-3, .rise-4, .wipe, .wipe-2, .v-line {
+      animation: none;
+    }
+    .press, .press:active {
+      transition: none;
+      transform: none;
+    }
   }
 }

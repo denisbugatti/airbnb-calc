@@ -221,8 +221,8 @@ function MetricCard({ value, label, formatter, icon, accent, size = "md", isDark
       <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: accentIconBg, color: accentColor }}>
         {icon}
       </div>
-      <div className={`font-bold tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`}
-        style={{ color: valido ? accentColor : colors.text4, fontFamily: "var(--font-mono)" }}>
+      <div className={`tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`}
+        style={{ color: valido ? accentColor : colors.text4, fontFamily: "var(--font-display)", fontWeight: 700 }}>
         {valido ? formatter(animated) : DASH}
       </div>
       <div className="text-xs mt-0.5 font-medium" style={{ color: colors.text3 }}>{label}</div>
@@ -235,7 +235,7 @@ function SectionHeader({ icon, label, colors }: { icon: React.ReactNode; label: 
   return (
     <div className="flex items-center gap-2 mb-4">
       <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: colors.blueIconBg, color: colors.blue }}>{icon}</div>
-      <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue }}>{label}</span>
+      <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.blue, fontFamily: "var(--font-display)" }}>{label}</span>
     </div>
   );
 }
@@ -307,7 +307,7 @@ function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, i
       {/* Renda Líquida (mensal + anual) */}
       <div>
         <div className="text-xs font-medium" style={{ color: colors.text4 }}>Renda líquida / mês</div>
-        <div className="text-lg md:text-2xl font-black" style={{ color: valido ? accentColor : colors.text4, fontFamily: "var(--font-sans)", textShadow: isDark && valido ? `0 0 20px ${accentGlow}` : "none" }}>
+        <div className="text-lg md:text-2xl" style={{ color: valido ? accentColor : colors.text4, fontFamily: "var(--font-display)", fontWeight: 700, textShadow: isDark && valido ? `0 0 20px ${accentGlow}` : "none" }}>
           {valido ? formatCurrency(animRenda) : DASH}
         </div>
         <div className="text-xs font-medium mt-1.5" style={{ color: colors.text4 }}>Renda líquida / ano</div>
@@ -439,30 +439,43 @@ export default function HomePage() {
   return (
     <div className="w-full" style={{ fontFamily: "var(--font-sans)" }}>
 
-      {/* ── HERO ── */}
-      <section className="px-4 md:px-6 pt-8 md:pt-12 pb-5 md:pb-8 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase mb-5"
-          style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue, fontFamily: "var(--font-mono)" }}>
-          <Zap size={11} /> Análise em tempo real
-        </div>
-        {/* H2 visível para SEO — descreve a seção principal */}
-        <h2 className="sr-only">Simulador de Rentabilidade para Locação de Curta Temporada</h2>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight mb-4" style={{ color: colors.text1, fontWeight: 600 }}>
-          Calcule sua{" "}
-          <span style={{ color: colors.blue }}>rentabilidade</span>
-        </h1>
-        <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-5" style={{ color: colors.text3 }}>
-          Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
-        </p>
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          <button
-            onClick={() => setShowSalvarModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-85"
-            style={{ background: colors.blue, color: "#FFFFFF" }}
-          >
-            <BookmarkPlus size={12} />
-            Salvar cenário
-          </button>
+      {/* ── HERO — capa do Style Guide: preto absoluto + display azul + grafismo V ── */}
+      <section className="relative overflow-hidden" style={{ background: "#000000" }}>
+        {/* Grafismo do V em linhas (traço que se desenha) */}
+        <svg
+          className="absolute inset-y-0 right-0 h-full w-auto hidden sm:block"
+          viewBox="0 0 520 420"
+          fill="none"
+          aria-hidden="true"
+          style={{ pointerEvents: "none" }}
+        >
+          <path className="v-line" d="M270 -40 L440 460 L620 -60" stroke="#2800FF" strokeWidth="3" />
+          <path className="v-line" d="M150 -60 L300 380 L460 -80" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" style={{ animationDelay: "450ms" }} />
+        </svg>
+        <div className="relative px-4 md:px-6 pt-10 md:pt-14 pb-9 md:pb-12 max-w-7xl mx-auto">
+          <div className="wipe inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase mb-6"
+            style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
+            <Zap size={11} style={{ color: "#5A43FF" }} /> Análise em tempo real
+          </div>
+          {/* H2 visível para SEO — descreve a seção principal */}
+          <h2 className="sr-only">Simulador de Rentabilidade para Locação de Curta Temporada</h2>
+          <h1 className="uppercase tracking-tight" style={{ fontFamily: "var(--font-display)", fontWeight: 700, lineHeight: 0.98 }}>
+            <span className="wipe block text-4xl sm:text-5xl md:text-7xl" style={{ color: "#FFFFFF" }}>Calcule sua</span>
+            <span className="wipe wipe-2 block text-4xl sm:text-5xl md:text-7xl" style={{ color: "#2800FF" }}>rentabilidade</span>
+          </h1>
+          <p className="rise rise-3 mt-5 text-sm md:text-base leading-relaxed max-w-xl" style={{ color: "#B3B3B3" }}>
+            Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
+          </p>
+          <div className="rise rise-4 mt-7">
+            <button
+              onClick={() => setShowSalvarModal(true)}
+              className="press inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ background: "#2800FF", color: "#FFFFFF", fontFamily: "var(--font-sans)" }}
+            >
+              <BookmarkPlus size={12} />
+              Salvar cenário
+            </button>
+          </div>
         </div>
       </section>
 
@@ -550,7 +563,7 @@ export default function HomePage() {
         <div className="flex rounded-xl p-1 gap-1" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
           {(["inputs", "results"] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all"
+              className="press flex-1 py-2 text-xs font-semibold rounded-lg"
               style={{
                 background: activeTab === tab ? colors.blue : "transparent",
                 color: activeTab === tab ? "#FFFFFF" : colors.text3,
