@@ -654,7 +654,7 @@ export default function FluxoPage() {
               return (
                 <div style={{ border: "1px solid #242424", borderBottom: "none" }}>
                   {fluxo.percentualAto > 0 && (
-                    <SerieRow colors={colors} serie="Ato" badge={`${fluxo.percentualAto.toFixed(1).replace(".", ",")}% do imóvel`}
+                    <SerieRow colors={colors} serie="Ato"
                       parcelas={fluxo.parcelasAto}
                       onParcelas={(n) => updateAto(fluxo.percentualAto, Math.min(6, n))}
                       valorNode={num(fluxo.ato[0]?.valor ?? 0, (v) => {
@@ -741,7 +741,6 @@ export default function FluxoPage() {
                       onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
                   ))}
                   <SerieRow colors={colors} serie="Financiamento"
-                    badge={fluxo.financiamentoManual !== undefined ? "manual" : "automático"}
                     parcelas={calc.prazoMeses}
                     onParcelas={(n) => setCalcField("prazoMeses", Math.min(600, n))}
                     valorNode={<EditableValue value={results.financiamento} onChange={(v) => setFluxo((p) => ({ ...p, financiamentoManual: v }))} colors={colors} />}
