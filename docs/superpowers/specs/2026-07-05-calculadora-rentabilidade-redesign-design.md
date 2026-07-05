@@ -118,6 +118,14 @@ mesesRecuperacao      = capitalProprioTotal / rendaLiquida   (e variantes Holdin
 - **Escuro**: fundo `#0A0A0B`, superfícies `#141414`/`#1F1F1F`, texto branco/`#CCC`, acento azul clareado (ex.: `#6E5CFF`, ajustado para contraste AA sobre fundo escuro — o #2800FF puro some no escuro).
 - Toggle mantido no header; preferência persistida (comportamento atual do ThemeContext).
 
+### Abertura full screen (splash Vitacon)
+
+- Ao abrir o site: overlay full screen azul `#2800FF` com a animação de revelação do logo Vitacon (branco, centralizado), adaptada do código existente em `~/vitacon-logo/index.html` (SVG + CSS puro — mesmo visual do GIF de referência, porém nítido e leve).
+- Execução única de ~2,5–3s (sem loop) e saída com fade revelando a calculadora.
+- Pulável: clique/tap ou Esc encerra na hora.
+- Exibida a cada nova visita (uma vez por sessão do navegador — recarregar a página no meio do trabalho não repete a abertura).
+- `prefers-reduced-motion`: pula direto para o site.
+
 ### Layout — página Calculadora
 
 - Header: logo Vitacon (SVG da pasta do DS), navegação Calculadora / Fluxo de Pagamento, toggle de tema.
