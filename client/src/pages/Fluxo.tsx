@@ -883,18 +883,30 @@ export default function FluxoPage() {
               Parcelas — clique para editar
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-              {fluxo.ato.map((p, i) => (
-                <div key={`ato-${i}`} className="p-4" style={{ background: "#0A0A0A", border: "1px solid #242424", marginLeft: i > 0 ? -1 : 0 }}>
+              {fluxo.percentualAto > 0 && fluxo.ato.map((p, i) => (
+                <div key={`ato-${i}`} className="relative p-4" style={{ background: "#0A0A0A", border: "1px solid #242424", marginLeft: i > 0 ? -1 : 0 }}>
+                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover parcela do ato"
+                    onClick={() => fluxo.ato.length > 1 ? updateAto(fluxo.percentualAto, fluxo.ato.length - 1) : updateAto(0, 1)}>
+                    <XIcon size={10} />
+                  </button>
                   <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{p.label}</div>
                   <EditableMes value={p.mes} onChange={(m) => updateParcelaAtoMes(i, m)} colors={colors} />
                   <EditableValue value={p.valor} onChange={(v) => updateParcelaAtoValor(i, v)} colors={colors} />
                 </div>
               ))}
-              <div className="p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+              {fluxo.numMensais > 0 && (
+              <div className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+                <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: "#1A1A1A", color: "#898A8E" }} title="Remover mensais"
+                  onClick={() => setFluxo((prev) => ({ ...prev, numMensais: 0 }))}>
+                  <XIcon size={10} />
+                </button>
                 <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{fluxo.numMensais} mensais</div>
                 <div className="text-xs mb-1" style={{ color: "#898A8E" }}>por parcela</div>
                 <EditableValue value={fluxo.valorMensal} onChange={(v) => setFluxo((prev) => ({ ...prev, valorMensal: v }))} colors={colors} />
               </div>
+              )}
               {semestrais.map((s, i) => (
                 <div key={`sem-${i}`} className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
                   <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
@@ -919,19 +931,38 @@ export default function FluxoPage() {
                   <EditableValue value={a.valor} onChange={(v) => updateAnualValor(i, v)} colors={colors} />
                 </div>
               ))}
-              <div className="p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+              <div className="relative p-4 -ml-px" style={{ background: "#0A0A0A", border: "1px solid #242424" }}>
+                {calc.mobilia > 0 && (
+                  <button className="press absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: "#1A1A1A", color: "#898A8E" }} title="Zerar decoração"
+                    onClick={() => setCalcField("mobilia", 0)}>
+                    <XIcon size={10} />
+                  </button>
+                )}
                 <div className="text-[10px] tracking-[0.2em] uppercase mb-1" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>+ Decoração</div>
                 <div className="text-xs mb-1" style={{ color: "#898A8E" }}>opcional</div>
                 <EditableValue value={calc.mobilia} onChange={(v) => setCalcField("mobilia", v)} colors={colors} />
               </div>
             </div>
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3 flex-wrap">
               <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={addAnual}>
                 + Anual
               </button>
               <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={addSemestral}>
                 + Semestral
               </button>
+              {fluxo.numMensais === 0 && (
+                <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
+                  onClick={() => setFluxo((prev) => ({ ...prev, numMensais: 24 }))}>
+                  + Mensais
+                </button>
+              )}
+              {fluxo.percentualAto === 0 && (
+                <button className="press px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
+                  onClick={() => updateAto(10, 2)}>
+                  + Ato (10%)
+                </button>
+              )}
             </div>
           </div>
         </motion.div>
