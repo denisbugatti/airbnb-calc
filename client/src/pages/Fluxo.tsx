@@ -746,6 +746,22 @@ export default function FluxoPage() {
               </div>
             </div>
 
+            {/* LEGENDA das ações */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 px-1">
+              {[
+                { icon: <Percent size={11} />, cor: "#5A43FF", txt: "define cada parcela por % do imóvel" },
+                { icon: <BadgePercent size={11} />, cor: "#3FD68F", txt: "desconto na série" },
+                { icon: <ArrowDownToLine size={11} />, cor: "#FBBF24", txt: "puxa o que falta p/ essa série" },
+                { icon: <RefreshCw size={11} />, cor: "#5A43FF", txt: "redivide o ato entre as parcelas" },
+                { icon: <Trash2 size={11} />, cor: "#FF6B57", txt: "apaga a série" },
+              ].map(({ icon, cor, txt }) => (
+                <span key={txt} className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "#898A8E", fontFamily: "var(--font-sans)" }}>
+                  <span style={{ color: cor }}>{icon}</span>
+                  {txt}
+                </span>
+              ))}
+            </div>
+
             {/* + ADICIONAR SÉRIE */}
             <div className="relative mt-4 flex justify-end">
               <button className="press px-4 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase"
