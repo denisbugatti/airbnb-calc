@@ -33,24 +33,24 @@ describe("calcular — cenário de referência", () => {
     expect(r.parcelaFinanciamento).toBeCloseTo(3944.18, 0);
   });
   it("total de despesas", () => {
-    expect(r.totalDespesas).toBeCloseTo(8006.68, 0);
+    expect(r.totalDespesas).toBeCloseTo(7526.68, 0);
   });
   it("renda líquida", () => {
-    expect(r.rendaMensalLiquida).toBeCloseTo(6943.32, 0);
+    expect(r.rendaMensalLiquida).toBeCloseTo(7423.32, 0);
   });
   it("CORREÇÃO: base do ROI = capital próprio + mobília", () => {
     expect(r.capitalProprioTotal).toBe(133_576);
   });
   it("CORREÇÃO: retorno mensal sobre capital próprio total", () => {
-    expect(r.ganhoFinanceiroMensal).toBeCloseTo(5.198, 2);
-    expect(r.rentabilidadeAnual).toBeCloseTo(62.38, 1);
+    expect(r.ganhoFinanceiroMensal).toBeCloseTo(5.557, 2);
+    expect(r.rentabilidadeAnual).toBeCloseTo(66.69, 1);
   });
   it("CORREÇÃO: total da unidade inclui mobília", () => {
     expect(r.totalUnidade).toBe(517_000);
     expect(r.patrimonioTotal).toBe(517_000);
   });
   it("retorno sobre patrimônio inclui mobília no denominador", () => {
-    expect(r.retornoPatrimonioMensal).toBeCloseTo(1.343, 2);
+    expect(r.retornoPatrimonioMensal).toBeCloseTo(1.436, 2);
   });
   it("impostos editáveis aplicados sobre a renda líquida", () => {
     expect(r.rendaHolding).toBeCloseTo(r.rendaMensalLiquida * 0.91, 6);
@@ -70,7 +70,7 @@ describe("calcular — estados vazios (campos zerados)", () => {
     expect(defaultInputs.condominio).toBe(700);
     expect(defaultInputs.iptuMensal).toBe(290);
     expect(defaultInputs.wifi + defaultInputs.agua + defaultInputs.luz).toBe(350);
-    expect(defaultInputs.custoLimpeza).toBe(120);
+    expect(defaultInputs.custoLimpeza).toBe(0);
     expect(defaultInputs.taxaAdminSeguro).toBe(0.15);
     expect(defaultInputs.impostoHolding).toBe(0.09);
     expect(defaultInputs.impostoPF).toBe(0.27);

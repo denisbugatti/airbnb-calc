@@ -120,7 +120,9 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
   // Taxa da plataforma excluída do cálculo (decisão de 05/07/2026); campo mantido por compatibilidade
   void taxaPlataforma;
   const taxaPlataformaValor = 0;
-  const custoLimpezaMensal = custoLimpeza * checkInsMes;
+  // Limpeza excluída do cálculo (decisão de 05/07/2026); campos mantidos por compatibilidade
+  void custoLimpeza; void checkInsMes;
+  const custoLimpezaMensal = 0;
   const receitaLiquidaPlataforma = receitaBrutaMensal - taxaPlataformaValor;
 
   // === DESPESAS ===
@@ -150,7 +152,7 @@ export function calcular(inputs: CalculatorInputs): CalculatorResults {
   const retornoPatrimonioAnual = retornoPatrimonioMensal * 12;
 
   // === BREAKEVEN ===
-  const despesasFixasBreakeven = condominio + iptuMensal + wifi + agua + luz + parcelaFinanciamento + custoLimpezaMensal;
+  const despesasFixasBreakeven = condominio + iptuMensal + wifi + agua + luz + parcelaFinanciamento;
   const percentualVariavel = taxaAdminSeguro + taxaGestao;
   const receitaNecessaria = percentualVariavel < 1
     ? safeDiv(despesasFixasBreakeven, 1 - percentualVariavel) : 0;
@@ -199,8 +201,8 @@ export const defaultInputs: CalculatorInputs = {
   luz: 150,
   taxaAdminSeguro: 0.15,
   taxaPlataforma: 0,
-  custoLimpeza: 120,
-  checkInsMes: 4,
+  custoLimpeza: 0,
+  checkInsMes: 0,
   taxaGestao: 0,
   impostoHolding: 0.09,
   impostoPF: 0.27,
