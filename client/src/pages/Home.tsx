@@ -797,10 +797,13 @@ export default function HomePage() {
                 {[
                   { label: "Financiamento", value: results.parcelaFinanciamento, color: colors.amber },
                   { label: "Adm + Seguro", value: results.adminSeguro, color: colors.amber },
+                  { label: `Plataforma (${Math.round(inputs.taxaPlataforma * 100)}%)`, value: results.taxaPlataformaValor, color: colors.amber },
+                  { label: "Limpeza", value: results.custoLimpezaMensal, color: colors.amber },
+                  { label: "Gestão", value: results.gestaoValor, color: colors.amber },
                   { label: "Condomínio", value: inputs.condominio, color: colors.red },
                   { label: "Wi-Fi/Água/Luz", value: inputs.wifi + inputs.agua + inputs.luz, color: colors.red },
                   { label: "IPTU", value: inputs.iptuMensal, color: colors.red },
-                ]
+                ].filter((d) => d.value > 0 || ["Financiamento", "Adm + Seguro", "Condomínio", "Wi-Fi/Água/Luz", "IPTU"].includes(d.label))
                   .sort((a, b) => b.value - a.value)
                   .map(({ label, value, color }) => (
                     <WaterfallBar key={label} label={label} value={value} total={results.receitaBrutaMensal} color={color} isNegative colors={colors} />

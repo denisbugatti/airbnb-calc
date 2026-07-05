@@ -64,9 +64,13 @@ describe("calcular — cenário de referência", () => {
 
 describe("calcular — estados vazios (campos zerados)", () => {
   const r = calcular(defaultInputs);
-  it("defaults monetários zerados, taxas preservadas", () => {
+  it("imóvel/diária zerados; custos fixos e taxas pré-preenchidos", () => {
     expect(defaultInputs.valorImovel).toBe(0);
     expect(defaultInputs.diaria).toBe(0);
+    expect(defaultInputs.condominio).toBe(700);
+    expect(defaultInputs.iptuMensal).toBe(290);
+    expect(defaultInputs.wifi + defaultInputs.agua + defaultInputs.luz).toBe(350);
+    expect(defaultInputs.custoLimpeza).toBe(120);
     expect(defaultInputs.taxaAdminSeguro).toBe(0.15);
     expect(defaultInputs.impostoHolding).toBe(0.09);
     expect(defaultInputs.impostoPF).toBe(0.27);
