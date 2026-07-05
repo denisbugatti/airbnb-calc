@@ -140,6 +140,52 @@ function EditableMes({ value, onChange, colors }: {
   );
 }
 
+
+// Linha do editor "Condição de pagamento" — módulo-level para não remontar inputs a cada render
+function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete, colors }: {
+  serie: string; badge?: string; parcelas: number; onParcelas?: (n: number) => void;
+  valorNode: React.ReactNode; venc?: string; onVenc?: (m: string) => void;
+  total: string; onRecalc?: () => void; onDelete?: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-[1.3fr_.6fr_1fr_.9fr_1fr_auto] gap-2 items-center px-4 py-3"
+      style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
+        {badge && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
+      </div>
+      <div>
+        {onParcelas ? (
+          <input type="number" min={1} value={parcelas}
+            onChange={(e) => onParcelas(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-14 bg-transparent text-center text-sm font-bold rounded-lg py-1 outline-none"
+            style={{ color: "#FFFFFF", border: "1px solid #2A2A2A", fontFamily: "var(--font-mono)" }} />
+        ) : (
+          <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>{parcelas}</span>
+        )}
+      </div>
+      <div>{valorNode}</div>
+      <div>{onVenc ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} /> : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>}</div>
+      <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
+      <div className="flex items-center gap-1.5 justify-end">
+        {onRecalc && (
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
+            style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
+            <RefreshCw size={12} />
+          </button>
+        )}
+        {onDelete ? (
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Excluir série"
+            style={{ background: "rgba(255,107,87,0.12)", color: "#FF6B57" }} onClick={onDelete}>
+            <Trash2 size={12} />
+          </button>
+        ) : <div className="w-7 h-7" />}
+      </div>
+    </div>
+  );
+}
+
 function THead({ children, green = false, violet = false, colors }: {
   children: React.ReactNode; green?: boolean; violet?: boolean; colors: ReturnType<typeof useColors>;
 }) {
@@ -551,51 +597,11 @@ export default function FluxoPage() {
 
             {/* Linha genérica */}
             {(() => {
-              const Row = ({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc, total, onRecalc, onDelete }: {
-                serie: string; badge?: string; parcelas: number; onParcelas?: (n: number) => void;
-                valorNode: React.ReactNode; venc?: string; onVenc?: (m: string) => void;
-                total: string; onRecalc?: () => void; onDelete?: () => void;
-              }) => (
-                <div className="grid grid-cols-2 md:grid-cols-[1.3fr_.6fr_1fr_.9fr_1fr_auto] gap-2 items-center px-4 py-3"
-                  style={{ background: "#0A0A0A", borderBottom: "1px solid #1E1E1E" }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
-                    {badge && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
-                  </div>
-                  <div>
-                    {onParcelas ? (
-                      <input type="number" min={1} value={parcelas}
-                        onChange={(e) => onParcelas(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-14 bg-transparent text-center text-sm font-bold rounded-lg py-1 outline-none"
-                        style={{ color: "#FFFFFF", border: "1px solid #2A2A2A", fontFamily: "var(--font-mono)" }} />
-                    ) : (
-                      <span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>{parcelas}</span>
-                    )}
-                  </div>
-                  <div>{valorNode}</div>
-                  <div>{onVenc ? <EditableMes value={venc ?? ""} onChange={onVenc} colors={colors} /> : <span className="text-xs" style={{ color: "#898A8E" }}>—</span>}</div>
-                  <div className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{total}</div>
-                  <div className="flex items-center gap-1.5 justify-end">
-                    {onRecalc && (
-                      <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
-                        style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
-                        <RefreshCw size={12} />
-                      </button>
-                    )}
-                    {onDelete ? (
-                      <button className="press w-7 h-7 rounded-lg flex items-center justify-center" title="Excluir série"
-                        style={{ background: "rgba(255,107,87,0.12)", color: "#FF6B57" }} onClick={onDelete}>
-                        <Trash2 size={12} />
-                      </button>
-                    ) : <div className="w-7 h-7" />}
-                  </div>
-                </div>
-              );
               const num = (v: number, onChange: (n: number) => void) => <EditableValue value={v} onChange={onChange} colors={colors} />;
               return (
                 <div style={{ border: "1px solid #242424", borderBottom: "none" }}>
                   {fluxo.percentualAto > 0 && (
-                    <Row serie="Ato" badge={`${fluxo.percentualAto.toFixed(1).replace(".", ",")}% do imóvel`}
+                    <SerieRow colors={colors} serie="Ato" badge={`${fluxo.percentualAto.toFixed(1).replace(".", ",")}% do imóvel`}
                       parcelas={fluxo.parcelasAto}
                       onParcelas={(n) => updateAto(fluxo.percentualAto, Math.min(6, n))}
                       valorNode={num(fluxo.ato[0]?.valor ?? 0, (v) => {
@@ -608,7 +614,7 @@ export default function FluxoPage() {
                       onDelete={() => updateAto(0, 1)} />
                   )}
                   {fluxo.numMensais > 0 && (
-                    <Row serie="Mensal" parcelas={fluxo.numMensais}
+                    <SerieRow colors={colors} serie="Mensal" parcelas={fluxo.numMensais}
                       onParcelas={(n) => setFluxo((p) => ({ ...p, numMensais: Math.min(120, n) }))}
                       valorNode={num(fluxo.valorMensal, (v) => setFluxo((p) => ({ ...p, valorMensal: v })))}
                       venc={fluxo.mesInicioMensais ?? proximoMes(mesAtualFn(), 1)}
@@ -617,7 +623,7 @@ export default function FluxoPage() {
                       onDelete={() => setFluxo((p) => ({ ...p, numMensais: 0 }))} />
                   )}
                   {semestrais.length > 0 && (
-                    <Row serie="Semestral" parcelas={semestrais.length}
+                    <SerieRow colors={colors} serie="Semestral" parcelas={semestrais.length}
                       onParcelas={(n) => setFluxo((p) => {
                         const base = (p.semestrais ?? [])[0] ?? { mes: proximoMes(mesAtualFn(), 6), valor: 0 };
                         return { ...p, semestrais: Array.from({ length: Math.min(20, n) }, (_, i) => ({ mes: proximoMes(base.mes, 6 * i), valor: base.valor })) };
@@ -628,7 +634,7 @@ export default function FluxoPage() {
                       onDelete={() => setFluxo((p) => ({ ...p, semestrais: [] }))} />
                   )}
                   {fluxo.anuais.length > 0 && (
-                    <Row serie="Anual" parcelas={fluxo.anuais.length}
+                    <SerieRow colors={colors} serie="Anual" parcelas={fluxo.anuais.length}
                       onParcelas={(n) => setFluxo((p) => {
                         const base = p.anuais[0] ?? { mes: proximoMes(mesAtualFn(), 12), valor: 0 };
                         return { ...p, anuais: Array.from({ length: Math.min(15, n) }, (_, i) => ({ mes: proximoMes(base.mes, 12 * i), valor: base.valor })) };
@@ -639,20 +645,20 @@ export default function FluxoPage() {
                       onDelete={() => setFluxo((p) => ({ ...p, anuais: [] }))} />
                   )}
                   {calc.mobilia > 0 && (
-                    <Row serie="Decor" badge="decoração" parcelas={1}
+                    <SerieRow colors={colors} serie="Decor" badge="decoração" parcelas={1}
                       valorNode={num(calc.mobilia, (v) => setCalcField("mobilia", v))}
                       total={formatCurrency(calc.mobilia)}
                       onDelete={() => setCalcField("mobilia", 0)} />
                   )}
                   {(fluxo.extras ?? []).map((ex) => (
-                    <Row key={ex.id} serie={ex.tipo.toLowerCase()} parcelas={ex.parcelas}
+                    <SerieRow colors={colors} key={ex.id} serie={ex.tipo.toLowerCase()} parcelas={ex.parcelas}
                       onParcelas={(n) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, parcelas: n } : e) }))}
                       valorNode={num(ex.valor, (v) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: v } : e) })))}
                       venc={ex.mes} onVenc={(m) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, mes: m } : e) }))}
                       total={formatCurrency(ex.valor * ex.parcelas)}
                       onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
                   ))}
-                  <Row serie="Financiamento" badge="automático" parcelas={calc.prazoMeses}
+                  <SerieRow colors={colors} serie="Financiamento" badge="automático" parcelas={calc.prazoMeses}
                     valorNode={<span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>saldo restante</span>}
                     total={formatCurrency(results.financiamento)} />
                 </div>
