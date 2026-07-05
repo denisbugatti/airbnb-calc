@@ -594,32 +594,45 @@ export default function FluxoPage() {
           <p className="mb-7 text-2xl md:text-4xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, lineHeight: 1.15 }}>
             Entrada de {pctInvestido.toFixed(0)}%, o resto financiado.
           </p>
-          {/* Cartões chapados — o primeiro sólido em azul */}
-          <div className="grid grid-cols-1 md:grid-cols-3">
-            {[
-              { label: "Total Investido", pct: `${pctInvestido.toFixed(0)}%`, value: results.totalInvestido, solid: true },
-              { label: "Financiamento", pct: `${pctFinanciamento.toFixed(0)}%`, value: results.financiamento, solid: false },
-              { label: "Valor do Imóvel", pct: "", value: calc.valorImovel, solid: false },
-            ].map(({ label, pct, value, solid }, i) => (
-              <div key={label} className={`rise rise-${i + 1} p-6 md:p-7`}
-                style={{
-                  background: solid ? "#2800FF" : "#0A0A0A",
-                  border: solid ? "1px solid #2800FF" : "1px solid #242424",
-                  marginLeft: i > 0 ? -1 : 0,
-                }}>
-                <div className="text-[11px] tracking-[0.25em] uppercase mb-4"
-                  style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
-                  {label}
-                </div>
-                <div className="text-2xl md:text-3xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
-                  {pct}
-                </div>
-                <div className="text-3xl md:text-4xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
-                  {formatCurrency(value)}
-                </div>
+          {/* Cartões dinâmicos — um por série ativa, refletindo a Condição de Pagamento */}
+          {(() => {
+            const vi = calc.valorImovel;
+            const pctDe = (v: number) => (vi > 0 ? `${((v / vi) * 100).toFixed(0)}%` : "");
+            const cards: { label: string; pct: string; value: number; solid?: boolean }[] = [
+              { label: "Total Investido", pct: pctDe(results.totalInvestido), value: results.totalInvestido, solid: true },
+              ...(results.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(results.totalAto), value: results.totalAto }] : []),
+              ...(results.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(results.totalMensais), value: results.totalMensais }] : []),
+              ...(results.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(results.totalSemestrais), value: results.totalSemestrais }] : []),
+              ...(results.totalAnuais > 0 ? [{ label: `Anuais ${fluxo.anuais.length}×`, pct: pctDe(results.totalAnuais), value: results.totalAnuais }] : []),
+              ...(fluxo.extras ?? []).filter((e) => e.valor * e.parcelas > 0).map((e) => ({
+                label: e.parcelas > 1 ? `${e.tipo} ${e.parcelas}×` : e.tipo,
+                pct: pctDe(e.valor * e.parcelas), value: e.valor * e.parcelas,
+              })),
+              ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia }] : []),
+              { label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento },
+              { label: "Valor do Imóvel", pct: "", value: vi },
+            ];
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
+                {cards.map(({ label, pct, value, solid }) => (
+                  <div key={label} className="rise p-5 md:p-6"
+                    style={{ background: solid ? "#2800FF" : "#0A0A0A" }}>
+                    <div className="text-[11px] tracking-[0.25em] uppercase mb-3"
+                      style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
+                      {label}
+                    </div>
+                    <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
+                      {pct}
+                    </div>
+                    <div className="text-2xl md:text-3xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
+                      {formatCurrency(value)}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           {/* CONDIÇÃO DE PAGAMENTO — séries editáveis (referência: sistema de vendas) */}
           <div className="mt-7">
