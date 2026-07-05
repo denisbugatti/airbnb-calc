@@ -198,13 +198,38 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
 
   // ── Fluxo ────────────────────────────────────────────────────────────────
 
-  const setFluxo = useCallback((fn: (prev: FluxoInputs) => FluxoInputs) => {
-    setFluxoState(fn);
+  // Total investido das séries (sem financiamento)
+  const totalSeriesDe = (f: FluxoInputs) =>
+    f.ato.reduce((s, p) => s + p.valor, 0) +
+    f.valorMensal * f.numMensais +
+    (f.semestrais ?? []).reduce((s, p) => s + p.valor, 0) +
+    f.anuais.reduce((s, p) => s + p.valor, 0) +
+    (f.extras ?? []).reduce((s, e) => s + e.valor * e.parcelas, 0);
+
+  // Toda mutação passa por aqui: se as séries mudaram e o financiamento estava
+  // fixado manualmente, ele volta ao automático (saldo restante) para os % fecharem.
+  const setFluxoGuard = useCallback((fn: (prev: FluxoInputs) => FluxoInputs) => {
+    setFluxoState((prev) => {
+      const next = fn(prev);
+      if (next === prev) return prev;
+      if (
+        next.financiamentoManual !== undefined &&
+        next.financiamentoManual === prev.financiamentoManual &&
+        totalSeriesDe(next) !== totalSeriesDe(prev)
+      ) {
+        return { ...next, financiamentoManual: undefined };
+      }
+      return next;
+    });
   }, []);
+
+  const setFluxo = useCallback((fn: (prev: FluxoInputs) => FluxoInputs) => {
+    setFluxoGuard(fn);
+  }, [setFluxoGuard]);
 
   const updateAto = useCallback((percentual: number, parcelas: number) => {
     setCalcState((prev) => prev); // garante acesso ao valorImovel atual
-    setFluxoState((prev) => ({
+    setFluxoGuard((prev) => ({
       ...prev,
       percentualAto: percentual,
       parcelasAto: parcelas,
@@ -213,7 +238,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, [calc.valorImovel]);
 
   const updateParcelaAtoMes = useCallback((idx: number, mes: string) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const ato = [...prev.ato];
       ato[idx] = { ...ato[idx], mes };
       return { ...prev, ato };
@@ -221,7 +246,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateParcelaAtoValor = useCallback((idx: number, valor: number) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const ato = [...prev.ato];
       ato[idx] = { ...ato[idx], valor };
       return { ...prev, ato };
@@ -229,7 +254,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateAnualMes = useCallback((idx: number, mes: string) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const anuais = [...prev.anuais];
       anuais[idx] = { ...anuais[idx], mes };
       return { ...prev, anuais };
@@ -237,7 +262,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateAnualValor = useCallback((idx: number, valor: number) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const anuais = [...prev.anuais];
       anuais[idx] = { ...anuais[idx], valor };
       return { ...prev, anuais };
@@ -245,7 +270,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addAnual = useCallback(() => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const lastMes = prev.anuais.length > 0 ? prev.anuais[prev.anuais.length - 1].mes : mesAtual();
       return {
         ...prev,
@@ -255,21 +280,21 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeAnual = useCallback(() => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       if (prev.anuais.length === 0) return prev;
       return { ...prev, anuais: prev.anuais.slice(0, -1) };
     });
   }, []);
 
   const removeAnualAt = useCallback((idx: number) => {
-    setFluxoState((prev) => ({
+    setFluxoGuard((prev) => ({
       ...prev,
       anuais: prev.anuais.filter((_, i) => i !== idx),
     }));
   }, []);
 
   const reorderAnuais = useCallback((fromIdx: number, toIdx: number) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const arr = [...prev.anuais];
       const [moved] = arr.splice(fromIdx, 1);
       arr.splice(toIdx, 0, moved);
@@ -278,7 +303,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateSemestralMes = useCallback((idx: number, mes: string) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const semestrais = [...(prev.semestrais ?? [])];
       semestrais[idx] = { ...semestrais[idx], mes };
       return { ...prev, semestrais };
@@ -286,7 +311,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateSemestralValor = useCallback((idx: number, valor: number) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const semestrais = [...(prev.semestrais ?? [])];
       semestrais[idx] = { ...semestrais[idx], valor };
       return { ...prev, semestrais };
@@ -294,7 +319,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addSemestral = useCallback(() => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const sem = prev.semestrais ?? [];
       const lastMes = sem.length > 0 ? sem[sem.length - 1].mes : mesAtual();
       const novoTotal = sem.length + 1;
@@ -308,7 +333,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, [calc.valorImovel]);
 
   const removeSemestral = useCallback(() => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const sem = prev.semestrais ?? [];
       if (sem.length === 0) return prev;
       return { ...prev, semestrais: sem.slice(0, -1) };
@@ -316,14 +341,14 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeSemestralAt = useCallback((idx: number) => {
-    setFluxoState((prev) => ({
+    setFluxoGuard((prev) => ({
       ...prev,
       semestrais: (prev.semestrais ?? []).filter((_, i) => i !== idx),
     }));
   }, []);
 
   const reorderSemestrais = useCallback((fromIdx: number, toIdx: number) => {
-    setFluxoState((prev) => {
+    setFluxoGuard((prev) => {
       const arr = [...(prev.semestrais ?? [])];
       const [moved] = arr.splice(fromIdx, 1);
       arr.splice(toIdx, 0, moved);
