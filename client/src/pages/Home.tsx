@@ -18,6 +18,7 @@ import {
   type CalculatorInputs,
 } from "@/lib/calculator";
 import { useFluxo } from "@/contexts/FluxoContext";
+import { Link } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Building2, TrendingUp, DollarSign, Percent,
@@ -356,7 +357,7 @@ export default function HomePage() {
 
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento } = useFluxo();
+  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento, syncValorImovelParaCalc } = useFluxo();
   const inputs = calc;  // alias para compatibilidade com código existente
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
@@ -406,9 +407,10 @@ export default function HomePage() {
 
   const inputsComFluxo = useMemo(() => ({
     ...inputs,
-    // Capital próprio = total pago no Fluxo (a mobília é somada dentro do motor de cálculo)
-    capitalProprio: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
-    saldoFinanciar: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
+    // O Fluxo de Pagamento é a fonte única: capital próprio e saldo vêm sempre dele
+    // (a mobília é somada dentro do motor de cálculo)
+    capitalProprio: fluxoResults.totalInvestido,
+    saldoFinanciar: fluxoResults.financiamento,
   }), [inputs, fluxoResults]);
 
   const results = useMemo(() => calcular(inputsComFluxo), [inputsComFluxo]);
@@ -588,8 +590,9 @@ export default function HomePage() {
               <div className="space-y-3">
                 <InputField label="Área do imóvel" suffix="m²" min={10} step={1} integer tooltip="Área privativa do imóvel em metros quadrados"
                   {...iF("areaM2")} />
-                <InputField label="Valor do imóvel" prefix="R$" min={50000} step={1000} tooltip="Valor de compra ou avaliação do imóvel"
-                  {...iF("valorImovel")} />
+                <InputField label="Valor do imóvel" prefix="R$" min={0} step={1000} tooltip="Valor de compra ou avaliação do imóvel — atualiza o Fluxo de Pagamento automaticamente"
+                  isDark={isDark} colors={colors} value={inputs.valorImovel}
+                  onChange={(v) => syncValorImovelParaCalc(v)} />
                 <InputField label="Mobília e decoração" prefix="R$" min={0} step={500} tooltip="Custo de mobiliário e decoração (não incluso no valor do imóvel)"
                   {...iF("mobilia")} />
                 <div className="grid grid-cols-2 gap-3 pt-1">
@@ -640,31 +643,28 @@ export default function HomePage() {
             <GlassPanel delay={0.15} colors={colors}>
               <SectionHeader icon={<Percent size={13} />} label="Investimento" colors={colors} />
               <div className="space-y-3">
-                {fluxoResults.totalInvestido > 0 ? (
-                  <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
-                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio total (via Fluxo)</div>
-                    <div className="text-base font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
-                      {formatCurrency(results.capitalProprioTotal)}
-                    </div>
-                    <div className="text-xs mt-1" style={{ color: colors.text4 }}>
-                      Pago na obra + decoração — base do retorno
-                    </div>
+                {/* Fonte única: Fluxo de Pagamento */}
+                <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio total (via Fluxo)</div>
+                  <div className="text-base font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
+                    {formatCurrency(results.capitalProprioTotal)}
                   </div>
-                ) : (
-                  <InputField label="Capital próprio" prefix="R$" min={0} step={1000} tooltip="Valor investido do próprio bolso (base do ROI)"
-                    {...iF("capitalProprio")} />
-                )}
-                {fluxoResults.financiamento > 0 ? (
-                  <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
-                    <div className="text-xs mb-1" style={{ color: colors.text3 }}>Saldo a financiar (via Fluxo)</div>
-                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
-                      {formatCurrency(fluxoResults.financiamento)}
-                    </div>
+                  <div className="text-xs mt-1" style={{ color: colors.text4 }}>
+                    Soma das séries + decoração — base do retorno
                   </div>
-                ) : (
-                  <InputField label="Saldo a financiar" prefix="R$" min={0} step={1000} tooltip="Valor financiado pelo banco"
-                    {...iF("saldoFinanciar")} />
-                )}
+                </div>
+                <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
+                  <div className="text-xs mb-1" style={{ color: colors.text3 }}>Saldo a financiar (via Fluxo)</div>
+                  <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
+                    {formatCurrency(fluxoResults.financiamento)}
+                  </div>
+                </div>
+                <Link href="/fluxo">
+                  <div className="press cursor-pointer rounded-xl px-3 py-2.5 text-xs font-semibold text-center"
+                    style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}>
+                    Configurar no Fluxo de Pagamento →
+                  </div>
+                </Link>
                 {/* Taxa anual → converte para mensal internamente */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
