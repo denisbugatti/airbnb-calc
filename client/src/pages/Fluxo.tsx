@@ -634,7 +634,11 @@ export default function FluxoPage() {
               <div className="overflow-x-auto">
                 <div className="flex"
                   style={{ gap: 1, background: "#242424", border: "1px solid #242424", width: "max-content", minWidth: "100%" }}>
-                  {[...series, ...resumo].map((c) => (
+                  {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total */}
+                  {(series.length === 1 && Math.abs(series[0].value - totalSeries) < 1
+                    ? [{ ...series[0], solid: true }, ...resumo.slice(1)]
+                    : [...series, ...resumo]
+                  ).map((c) => (
                     <div key={c.label} style={{ minWidth: 190, flex: "1 0 auto" }}>
                       <Cartao {...c} />
                     </div>
