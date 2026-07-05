@@ -53,7 +53,13 @@ function useAnimatedNumber(value: number, duration = 500) {
     };
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafRef.current);
+    // rAF não roda em abas em segundo plano — garante o valor final mesmo sem frames
+    const snap = setTimeout(() => {
+      cancelAnimationFrame(rafRef.current);
+      prevRef.current = end;
+      setDisplayed(end);
+    }, duration + 100);
+    return () => { cancelAnimationFrame(rafRef.current); clearTimeout(snap); };
   }, [value, duration]);
   return displayed;
 }
@@ -374,7 +380,8 @@ export default function HomePage() {
   useEffect(() => {
     const payload = decodeShareLink();
     if (payload?.calc) {
-      setCalc(() => payload.calc);
+      // Merge com defaults: links antigos não têm os campos novos (impostos editáveis)
+      setCalc(() => ({ ...defaultInputs, ...payload.calc }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -386,7 +393,8 @@ export default function HomePage() {
     const handler = (e: Event) => {
       const cenario = (e as CustomEvent<Cenario>).detail;
       if (cenario?.inputs) {
-        setCalc(() => cenario.inputs);
+        // Merge com defaults: cenários salvos antes dos impostos editáveis não têm os campos novos
+        setCalc(() => ({ ...defaultInputs, ...cenario.inputs }));
         toast.success(`Cenário "${cenario.nome}" restaurado!`);
       }
     };
@@ -729,6 +737,26 @@ export default function HomePage() {
 
               </div>
             </GlassPanel>
+
+            {/* Impostos (variantes fiscais) */}
+            <GlassPanel delay={0.22} colors={colors}>
+              <SectionHeader icon={<Shield size={13} />} label="Impostos" colors={colors} />
+              <div className="grid grid-cols-2 gap-3">
+                <InputField label="Holding" suffix="%" min={0} step={1} integer
+                  tooltip="Imposto sobre a renda líquida na estrutura de holding (padrão 9%)"
+                  isDark={isDark} colors={colors}
+                  value={Math.round(inputs.impostoHolding * 100)}
+                  onChange={(v) => set("impostoHolding")(Math.min(100, v) / 100)} />
+                <InputField label="Pessoa Física" suffix="%" min={0} step={1} integer
+                  tooltip="Imposto de renda sobre aluguel como pessoa física (padrão 27%)"
+                  isDark={isDark} colors={colors}
+                  value={Math.round(inputs.impostoPF * 100)}
+                  onChange={(v) => set("impostoPF")(Math.min(100, v) / 100)} />
+              </div>
+              <div className="text-xs mt-2" style={{ color: colors.text4 }}>
+                Aplicados sobre a renda líquida nas variantes fiscais.
+              </div>
+            </GlassPanel>
           </div>
 
           {/* ── RIGHT: RESULTS (sticky no desktop) ── */}
@@ -790,10 +818,10 @@ export default function HomePage() {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: colors.text4 }}>
                 <div className="rounded-lg px-3 py-2" style={{ background: colors.inputBg }}>
-                  <span style={{ color: colors.green }}>Holding</span>: desconto de 9% sobre renda bruta
+                  <span style={{ color: colors.green }}>Holding</span>: desconto de {Math.round(inputs.impostoHolding * 100)}% sobre a renda líquida
                 </div>
                 <div className="rounded-lg px-3 py-2" style={{ background: colors.inputBg }}>
-                  <span style={{ color: colors.amber }}>PF</span>: desconto de 27% sobre renda bruta
+                  <span style={{ color: colors.amber }}>PF</span>: desconto de {Math.round(inputs.impostoPF * 100)}% sobre a renda líquida
                 </div>
               </div>
             </GlassPanel>
@@ -911,8 +939,8 @@ export default function HomePage() {
                       <div className="grid grid-cols-3 gap-2 mt-3">
                         {[
                           { label: "Lucro", meses: mesesParaBreakeven, color: colors.text2 },
-                          { label: "Holding (−9%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.91)) : null, color: colors.blue },
-                          { label: "PF (−27%)", meses: mesesParaBreakeven !== null ? Math.ceil(totalInv / (rendaLiq * 0.73)) : null, color: colors.amber },
+                          { label: `Holding (−${Math.round(inputs.impostoHolding * 100)}%)`, meses: mesesParaBreakeven !== null && results.rendaHolding > 0 ? Math.ceil(totalInv / results.rendaHolding) : null, color: colors.blue },
+                          { label: `PF (−${Math.round(inputs.impostoPF * 100)}%)`, meses: mesesParaBreakeven !== null && results.rendaPF > 0 ? Math.ceil(totalInv / results.rendaPF) : null, color: colors.amber },
                         ].map(({ label, meses, color }) => (
                           <div key={label} className="text-center p-2 rounded-xl" style={{ background: colors.inputBg }}>
                             <div className="text-xs mb-0.5" style={{ color: colors.text4 }}>{label}</div>
