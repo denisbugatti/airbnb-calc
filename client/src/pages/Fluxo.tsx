@@ -598,8 +598,8 @@ export default function FluxoPage() {
           {(() => {
             const vi = calc.valorImovel;
             const pctDe = (v: number) => (vi > 0 ? `${((v / vi) * 100).toFixed(0)}%` : "");
-            const cards: { label: string; pct: string; value: number; solid?: boolean }[] = [
-              { label: "Total Investido", pct: pctDe(results.totalInvestido), value: results.totalInvestido, solid: true },
+            const totalSeries = results.totalInvestido + calc.mobilia;
+            const series: { label: string; pct: string; value: number }[] = [
               ...(results.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(results.totalAto), value: results.totalAto }] : []),
               ...(results.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(results.totalMensais), value: results.totalMensais }] : []),
               ...(results.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(results.totalSemestrais), value: results.totalSemestrais }] : []),
@@ -609,27 +609,42 @@ export default function FluxoPage() {
                 pct: pctDe(e.valor * e.parcelas), value: e.valor * e.parcelas,
               })),
               ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia }] : []),
+            ];
+            const resumo: { label: string; pct: string; value: number; solid?: boolean }[] = [
+              { label: "Total Investido", pct: vi > 0 ? `${((totalSeries / vi) * 100).toFixed(0)}%` : "", value: totalSeries, solid: true },
               { label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento },
               { label: "Valor do Imóvel", pct: "", value: vi },
             ];
+            const Cartao = ({ label, pct, value, solid }: { label: string; pct: string; value: number; solid?: boolean }) => (
+              <div className="rise p-5 md:p-6" style={{ background: solid ? "#2800FF" : "#0A0A0A" }}>
+                <div className="text-[11px] tracking-[0.25em] uppercase mb-3"
+                  style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
+                  {label}
+                </div>
+                <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
+                  {pct}
+                </div>
+                <div className="text-2xl md:text-3xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
+                  {formatCurrency(value)}
+                </div>
+              </div>
+            );
             return (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-                style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
-                {cards.map(({ label, pct, value, solid }) => (
-                  <div key={label} className="rise p-5 md:p-6"
-                    style={{ background: solid ? "#2800FF" : "#0A0A0A" }}>
-                    <div className="text-[11px] tracking-[0.25em] uppercase mb-3"
-                      style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
-                      {label}
-                    </div>
-                    <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
-                      {pct}
-                    </div>
-                    <div className="text-2xl md:text-3xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
-                      {formatCurrency(value)}
-                    </div>
+              <div>
+                {/* Séries do fluxo */}
+                {series.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                    style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
+                    {series.map((c) => <Cartao key={c.label} {...c} />)}
                   </div>
-                ))}
+                )}
+                {/* Linha de soma */}
+                <div className="my-5" style={{ height: 2, background: "#2800FF" }} />
+                {/* Total (soma das séries) → antes do Financiamento → Valor do Imóvel */}
+                <div className="grid grid-cols-1 md:grid-cols-3"
+                  style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
+                  {resumo.map((c) => <Cartao key={c.label} {...c} />)}
+                </div>
               </div>
             );
           })()}
