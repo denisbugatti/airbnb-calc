@@ -169,7 +169,7 @@ function InputField({ label, value, onChange, prefix, suffix, min = 0, step = 1,
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent px-2 py-3 text-sm font-medium outline-none min-w-0 w-full"
-          style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
+          style={{ color: colors.mono, fontFamily: "var(--font-mono)" }}
           autoComplete="off"
         />
         {suffix && <span className="pr-2 text-xs select-none" style={{ color: colors.text3 }}>{suffix}</span>}
@@ -198,25 +198,25 @@ function MetricCard({ value, label, formatter, icon, accent, size = "md", isDark
   const accentIconBg = colors[`${accent}IconBg` as keyof typeof colors] as string;
   const accentBorder = colors[`${accent}Border` as keyof typeof colors] as string;
   const accentBg = colors[`${accent}Bg` as keyof typeof colors] as string;
+  void accentGlow;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+    <div
       className="rounded-2xl p-3 md:p-4 flex flex-col gap-1.5"
       style={{
         background: accentBg,
         border: `1px solid ${accentBorder}`,
-        boxShadow: isDark ? `0 4px 32px ${accentGlow}` : `0 2px 12px ${accentGlow}`,
+        boxShadow: colors.cardShadow,
       }}
     >
       <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: accentIconBg, color: accentColor }}>
         {icon}
       </div>
-      <div className={`font-black tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`}
-        style={{ color: accentColor, fontFamily: "'Geist', sans-serif", textShadow: isDark ? `0 0 24px ${accentGlow}` : "none" }}>
+      <div className={`font-bold tracking-tight ${size === "lg" ? "text-2xl md:text-3xl" : "text-xl"}`}
+        style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
         {formatter(animated)}
       </div>
       <div className="text-xs mt-0.5 font-medium" style={{ color: colors.text3 }}>{label}</div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -248,7 +248,7 @@ function WaterfallBar({ label, value, total, color, isNegative = false, colors }
         />
       </div>
       <div className="w-20 md:w-24 shrink-0 text-right">
-        <span className="text-xs font-semibold" style={{ color: isNegative ? colors.red : color, fontFamily: "'Geist Mono', monospace" }}>
+        <span className="text-xs font-semibold" style={{ color: isNegative ? colors.red : color, fontFamily: "var(--font-mono)" }}>
           {isNegative ? "−" : ""}{formatCurrency(Math.abs(value))}
         </span>
       </div>
@@ -290,31 +290,31 @@ function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, i
       {/* Receita Bruta — topo */}
       <div>
         <div className="text-xs font-medium" style={{ color: colors.text4 }}>Receita bruta</div>
-        <div className="text-sm font-bold" style={{ color: colors.text2, fontFamily: "'Geist Mono', monospace" }}>
+        <div className="text-sm font-bold" style={{ color: colors.text2, fontFamily: "var(--font-mono)" }}>
           {formatCurrency(receitaBruta)}
         </div>
       </div>
       {/* Renda Líquida (mensal + anual) */}
       <div>
         <div className="text-xs font-medium" style={{ color: colors.text4 }}>Renda líquida / mês</div>
-        <div className="text-lg md:text-2xl font-black" style={{ color: accentColor, fontFamily: "'Geist', sans-serif", textShadow: isDark ? `0 0 20px ${accentGlow}` : "none" }}>
+        <div className="text-lg md:text-2xl font-black" style={{ color: accentColor, fontFamily: "var(--font-sans)", textShadow: isDark ? `0 0 20px ${accentGlow}` : "none" }}>
           {formatCurrency(animRenda)}
         </div>
         <div className="text-xs font-medium mt-1.5" style={{ color: colors.text4 }}>Renda líquida / ano</div>
-        <div className="text-sm md:text-base font-bold" style={{ color: colors.text2, fontFamily: "'Geist Mono', monospace" }}>
+        <div className="text-sm md:text-base font-bold" style={{ color: colors.text2, fontFamily: "var(--font-mono)" }}>
           {formatCurrency(animRenda * 12)}
         </div>
       </div>
       {/* Rentabilidade Mensal + Anual */}
       <div className="pt-2 border-t grid grid-cols-2 gap-2" style={{ borderColor: colors.divider }}>
         <div>
-          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
+          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
             {formatPercent(animRentMensal)} a.m.
           </div>
           <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rent. mensal</div>
         </div>
         <div>
-          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "'Geist Mono', monospace" }}>
+          <div className="text-base font-bold" style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
             {formatPercent(animRent)} a.a.
           </div>
           <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>rent. anual</div>
@@ -325,18 +325,16 @@ function FiscalCard({ label, renda, rentabilidade, receitaBruta, icon, accent, i
 }
 
 // ─── Glass Panel ──────────────────────────────────────────────────────────────
-function GlassPanel({ children, delay = 0, className = "", colors }: {
+function GlassPanel({ children, delay: _delay = 0, className = "", colors }: {
   children: React.ReactNode; delay?: number; className?: string; colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+    <div
       className={`rounded-2xl p-4 md:p-5 ${className}`}
       style={{ background: colors.surface, border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -427,41 +425,33 @@ export default function HomePage() {
   const iF = (key: keyof CalculatorInputs) => ({ isDark, colors, value: inputs[key] as number, onChange: set(key) });
 
   return (
-    <div className="w-full" style={{ fontFamily: "'Geist', sans-serif" }}>
+    <div className="w-full" style={{ fontFamily: "var(--font-sans)" }}>
 
       {/* ── HERO ── */}
-      <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5"
-            style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue }}>
-            <Zap size={11} /> Análise em tempo real
-          </div>
-          {/* H2 visível para SEO — descreve a seção principal */}
-          <h2 className="sr-only">Simulador de Rentabilidade para Locação de Curta Temporada</h2>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none mb-4" style={{ color: colors.text1 }}>
-            Calcule sua{" "}
-            <span style={{ color: colors.blue, textShadow: isDark ? `0 0 40px ${colors.blueGlow}` : "none" }}>
-              rentabilidade
-            </span>
-          </h1>
-          <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-5" style={{ color: colors.text2 }}>
-            Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <button
-              onClick={() => setShowSalvarModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-              style={{
-                background: isDark ? "oklch(0.72 0.18 145 / 0.1)" : "oklch(0.48 0.2 145 / 0.08)",
-                border: `1px solid ${isDark ? "oklch(0.72 0.18 145 / 0.25)" : "oklch(0.48 0.2 145 / 0.2)"}`,
-                color: colors.green,
-              }}
-            >
-              <BookmarkPlus size={12} />
-              Salvar cenário
-            </button>
-          </div>
-        </motion.div>
+      <section className="px-4 md:px-6 pt-8 md:pt-12 pb-5 md:pb-8 text-center max-w-3xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase mb-5"
+          style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}`, color: colors.blue, fontFamily: "var(--font-mono)" }}>
+          <Zap size={11} /> Análise em tempo real
+        </div>
+        {/* H2 visível para SEO — descreve a seção principal */}
+        <h2 className="sr-only">Simulador de Rentabilidade para Locação de Curta Temporada</h2>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight mb-4" style={{ color: colors.text1, fontWeight: 600 }}>
+          Calcule sua{" "}
+          <span style={{ color: colors.blue }}>rentabilidade</span>
+        </h1>
+        <p className="text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-5" style={{ color: colors.text3 }}>
+          Simule o retorno do seu imóvel em locação de curta temporada. Análise completa com variantes fiscais e métricas de investimento.
+        </p>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <button
+            onClick={() => setShowSalvarModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-85"
+            style={{ background: colors.blue, color: "#FFFFFF" }}
+          >
+            <BookmarkPlus size={12} />
+            Salvar cenário
+          </button>
+        </div>
       </section>
 
       {/* ── MODAL SALVAR CENÁRIO ── */}
@@ -472,7 +462,7 @@ export default function HomePage() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowSalvarModal(false)}
               className="fixed inset-0"
-              style={{ background: "oklch(0 0 0 / 0.6)", backdropFilter: "blur(6px)", zIndex: 80 }}
+              style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", zIndex: 80 }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -485,13 +475,13 @@ export default function HomePage() {
               <div
                 className="rounded-2xl p-6"
                 style={{
-                  background: isDark ? "oklch(0.11 0.008 240)" : "oklch(1 0 0)",
-                  border: `1px solid ${isDark ? "oklch(1 0 0 / 0.08)" : "oklch(0 0 0 / 0.07)"}`,
-                  boxShadow: isDark ? "0 24px 64px oklch(0 0 0 / 0.6)" : "0 24px 64px oklch(0 0 0 / 0.15)",
+                  background: colors.surface,
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: isDark ? "0 24px 64px rgba(0,0,0,0.6)" : "0 24px 64px rgba(10,10,11,0.15)",
                 }}
               >
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: isDark ? "oklch(0.72 0.18 145 / 0.12)" : "oklch(0.48 0.2 145 / 0.1)", color: colors.green }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: colors.blueIconBg, color: colors.blue }}>
                     <BookmarkPlus size={20} />
                   </div>
                   <div>
@@ -508,8 +498,8 @@ export default function HomePage() {
                   onKeyDown={(e) => { if (e.key === "Enter") handleSalvarCenario(); if (e.key === "Escape") setShowSalvarModal(false); }}
                   className="w-full px-4 py-3 rounded-xl text-sm outline-none mb-4"
                   style={{
-                    background: isDark ? "oklch(0.08 0.005 240)" : "oklch(0.97 0.003 80)",
-                    border: `1px solid ${isDark ? "oklch(1 0 0 / 0.1)" : "oklch(0 0 0 / 0.08)"}`,
+                    background: colors.inputBg,
+                    border: `1px solid ${colors.border}`,
                     color: colors.text1,
                   }}
                 />
@@ -517,14 +507,14 @@ export default function HomePage() {
                   <button
                     onClick={() => setShowSalvarModal(false)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-70"
-                    style={{ background: isDark ? "oklch(1 0 0 / 0.06)" : "oklch(0 0 0 / 0.05)", color: colors.text2 }}
+                    style={{ background: colors.inputBg, color: colors.text2 }}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSalvarCenario}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-black transition-all hover:opacity-90"
-                    style={{ background: colors.green, color: "white" }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                    style={{ background: colors.blue, color: "white" }}
                   >
                     Salvar
                   </button>
@@ -551,8 +541,8 @@ export default function HomePage() {
               className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all"
               style={{
                 background: activeTab === tab ? colors.blue : "transparent",
-                color: activeTab === tab ? "oklch(0.99 0 0)" : colors.text3,
-                boxShadow: activeTab === tab && !isDark ? "0 1px 4px oklch(0 0 0 / 0.12)" : "none",
+                color: activeTab === tab ? "#FFFFFF" : colors.text3,
+                boxShadow: activeTab === tab && !isDark ? "0 1px 4px rgba(10,10,11,0.12)" : "none",
               }}>
               {tab === "inputs" ? "Configurar" : "Resultados"}
             </button>
@@ -580,13 +570,13 @@ export default function HomePage() {
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
                     <div className="text-xs mb-1" style={{ color: colors.text3 }}>Valor por m²</div>
-                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {formatCurrency(results.valorPorM2)}
                     </div>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
                     <div className="text-xs mb-1" style={{ color: colors.text3 }}>Total da unidade</div>
-                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {formatCurrency(results.totalUnidade)}
                     </div>
                   </div>
@@ -603,7 +593,7 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium" style={{ color: colors.text3 }}>Dias ocupados / mês</label>
-                    <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {inputs.diasOcupacao} dias
                     </span>
                   </div>
@@ -614,7 +604,7 @@ export default function HomePage() {
                 </div>
                 <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
                   <div className="text-xs mb-1" style={{ color: colors.text3 }}>Receita bruta mensal</div>
-                  <div className="text-xl font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                  <div className="text-xl font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
                     {formatCurrency(results.receitaBrutaMensal)}
                   </div>
                 </div>
@@ -628,7 +618,7 @@ export default function HomePage() {
                 {fluxoResults.totalInvestido > 0 ? (
                   <div className="rounded-xl p-3" style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}` }}>
                     <div className="text-xs mb-1" style={{ color: colors.text3 }}>Capital próprio (via Fluxo)</div>
-                    <div className="text-base font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                    <div className="text-base font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
                       {formatCurrency(inputsComFluxo.capitalProprio)}
                     </div>
                     <div className="text-xs mt-1" style={{ color: colors.text4 }}>
@@ -642,7 +632,7 @@ export default function HomePage() {
                 {fluxoResults.financiamento > 0 ? (
                   <div className="rounded-xl p-3" style={{ background: colors.blueBg, border: `1px solid ${colors.blueBorder}` }}>
                     <div className="text-xs mb-1" style={{ color: colors.text3 }}>Saldo a financiar (via Fluxo)</div>
-                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {formatCurrency(fluxoResults.financiamento)}
                     </div>
                   </div>
@@ -676,13 +666,13 @@ export default function HomePage() {
                           if (!isNaN(aa) && aa > 0) set("taxaJurosMensal")(aa / 100 / 12);
                         }}
                         className="flex-1 bg-transparent px-3 py-3 text-sm font-medium outline-none min-w-0"
-                        style={{ color: colors.mono, fontFamily: "'Geist Mono', monospace" }}
+                        style={{ color: colors.mono, fontFamily: "var(--font-mono)" }}
                       />
                       <span className="pr-3 text-xs select-none" style={{ color: colors.text3 }}>% a.a.</span>
                     </div>
                   </div>
                   <div className="mt-1.5 text-xs" style={{ color: colors.text4 }}>
-                    Equivalente: <span style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    Equivalente: <span style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {(inputs.taxaJurosMensal * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}% a.m.
                     </span>
                   </div>
@@ -691,7 +681,7 @@ export default function HomePage() {
                   {...iF("prazoMeses")} />
                 <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
                   <div className="text-xs mb-1" style={{ color: colors.text3 }}>Parcela mensal (Price)</div>
-                  <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                  <div className="text-base font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                     {formatCurrency(results.parcelaFinanciamento)}
                   </div>
                 </div>
@@ -705,7 +695,7 @@ export default function HomePage() {
                 {/* Financiamento */}
                 <div className="rounded-xl p-3" style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}>
                   <div className="text-xs mb-1" style={{ color: colors.text3 }}>Parcela mensal (Financiamento)</div>
-                  <div className="text-base font-black" style={{ color: colors.amber, fontFamily: "'Geist Mono', monospace" }}>
+                  <div className="text-base font-black" style={{ color: colors.amber, fontFamily: "var(--font-mono)" }}>
                     {formatCurrency(results.parcelaFinanciamento)}
                   </div>
                 </div>
@@ -713,7 +703,7 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium" style={{ color: colors.text3 }}>Administração + Seguro</label>
-                    <span className="text-xs font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    <span className="text-xs font-bold" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {(inputs.taxaAdminSeguro * 100).toFixed(0)}% da receita
                     </span>
                   </div>
@@ -812,7 +802,7 @@ export default function HomePage() {
                   <div className="text-xs mb-1" style={{ color: colors.text3 }}>Dias mínimos p/ cobrir despesas</div>
                   <div className="text-3xl font-black" style={{
                     color: results.diasBreakeven <= inputs.diasOcupacao ? colors.green : colors.red,
-                    fontFamily: "'Geist', sans-serif",
+                    fontFamily: "var(--font-sans)",
                   }}>
                     {results.diasBreakeven} dias
                   </div>
@@ -825,7 +815,7 @@ export default function HomePage() {
                     <div key={label}>
                       <div className="flex justify-between text-xs mb-1">
                         <span style={{ color: colors.text3 }}>{label}</span>
-                        <span style={{ color, fontFamily: "'Geist Mono', monospace" }}>{days} dias ({((days / 30) * 100).toFixed(0)}%)</span>
+                        <span style={{ color, fontFamily: "var(--font-mono)" }}>{days} dias ({((days / 30) * 100).toFixed(0)}%)</span>
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
                         <motion.div
@@ -848,7 +838,7 @@ export default function HomePage() {
                   ].map(({ label, value, color, bold }) => (
                     <div key={label} className="flex items-center justify-between py-1.5" style={{ borderBottom: `1px solid ${colors.divider}` }}>
                       <span className={`text-xs ${bold ? "font-semibold" : ""}`} style={{ color: bold ? colors.text2 : colors.text3 }}>{label}</span>
-                      <span className={`text-sm ${bold ? "font-black" : "font-semibold"}`} style={{ color, fontFamily: "'Geist Mono', monospace" }}>
+                      <span className={`text-sm ${bold ? "font-black" : "font-semibold"}`} style={{ color, fontFamily: "var(--font-mono)" }}>
                         {value < 0 ? "−" : ""}{formatCurrency(Math.abs(value))}
                       </span>
                     </div>
@@ -856,13 +846,13 @@ export default function HomePage() {
                   <div className="pt-2 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs" style={{ color: colors.text3 }}>Rentabilidade mensal s/ capital investido</span>
-                      <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                      <span className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                         {formatPercent(results.ganhoFinanceiroMensal)} a.m.
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold" style={{ color: colors.text2 }}>Rentabilidade anual</span>
-                      <span className="text-base font-black" style={{ color: rentColor, fontFamily: "'Geist Mono', monospace" }}>
+                      <span className="text-base font-black" style={{ color: rentColor, fontFamily: "var(--font-mono)" }}>
                         {formatPercent(results.rentabilidadeAnual)} a.a.
                       </span>
                     </div>
@@ -887,7 +877,7 @@ export default function HomePage() {
                       <div className="text-xs mb-1" style={{ color: colors.text3 }}>Tempo para recuperar o capital investido</div>
                       {mesesParaBreakeven !== null ? (
                         <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-black" style={{ color: colors.green, fontFamily: "'Geist', sans-serif" }}>
+                          <span className="text-4xl font-black" style={{ color: colors.green, fontFamily: "var(--font-sans)" }}>
                             {anos}a {mesesRest}m
                           </span>
                           <span className="text-xs" style={{ color: colors.text3 }}>({mesesParaBreakeven} meses)</span>
@@ -902,7 +892,7 @@ export default function HomePage() {
                     <div className="flex-1 w-full">
                       <div className="flex justify-between text-xs mb-1.5">
                         <span style={{ color: colors.text3 }}>Progresso anual estimado</span>
-                        <span style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>{progressPct.toFixed(1)}% / ano</span>
+                        <span style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>{progressPct.toFixed(1)}% / ano</span>
                       </div>
                       <div className="h-2 rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
                         <motion.div
@@ -922,7 +912,7 @@ export default function HomePage() {
                             <div className="text-xs mb-0.5" style={{ color: colors.text4 }}>{label}</div>
                             {meses !== null ? (
                               <>
-                                <div className="text-sm font-black" style={{ color, fontFamily: "'Geist Mono', monospace" }}>
+                                <div className="text-sm font-black" style={{ color, fontFamily: "var(--font-mono)" }}>
                                   {Math.floor(meses / 12)}a {meses % 12}m
                                 </div>
                               </>
@@ -1050,11 +1040,11 @@ export default function HomePage() {
                         <line key={t} x1={padL} y1={padTop + plotH * (1 - t)} x2={svgW - padR} y2={padTop + plotH * (1 - t)} stroke={gridC} strokeWidth={1} strokeDasharray="4 4" />
                       ))}
                       {/* Label RECEITA BRUTA — fixo no topo, 40px abaixo do topo do SVG */}
-                      <text x={padL} y={padTop + 45} fill={textC} fontSize={20} fontWeight="900" fontFamily="'Geist', sans-serif" letterSpacing="2">RECEITA BRUTA</text>
+                      <text x={padL} y={padTop + 45} fill={textC} fontSize={20} fontWeight="900" fontFamily="var(--font-sans)" letterSpacing="2">RECEITA BRUTA</text>
                       {/* Eixo X */}
                       <line x1={padL} y1={svgH - padBot + 10 + axisOffset} x2={svgW - padR} y2={svgH - padBot + 10 + axisOffset} stroke={divC} strokeWidth={1.5} />
                       {/* Label ANOS */}
-                      <text x={8} y={svgH - padBot + 29 + axisOffset} fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif" letterSpacing="2">ANOS</text>
+                      <text x={8} y={svgH - padBot + 29 + axisOffset} fill={textC} fontSize={12} fontWeight="700" fontFamily="var(--font-sans)" letterSpacing="2">ANOS</text>
 
                       {/* Linha verde (aluguel) */}
                       <path d={greenPath} fill="none" stroke={greenC} strokeWidth={2.5} strokeOpacity={0.85} />
@@ -1076,12 +1066,12 @@ export default function HomePage() {
                             <text
                               x={x + 18} y={midY - 6}
                               fill={textC} fontSize={isFirst ? 22 : 19} fontWeight="900"
-                              fontFamily="'Geist', sans-serif"
+                              fontFamily="var(--font-sans)"
                             >
                               {formatCurrency(d.lucro)}
                             </text>
                             {isFirst && (
-                              <text x={x + 18} y={midY + 14} fill={text3C} fontSize={11} fontFamily="'Geist', sans-serif" letterSpacing="1">LUCRO MENSAL</text>
+                              <text x={x + 18} y={midY + 14} fill={text3C} fontSize={11} fontFamily="var(--font-sans)" letterSpacing="1">LUCRO MENSAL</text>
                             )}
                           </g>
                         );
@@ -1095,7 +1085,7 @@ export default function HomePage() {
                             <circle cx={x} cy={y} r={9} fill={greenC} fillOpacity={0.18} />
                             <circle cx={x} cy={y} r={5} fill={greenC} />
                             <rect x={x - lw / 2} y={y - lh - 12} width={lw} height={lh} rx={12} fill={bgLabel} stroke={greenC} strokeWidth={1} strokeOpacity={0.5} />
-                            <text x={x} y={y - lh - 12 + lh / 2 + 4.5} textAnchor="middle" fill={greenC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
+                            <text x={x} y={y - lh - 12 + lh / 2 + 4.5} textAnchor="middle" fill={greenC} fontSize={11} fontWeight="700" fontFamily="var(--font-mono)">
                               {fmt(d.receita)}
                             </text>
                           </g>
@@ -1110,7 +1100,7 @@ export default function HomePage() {
                             <circle cx={x} cy={y} r={9} fill={blueC} fillOpacity={0.18} />
                             <circle cx={x} cy={y} r={5} fill={blueC} />
                             <rect x={x - lw / 2} y={y + 12} width={lw} height={lh} rx={12} fill={bgLabelBlue} stroke={blueC} strokeWidth={1} strokeOpacity={0.5} />
-                            <text x={x} y={y + 12 + lh / 2 + 4.5} textAnchor="middle" fill={blueC} fontSize={11} fontWeight="700" fontFamily="'Geist Mono', monospace">
+                            <text x={x} y={y + 12 + lh / 2 + 4.5} textAnchor="middle" fill={blueC} fontSize={11} fontWeight="700" fontFamily="var(--font-mono)">
                               {fmt(d.parcelaSac)}
                             </text>
                           </g>
@@ -1120,16 +1110,16 @@ export default function HomePage() {
                       {chartData.map((d, i) => (
                         <g key={`x-${i}`}>
                           <rect x={xOf(i) - 14} y={svgH - padBot + 14 + axisOffset} width={28} height={22} rx={11} fill={yearChipBg} />
-                           <text x={xOf(i)} y={svgH - padBot + 29 + axisOffset} textAnchor="middle" fill={textC} fontSize={12} fontWeight="700" fontFamily="'Geist', sans-serif">
+                           <text x={xOf(i)} y={svgH - padBot + 29 + axisOffset} textAnchor="middle" fill={textC} fontSize={12} fontWeight="700" fontFamily="var(--font-sans)">
                              {d.ano}
                            </text>
                         </g>
                       ))}
                       {/* Legenda dentro do SVG, abaixo da linha cinza dos anos — alinhada com bolinha do ano 1 */}
                       <circle cx={xOf(0)} cy={svgH - padBot + 90 + axisOffset} r={7} fill={greenC} />
-                      <text x={xOf(0) + 14} y={svgH - padBot + 96 + axisOffset} fill={greenC} fontSize={16} fontWeight="700" fontFamily="'Geist', sans-serif">Receita bruta</text>
+                      <text x={xOf(0) + 14} y={svgH - padBot + 96 + axisOffset} fill={greenC} fontSize={16} fontWeight="700" fontFamily="var(--font-sans)">Receita bruta</text>
                       <circle cx={xOf(0) + 160} cy={svgH - padBot + 90 + axisOffset} r={7} fill={blueC} />
-                      <text x={xOf(0) + 174} y={svgH - padBot + 96 + axisOffset} fill={blueC} fontSize={16} fontWeight="700" fontFamily="'Geist', sans-serif">Parcela SAC</text>
+                      <text x={xOf(0) + 174} y={svgH - padBot + 96 + axisOffset} fill={blueC} fontSize={16} fontWeight="700" fontFamily="var(--font-sans)">Parcela SAC</text>
                       {/* Defs para setas */}
                       <defs>
                         <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">

@@ -16,15 +16,36 @@ import HistoricoCenarios from "@/components/HistoricoCenarios";
 import { useFluxo } from "@/contexts/FluxoContext";
 import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
-import { useCursorGlow } from "./hooks/useCursorGlow";
-import { motion } from "framer-motion";
-import { Zap, Calculator, GitBranch, Sun, Moon } from "lucide-react";
+import { Calculator, GitBranch, Sun, Moon } from "lucide-react";
+import { useVitaconColors } from "@/lib/vitaconColors";
+
+// ─── Wordmark Vitacon (SVG inline, herda a cor via currentColor) ──────────────
+export function VitaconWordmark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 360 84" fill="currentColor" className={className} role="img" aria-label="Vitacon">
+      <polygon points="8,8 20,8 78,78 66,78" />
+      <rect x="69" y="8" width="9" height="70" />
+      <rect x="89.5" y="24" width="9" height="54" />
+      <rect x="89.5" y="8" width="9" height="9.5" rx="2" />
+      <rect x="111" y="8" width="9" height="70" />
+      <rect x="110" y="24" width="23" height="7" />
+      <rect x="176" y="24" width="9" height="54" />
+      <g fill="none" stroke="currentColor" strokeWidth="9">
+        <ellipse cx="156" cy="51" rx="16" ry="22.4" />
+        <path d="M236.86,65.40 A22.4,22.4 0 1 1 236.86,36.60" strokeLinecap="butt" />
+        <circle cx="275" cy="51" r="22.4" />
+        <path d="M314,78 L314,46 A17,17 0 0 1 348,46 L348,78" strokeLinecap="butt" />
+      </g>
+    </svg>
+  );
+}
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function NavBar() {
   const [location] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
+  const colors = useVitaconColors(isDark);
 
   const tabs = [
     { path: "/fluxo", label: "Fluxo de Pagamento", icon: <GitBranch size={14} /> },
@@ -35,37 +56,22 @@ function NavBar() {
     <nav
       className="sticky top-0 z-50 flex items-center justify-between gap-2 px-3 md:px-6 py-2.5 md:py-4"
       style={{
-        background: isDark ? "oklch(0.04 0 0 / 0.85)" : "oklch(1 0 0 / 0.9)",
+        background: isDark ? "rgba(10,10,11,0.88)" : "rgba(255,255,255,0.92)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
-        borderBottom: isDark ? "1px solid oklch(1 0 0 / 0.07)" : "1px solid oklch(0.88 0.008 240)",
-        boxShadow: isDark ? "none" : "0 1px 12px oklch(0 0 0 / 0.06)",
+        borderBottom: `1px solid ${colors.border}`,
         paddingTop: "max(0.625rem, env(safe-area-inset-top))",
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2 shrink-0">
-        <img
-          src="/manus-storage/logo-v2_99a722a8.png"
-          alt="Short Stay"
-          className="w-7 h-7 md:w-8 md:h-8 rounded-xl object-cover"
-          style={{ boxShadow: isDark ? "0 0 8px oklch(0.78 0.12 210 / 0.3)" : "0 1px 4px oklch(0 0 0 / 0.15)" }}
-        />
-        <span
-          className="text-sm font-bold hidden sm:block"
-          style={{ color: isDark ? "oklch(0.95 0 0)" : "oklch(0.18 0.01 260)" }}
-        >
-          Short Stay
-        </span>
+      <div className="flex items-center shrink-0" style={{ color: colors.text1 }}>
+        <VitaconWordmark className="h-4 md:h-5 w-auto" />
       </div>
 
       {/* Tabs */}
       <div
         className="flex items-center gap-1 rounded-xl p-1"
-        style={{
-          background: isDark ? "oklch(1 0 0 / 0.04)" : "oklch(0.94 0.006 240)",
-          border: isDark ? "1px solid oklch(1 0 0 / 0.08)" : "1px solid oklch(0.88 0.008 240)",
-        }}
+        style={{ background: colors.inputBg, border: `1px solid ${colors.border}` }}
       >
         {tabs.map((tab) => {
           const active = location === tab.path;
@@ -74,16 +80,10 @@ function NavBar() {
               <div
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
                 style={{
-                  background: active
-                    ? isDark ? "oklch(0.78 0.12 210 / 0.15)" : "oklch(1 0 0)"
-                    : "transparent",
-                  color: active
-                    ? isDark ? "oklch(0.88 0.12 210)" : "oklch(0.52 0.22 250)"
-                    : isDark ? "oklch(0.5 0.01 240)" : "oklch(0.52 0.01 260)",
-                  border: active
-                    ? isDark ? "1px solid oklch(0.78 0.12 210 / 0.25)" : "1px solid oklch(0.88 0.008 240)"
-                    : "1px solid transparent",
-                  boxShadow: active && !isDark ? "0 1px 4px oklch(0 0 0 / 0.08)" : "none",
+                  background: active ? (isDark ? colors.blueBg : "#FFFFFF") : "transparent",
+                  color: active ? colors.blue : colors.text3,
+                  border: active ? `1px solid ${colors.blueBorder}` : "1px solid transparent",
+                  boxShadow: active && !isDark ? "0 1px 4px rgba(10,10,11,0.08)" : "none",
                 }}
               >
                 {tab.icon}
@@ -97,8 +97,8 @@ function NavBar() {
       {/* Right: label + toggle */}
       <div className="flex items-center gap-2 shrink-0">
         <span
-          className="hidden md:block text-xs"
-          style={{ color: isDark ? "oklch(0.4 0.01 240)" : "oklch(0.52 0.01 260)" }}
+          className="hidden md:block text-[10px] uppercase tracking-widest"
+          style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}
         >
           Rentabilidade Imobiliária
         </span>
@@ -106,9 +106,9 @@ function NavBar() {
           onClick={toggleTheme}
           className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
           style={{
-            background: isDark ? "oklch(1 0 0 / 0.06)" : "oklch(0.94 0.006 240)",
-            border: isDark ? "1px solid oklch(1 0 0 / 0.1)" : "1px solid oklch(0.88 0.008 240)",
-            color: isDark ? "oklch(0.78 0.12 210)" : "oklch(0.52 0.22 250)",
+            background: colors.inputBg,
+            border: `1px solid ${colors.border}`,
+            color: colors.blue,
           }}
           title={isDark ? "Modo claro" : "Modo escuro"}
         >
@@ -119,82 +119,17 @@ function NavBar() {
   );
 }
 
-// ─── Background adaptativo por tema ──────────────────────────────────────────
-function GlobalBackground() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const { springX, springY, springOpacity } = useCursorGlow();
-
-  if (isDark) {
-    return (
-      <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0, pointerEvents: "none" }}>
-        {/* Cursor glow */}
-        <motion.div
-          style={{
-            position: "absolute",
-            width: 700,
-            height: 700,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, oklch(0.72 0.16 210 / 0.22) 0%, oklch(0.72 0.16 210 / 0.08) 40%, transparent 70%)",
-            x: springX,
-            y: springY,
-            translateX: "-50%",
-            translateY: "-50%",
-            opacity: springOpacity,
-            filter: "blur(4px)",
-          }}
-        />
-        {/* Ambient glows */}
-        <div style={{ position: "absolute", top: "-20%", left: "-10%", width: "60%", height: "60%", borderRadius: "50%", background: "radial-gradient(circle, oklch(0.72 0.14 210 / 0.07) 0%, transparent 70%)", filter: "blur(60px)" }} />
-        <div style={{ position: "absolute", bottom: "-10%", right: "-10%", width: "50%", height: "50%", borderRadius: "50%", background: "radial-gradient(circle, oklch(0.65 0.12 260 / 0.05) 0%, transparent 70%)", filter: "blur(80px)" }} />
-        {/* Noise grain */}
-        <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: "128px 128px" }} />
-      </div>
-    );
-  }
-
-  // LIGHT: glow suave azul cobalto no cursor, fundo off-white quente
-  return (
-    <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0, pointerEvents: "none" }}>
-      {/* Cursor glow — suave para não poluir o fundo claro */}
-      <motion.div
-        style={{
-          position: "absolute",
-          width: 500,
-          height: 500,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, oklch(0.52 0.22 250 / 0.08) 0%, oklch(0.52 0.22 250 / 0.03) 40%, transparent 70%)",
-          x: springX,
-          y: springY,
-          translateX: "-50%",
-          translateY: "-50%",
-          opacity: springOpacity,
-          filter: "blur(8px)",
-        }}
-      />
-      {/* Ambient — canto superior direito: azul cobalto muito suave */}
-      <div style={{ position: "absolute", top: "-15%", right: "-5%", width: "45%", height: "45%", borderRadius: "50%", background: "radial-gradient(circle, oklch(0.52 0.22 250 / 0.06) 0%, transparent 70%)", filter: "blur(80px)" }} />
-      {/* Ambient — canto inferior esquerdo: verde esmeralda muito suave */}
-      <div style={{ position: "absolute", bottom: "-10%", left: "-5%", width: "40%", height: "40%", borderRadius: "50%", background: "radial-gradient(circle, oklch(0.55 0.2 145 / 0.05) 0%, transparent 70%)", filter: "blur(100px)" }} />
-    </div>
-  );
-}
-
 // ─── Router ───────────────────────────────────────────────────────────────────
 function Router() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   return (
     <div
       className="min-h-screen w-full relative"
       style={{
-        background: isDark ? "oklch(0.04 0 0)" : "oklch(0.975 0.004 80)",
-        fontFamily: "'Geist', sans-serif",
+        background: "var(--background)",
+        fontFamily: "var(--font-sans)",
         transition: "background 0.3s ease",
       }}
     >
-      <GlobalBackground />
       <div className="relative" style={{ zIndex: 1 }}>
         <NavBar />
         <RouterHistorico />

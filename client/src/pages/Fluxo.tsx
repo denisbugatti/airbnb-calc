@@ -108,7 +108,7 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
           className="bg-transparent outline-none text-center text-sm font-bold min-w-0 w-full"
           style={{
             color: colors.mono,
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: "var(--font-mono)",
             borderBottom: editing ? `1px solid ${colors.blue}` : "none",
           }}
           autoComplete="off"
@@ -130,7 +130,7 @@ function EditableMes({ value, onChange, colors }: {
       onBlur={() => { if (raw.trim()) onChange(raw.trim()); setEditing(false); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       className="bg-transparent border-b outline-none text-center w-full text-xs"
-      style={{ borderColor: colors.blue, color: colors.blue, fontFamily: "'Geist Mono', monospace" }}
+      style={{ borderColor: colors.blue, color: colors.blue, fontFamily: "var(--font-mono)" }}
     />
   ) : (
     <button onClick={() => { setEditing(true); setRaw(value); }}
@@ -440,7 +440,7 @@ export default function FluxoPage() {
   const semestrais = fluxo.semestrais ?? [];
 
   return (
-    <div className="w-full pb-16" style={{ fontFamily: "'Geist', sans-serif" }}>
+    <div className="w-full pb-16" style={{ fontFamily: "var(--font-sans)" }}>
       {/* HERO */}
       <section className="px-4 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center max-w-3xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
@@ -476,7 +476,7 @@ export default function FluxoPage() {
                 className="flex-1 bg-transparent text-sm outline-none"
                 style={{
                   color: colors.text1,
-                  fontFamily: "'Geist', sans-serif",
+                  fontFamily: "var(--font-sans)",
                   fontWeight: 600,
                 }}
               />
@@ -526,7 +526,7 @@ export default function FluxoPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium" style={{ color: colors.text3 }}>% do Ato</label>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.amberBg, color: colors.amber, fontFamily: "'Geist Mono', monospace" }}>
+                  style={{ background: colors.amberBg, color: colors.amber, fontFamily: "var(--font-mono)" }}>
                   {fluxo.percentualAto.toFixed(2)}%
                 </span>
               </div>
@@ -542,7 +542,7 @@ export default function FluxoPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium" style={{ color: colors.text3 }}>Parcelas do Ato</label>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
                   {fluxo.parcelasAto}x
                 </span>
               </div>
@@ -558,7 +558,7 @@ export default function FluxoPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium" style={{ color: colors.text3 }}>Nº de Mensais</label>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                  style={{ background: colors.blueBg, color: colors.blue, fontFamily: "var(--font-mono)" }}>
                   {fluxo.numMensais} meses
                 </span>
               </div>
@@ -579,7 +579,7 @@ export default function FluxoPage() {
                     style={{ background: colors.amberBg, color: colors.amber }}>
                     <MinusIcon size={11} />
                   </button>
-                  <span className="text-xs font-bold px-2" style={{ color: colors.violet, fontFamily: "'Geist Mono', monospace" }}>
+                  <span className="text-xs font-bold px-2" style={{ color: colors.violet, fontFamily: "var(--font-mono)" }}>
                     {semestrais.length}x
                   </span>
                   <button onClick={addSemestral}
@@ -605,7 +605,7 @@ export default function FluxoPage() {
                     style={{ background: colors.amberBg, color: colors.amber }}>
                     <MinusIcon size={11} />
                   </button>
-                  <span className="text-xs font-bold px-2" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                  <span className="text-xs font-bold px-2" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                     {fluxo.anuais.length}x
                   </span>
                   <button onClick={addAnual}
@@ -830,7 +830,7 @@ export default function FluxoPage() {
                   {/* Total Investido — segue toggle incluiDecoracao da toolbar */}
                   <TCell green colors={colors}>
                     <div className="w-full text-left">
-                      <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                      <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
                         {formatCurrency(incluiDecoracao ? results.totalInvestido + calc.mobilia : results.totalInvestido)}
                       </div>
 
@@ -838,7 +838,7 @@ export default function FluxoPage() {
                   </TCell>
                   {/* Financiamento */}
                   <TCell colors={colors}>
-                    <div className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                    <div className="text-sm font-bold" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                       {formatCurrency(results.financiamento)}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: colors.text3 }}>{pctFinanciamento.toFixed(1)}% do imóvel</div>
@@ -887,7 +887,7 @@ export default function FluxoPage() {
             ].map(({ label, value, color, sub }) => (
               <div key={label} className="rounded-xl p-3" style={{ background: colors.inputBg }}>
                 <div className="text-xs mb-1" style={{ color: colors.text3 }}>{label}</div>
-                <div className="text-base font-black" style={{ color, fontFamily: "'Geist Mono', monospace" }}>{formatCurrency(value)}</div>
+                <div className="text-base font-black" style={{ color, fontFamily: "var(--font-mono)" }}>{formatCurrency(value)}</div>
                 <div className="text-xs mt-0.5" style={{ color: colors.text4 }}>{sub}</div>
               </div>
             ))}

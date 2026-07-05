@@ -263,7 +263,7 @@ export default function HistoricoCenarios({ onRestaurar }: Props) {
                             <div
                               key={c.id}
                               className="px-2 py-2 text-center font-bold"
-                              style={{ color: m.color(c, cenariosComparar), fontFamily: "'Geist Mono', monospace" }}
+                              style={{ color: m.color(c, cenariosComparar), fontFamily: "var(--font-mono)" }}
                             >
                               {m.get(c)}
                             </div>
@@ -360,19 +360,19 @@ export default function HistoricoCenarios({ onRestaurar }: Props) {
                             <div className="grid grid-cols-3 gap-2">
                               <div className="text-center">
                                 <div className="text-xs mb-0.5" style={{ color: colors.text3 }}>Renda líquida</div>
-                                <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "'Geist Mono', monospace" }}>
+                                <div className="text-sm font-black" style={{ color: colors.green, fontFamily: "var(--font-mono)" }}>
                                   {formatCurrency(c.resultados.rendaMensalLiquida)}
                                 </div>
                               </div>
                               <div className="text-center">
                                 <div className="text-xs mb-0.5" style={{ color: colors.text3 }}>Rentab. anual</div>
-                                <div className="text-sm font-black" style={{ color: colors.blue, fontFamily: "'Geist Mono', monospace" }}>
+                                <div className="text-sm font-black" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>
                                   {formatPercent(c.resultados.rentabilidadeAnual)}
                                 </div>
                               </div>
                               <div className="text-center">
                                 <div className="text-xs mb-0.5" style={{ color: colors.text3 }}>Breakeven</div>
-                                <div className="text-sm font-black" style={{ color: colors.text1, fontFamily: "'Geist Mono', monospace" }}>
+                                <div className="text-sm font-black" style={{ color: colors.text1, fontFamily: "var(--font-mono)" }}>
                                   {bk ? `${bk.anos}a ${bk.mesesResto}m` : "—"}
                                 </div>
                               </div>
@@ -412,7 +412,7 @@ export default function HistoricoCenarios({ onRestaurar }: Props) {
                                         ].map(([label, val]) => (
                                           <div key={label} className="flex justify-between gap-2">
                                             <span style={{ color: colors.text3 }}>{label}</span>
-                                            <span className="font-semibold" style={{ color: colors.text2, fontFamily: "'Geist Mono', monospace" }}>{val}</span>
+                                            <span className="font-semibold" style={{ color: colors.text2, fontFamily: "var(--font-mono)" }}>{val}</span>
                                           </div>
                                         ))}
                                       </div>
