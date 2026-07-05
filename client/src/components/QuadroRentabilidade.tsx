@@ -43,6 +43,9 @@ interface Props {
 export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  // Quais retornos aparecem no quadro (e no PNG exportado)
+  const [retornos, setRetornos] = useState({ invAM: true, invAA: true, patAM: true, patAA: true });
+  const toggleRetorno = (k: keyof typeof retornos) => setRetornos((p) => ({ ...p, [k]: !p[k] }));
 
   const ocupacaoPct = inputs.diasOcupacao > 0 ? Math.round((inputs.diasOcupacao / 30) * 100) : 0;
   const iptuWifiAguaLuz = inputs.iptuMensal + inputs.wifi + inputs.agua + inputs.luz;
@@ -97,8 +100,31 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
 
   return (
     <div className="space-y-3">
-      {/* Botão exportar */}
-      <div className="flex justify-end">
+      {/* Retornos no PNG + botão exportar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] tracking-[0.2em] uppercase mr-1" style={{ color: Q.cinzaEscuro, fontFamily: Q.fontMono }}>
+            Retornos no PNG
+          </span>
+          {([
+            ["invAM", "Inv. A.M"],
+            ["invAA", "Inv. A.A"],
+            ["patAM", "Patr. A.M"],
+            ["patAA", "Patr. A.A"],
+          ] as const).map(([k, label]) => (
+            <button key={k}
+              className="press px-2.5 py-1 rounded-lg text-[11px] font-semibold"
+              style={{
+                background: retornos[k] ? "rgba(40,0,255,0.18)" : "#141414",
+                color: retornos[k] ? "#5A43FF" : "#666",
+                border: `1px solid ${retornos[k] ? "rgba(90,67,255,0.4)" : "#2A2A2A"}`,
+              }}
+              onClick={() => toggleRetorno(k)}>
+              {label}
+            </button>
+          ))}
+        </div>
+
         <button
           onClick={handleExport}
           disabled={exporting}
@@ -185,13 +211,15 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
           </span>
         </div>
 
-        {/* RETORNOS */}
-        <div style={{ marginTop: 2 }}>
-          <Linha label="Retorno sobre investimento A.M" value={okPct ? fmtPct(results.ganhoFinanceiroMensal) : "—"} strong />
-          <Linha label="Retorno sobre investimento A.A" value={okPct ? fmtPct(results.rentabilidadeAnual) : "—"} strong />
-          <Linha label="Retorno sobre patrimônio A.M" value={okPct ? fmtPct(results.retornoPatrimonioMensal) : "—"} />
-          <Linha label="Retorno sobre patrimônio A.A" value={okPct ? fmtPct(results.retornoPatrimonioAnual) : "—"} />
-        </div>
+        {/* RETORNOS — apenas os selecionados */}
+        {(retornos.invAM || retornos.invAA || retornos.patAM || retornos.patAA) && (
+          <div style={{ marginTop: 2 }}>
+            {retornos.invAM && <Linha label="Retorno sobre investimento A.M" value={okPct ? fmtPct(results.ganhoFinanceiroMensal) : "—"} strong />}
+            {retornos.invAA && <Linha label="Retorno sobre investimento A.A" value={okPct ? fmtPct(results.rentabilidadeAnual) : "—"} strong />}
+            {retornos.patAM && <Linha label="Retorno sobre patrimônio A.M" value={okPct ? fmtPct(results.retornoPatrimonioMensal) : "—"} />}
+            {retornos.patAA && <Linha label="Retorno sobre patrimônio A.A" value={okPct ? fmtPct(results.retornoPatrimonioAnual) : "—"} />}
+          </div>
+        )}
 
         {/* RODAPÉ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16 }}>
