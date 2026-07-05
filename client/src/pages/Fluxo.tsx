@@ -727,9 +727,16 @@ export default function FluxoPage() {
                       onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor + results.financiamento / Math.max(1, e.parcelas)) } : e) })) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
                   ))}
-                  <SerieRow colors={colors} serie="Financiamento" badge="automático" parcelas={calc.prazoMeses}
-                    valorNode={<span className="text-sm" style={{ color: "#B3B3B3", fontFamily: "var(--font-mono)" }}>saldo restante</span>}
+                  <SerieRow colors={colors} serie="Financiamento"
+                    badge={fluxo.financiamentoManual !== undefined ? "manual" : "automático"}
+                    parcelas={calc.prazoMeses}
+                    onParcelas={(n) => setCalcField("prazoMeses", Math.min(600, n))}
+                    valorNode={<EditableValue value={results.financiamento} onChange={(v) => setFluxo((p) => ({ ...p, financiamentoManual: v }))} colors={colors} />}
                     pct={calc.valorImovel > 0 ? (results.financiamento / calc.valorImovel) * 100 : undefined}
+                    onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round((Math.min(100, p) / 100) * calc.valorImovel) })) : undefined}
+                    onDesconto={(p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round(results.financiamento * (1 - p / 100)) }))}
+                    onRecalc={fluxo.financiamentoManual !== undefined ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
+                    onDelete={() => setFluxo((p) => ({ ...p, financiamentoManual: 0 }))}
                     total={formatCurrency(results.financiamento)} />
                 </div>
               );
@@ -772,7 +779,7 @@ export default function FluxoPage() {
               {serieMenuOpen && (
                 <div className="absolute right-0 bottom-12 z-30 rounded-xl overflow-hidden"
                   style={{ background: "#1A1A1A", border: "1px solid #2A2A2A", boxShadow: "0 16px 48px rgba(0,0,0,0.6)", minWidth: 240 }}>
-                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
+                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "FINANCIAMENTO", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
                     <button key={tipo}
                       className="block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-black/40"
                       style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}
@@ -784,6 +791,7 @@ export default function FluxoPage() {
                             fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : (tipo === "SINAL" ? 2 : 1));
                           return;
                         }
+                        if (tipo === "FINANCIAMENTO") { setFluxo((p) => ({ ...p, financiamentoManual: undefined })); return; }
                         if (tipo === "MENSAL") { setFluxo((p) => ({ ...p, numMensais: p.numMensais > 0 ? p.numMensais : 37 })); return; }
                         if (tipo === "DECOR") { if (calc.mobilia === 0) setCalcField("mobilia", 30000); return; }
                         setFluxo((p) => ({
