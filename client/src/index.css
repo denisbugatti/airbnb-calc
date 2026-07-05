@@ -411,6 +411,12 @@
     animation: v-draw 1.4s var(--ease-in-out-strong) 200ms both;
   }
 
+  /* ── Export de PNG: mata animações no clone (senão .rise fica em opacity 0) ── */
+  .exporting, .exporting * {
+    animation: none !important;
+    transition: none !important;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .rise, .rise-1, .rise-2, .rise-3, .rise-4, .wipe, .wipe-2, .v-line {
       animation: none;
