@@ -12,6 +12,7 @@ export interface Cenario {
   criadoEm: string; // ISO string
   inputs: CalculatorInputs;
   fluxo: FluxoInputs;
+  nomeEmpreendimento?: string;
   resultados: {
     rendaMensalLiquida: number;
     rentabilidadeAnual: number;
@@ -23,7 +24,7 @@ export interface Cenario {
 
 interface CenariosCtx {
   cenarios: Cenario[];
-  salvarCenario: (nome: string, inputs: CalculatorInputs, fluxo: FluxoInputs, resultados: Cenario["resultados"]) => void;
+  salvarCenario: (nome: string, inputs: CalculatorInputs, fluxo: FluxoInputs, resultados: Cenario["resultados"], nomeEmpreendimento?: string) => void;
   removerCenario: (id: string) => void;
   duplicarCenario: (id: string) => void;
   limparHistorico: () => void;
@@ -58,7 +59,8 @@ export function CenariosProvider({ children }: { children: ReactNode }) {
     nome: string,
     inputs: CalculatorInputs,
     fluxo: FluxoInputs,
-    resultados: Cenario["resultados"]
+    resultados: Cenario["resultados"],
+    nomeEmpreendimento?: string
   ) => {
     const novo: Cenario = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -66,6 +68,7 @@ export function CenariosProvider({ children }: { children: ReactNode }) {
       criadoEm: new Date().toISOString(),
       inputs,
       fluxo,
+      nomeEmpreendimento,
       resultados,
     };
     setCenarios(prev => {

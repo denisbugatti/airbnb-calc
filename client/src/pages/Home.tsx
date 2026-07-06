@@ -357,7 +357,7 @@ export default function HomePage() {
 
   const [activeTab, setActiveTab] = useState<"inputs" | "results">("inputs");
 
-  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, nomeEmpreendimento, syncValorImovelParaCalc } = useFluxo();
+  const { results: fluxoResults, calc, setCalc, setCalcField, fluxo, setFluxo, nomeEmpreendimento, setNomeEmpreendimento, syncValorImovelParaCalc } = useFluxo();
   const inputs = calc;  // alias para compatibilidade com código existente
   const { salvarCenario } = useCenarios();
   const [showSalvarModal, setShowSalvarModal] = useState(false);
@@ -396,6 +396,13 @@ export default function HomePage() {
       if (cenario?.inputs) {
         // Merge com defaults: cenários salvos antes dos impostos editáveis não têm os campos novos
         setCalc(() => ({ ...defaultInputs, ...cenario.inputs }));
+        // Restaura também a Condição de Pagamento (cenários do app antigo não têm fluxo)
+        if (cenario.fluxo) {
+          setFluxo(() => ({ ...cenario.fluxo }));
+        }
+        if (cenario.nomeEmpreendimento !== undefined) {
+          setNomeEmpreendimento(cenario.nomeEmpreendimento);
+        }
         toast.success(`Cenário "${cenario.nome}" restaurado!`);
       }
     };
@@ -426,11 +433,11 @@ export default function HomePage() {
       totalInvestido: fluxoResults.totalInvestido > 0 ? fluxoResults.totalInvestido : inputs.capitalProprio,
       financiamento: fluxoResults.financiamento > 0 ? fluxoResults.financiamento : inputs.saldoFinanciar,
       valorImovel: inputs.valorImovel,
-    });
+    }, nomeEmpreendimento);
     setShowSalvarModal(false);
     setNomeCenario("");
     toast.success(`Cenário "${nome}" salvo!`, { description: "Acesse o histórico para consultar." });
-  }, [nomeCenario, salvarCenario, inputsComFluxo, fluxo, results, fluxoResults, inputs]);
+  }, [nomeCenario, salvarCenario, inputsComFluxo, fluxo, nomeEmpreendimento, results, fluxoResults, inputs]);
 
   const isPositive = results.rendaMensalLiquida > 0;;
   const rentAccent = results.rentabilidadeAnual >= 15 ? "green" : results.rentabilidadeAnual >= 8 ? "amber" : "red";
