@@ -26,7 +26,8 @@ export function ThemeProvider({
     const param = new URLSearchParams(window.location.search).get("theme");
     if (param === "light" || param === "dark") return param;
     if (switchable) {
-      const stored = localStorage.getItem("theme");
+      // Chave própria ("vitacon-theme"): ignora o "theme" gravado pelo app antigo
+      const stored = localStorage.getItem("vitacon-theme");
       return (stored as Theme) || defaultTheme;
     }
     return defaultTheme;
@@ -41,7 +42,7 @@ export function ThemeProvider({
     }
 
     if (switchable) {
-      localStorage.setItem("theme", theme);
+      localStorage.setItem("vitacon-theme", theme);
     }
   }, [theme, switchable]);
 

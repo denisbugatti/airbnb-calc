@@ -365,7 +365,7 @@ export default function HomePage() {
 
   // SEO: define título da página com 30-60 caracteres
   useEffect(() => {
-    document.title = "Calculadora de Rentabilidade Airbnb | Vitacon";
+    document.title = "Vitacon — Calculadora de Rentabilidade";
     // Meta keywords
     let meta = document.querySelector<HTMLMetaElement>('meta[name="keywords"]');
     if (!meta) {
