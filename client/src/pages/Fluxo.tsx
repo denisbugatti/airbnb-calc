@@ -142,7 +142,7 @@ function EditableMes({ value, onChange, colors }: {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        align="center" sideOffset={6}
+        align="center" sideOffset={8} collisionPadding={16} avoidCollisions
         className="w-[228px] p-3 rounded-xl border-0"
         style={{ background: "#111111", border: "1px solid #2A2A2A", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}
       >
