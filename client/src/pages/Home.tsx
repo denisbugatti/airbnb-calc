@@ -772,8 +772,8 @@ export default function HomePage() {
             </GlassPanel>
           </div>
 
-          {/* ── RIGHT: RESULTS (sticky no desktop) ── */}
-          <div id="resultados" className={`space-y-3 ${activeTab === "inputs" ? "hidden md:block" : ""} lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1`}>
+          {/* ── RIGHT: RESULTS (fluxo natural — um scroll só na página) ── */}
+          <div id="resultados" className={`space-y-3 ${activeTab === "inputs" ? "hidden md:block" : ""}`}>
 
             {/* KPI Grid — 2 colunas mobile, 4 desktop */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">

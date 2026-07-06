@@ -16,7 +16,7 @@ import HistoricoCenarios from "@/components/HistoricoCenarios";
 import { useFluxo } from "@/contexts/FluxoContext";
 import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
-import { Calculator, GitBranch, Sun, Moon } from "lucide-react";
+import { Calculator, GitBranch } from "lucide-react";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -35,7 +35,7 @@ export function VitaconLogo({ className = "", dark }: { className?: string; dark
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function NavBar() {
   const [location] = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const isDark = theme === "dark";
   const colors = useVitaconColors(isDark);
 
@@ -86,7 +86,7 @@ function NavBar() {
         })}
       </div>
 
-      {/* Right: label + toggle */}
+      {/* Right: label */}
       <div className="flex items-center gap-2 shrink-0">
         <span
           className="hidden md:block text-[10px] uppercase tracking-widest"
@@ -94,18 +94,6 @@ function NavBar() {
         >
           Rentabilidade Imobiliária
         </span>
-        <button
-          onClick={toggleTheme}
-          className="press w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{
-            background: colors.inputBg,
-            border: `1px solid ${colors.border}`,
-            color: colors.blue,
-          }}
-          title={isDark ? "Modo claro" : "Modo escuro"}
-        >
-          {isDark ? <Sun size={14} /> : <Moon size={14} />}
-        </button>
       </div>
     </nav>
   );
@@ -151,7 +139,7 @@ function RouterHistorico() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark" switchable>
+      <ThemeProvider defaultTheme="dark">
         <FluxoProvider>
           <CenariosProvider>
             <TooltipProvider>

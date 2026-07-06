@@ -22,9 +22,6 @@ export function ThemeProvider({
   switchable = false,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Override por URL (?theme=light|dark) — útil para links e capturas
-    const param = new URLSearchParams(window.location.search).get("theme");
-    if (param === "light" || param === "dark") return param;
     if (switchable) {
       // Chave própria ("vitacon-theme"): ignora o "theme" gravado pelo app antigo
       const stored = localStorage.getItem("vitacon-theme");
