@@ -14,7 +14,7 @@ import { FluxoProvider } from "@/contexts/FluxoContext";
 import { CenariosProvider } from "@/contexts/CenariosContext";
 import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
-import { Calculator, GitBranch, History } from "lucide-react";
+import { Calculator, DollarSign, History } from "lucide-react";
 import CenariosPage from "@/pages/Cenarios";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { SplashScreen } from "./components/SplashScreen";
@@ -39,7 +39,7 @@ function NavBar() {
   const colors = useVitaconColors(isDark);
 
   const tabs = [
-    { path: "/fluxo", label: "Fluxo de Pagamento", icon: <GitBranch size={14} /> },
+    { path: "/fluxo", label: "Fluxo de Pagamento", icon: <DollarSign size={14} /> },
     { path: "/", label: "Calculadora", icon: <Calculator size={14} /> },
     { path: "/cenarios", label: "Cenários", icon: <History size={14} /> },
   ];

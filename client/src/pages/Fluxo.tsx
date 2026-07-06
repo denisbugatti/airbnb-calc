@@ -8,12 +8,14 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toPng } from "html-to-image";
-import { useFluxo, mesAtualFn, proximoMes } from "@/contexts/FluxoContext";
+import { useFluxo, mesAtualFn, proximoMes, MESES } from "@/contexts/FluxoContext";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/calculator";
 import {
   Download, Plus, Minus as MinusIcon, BarChart3, Zap, Building2,
   GripVertical, X as XIcon, Sun, Moon, RefreshCw, Trash2, Percent, BadgePercent, ArrowDownToLine,
+  CalendarDays, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -122,22 +124,61 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
 function EditableMes({ value, onChange, colors }: {
   value: string; onChange: (v: string) => void; colors: ReturnType<typeof useColors>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [raw, setRaw] = useState("");
-  return editing ? (
-    <input autoFocus type="text" value={raw}
-      onChange={(e) => setRaw(e.target.value)}
-      onBlur={() => { if (raw.trim()) onChange(raw.trim()); setEditing(false); }}
-      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-      className="bg-transparent border-b outline-none text-center w-full text-xs"
-      style={{ borderColor: colors.blue, color: colors.blue, fontFamily: "var(--font-mono)" }}
-    />
-  ) : (
-    <button onClick={() => { setEditing(true); setRaw(value); }}
-      className="w-full text-center text-xs transition-opacity hover:opacity-70"
-      style={{ color: colors.text3 }} title="Clique para editar">
-      ({value})
-    </button>
+  const [open, setOpen] = useState(false);
+  const parts = value.split("/");
+  const mesSel = MESES.indexOf(parts[0]);
+  const anoSel = parseInt(parts[1]) || new Date().getFullYear();
+  const [ano, setAno] = useState(anoSel);
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setAno(anoSel); }}>
+      <PopoverTrigger asChild>
+        <button
+          className="press w-full flex items-center justify-center gap-1.5 text-xs transition-opacity hover:opacity-80"
+          style={{ color: colors.text3 }}
+          title="Escolher mês no calendário"
+        >
+          <CalendarDays size={12} style={{ color: colors.blue }} />
+          <span style={{ fontFamily: "var(--font-mono)" }}>{value || "—"}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="center" sideOffset={6}
+        className="w-[228px] p-3 rounded-xl border-0"
+        style={{ background: "#111111", border: "1px solid #2A2A2A", boxShadow: "0 12px 40px rgba(0,0,0,0.6)" }}
+      >
+        <div className="flex items-center justify-between mb-2.5">
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: "#1A1A1A", color: "#B3B3B3" }} onClick={() => setAno(ano - 1)}>
+            <ChevronLeft size={13} />
+          </button>
+          <span className="text-sm font-bold" style={{ color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>{ano}</span>
+          <button className="press w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: "#1A1A1A", color: "#B3B3B3" }} onClick={() => setAno(ano + 1)}>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          {MESES.map((m, i) => {
+            const ativo = i === mesSel && ano === anoSel;
+            return (
+              <button
+                key={m}
+                className="press py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider"
+                style={{
+                  background: ativo ? "#2800FF" : "transparent",
+                  color: ativo ? "#FFFFFF" : "#B3B3B3",
+                  border: `1px solid ${ativo ? "#2800FF" : "#242424"}`,
+                  fontFamily: "var(--font-mono)",
+                }}
+                onClick={() => { onChange(`${m}/${ano}`); setOpen(false); }}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -861,6 +902,7 @@ export default function FluxoPage() {
                     pct={calc.valorImovel > 0 ? (results.financiamento / calc.valorImovel) * 100 : undefined}
                     onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round((Math.min(100, p) / 100) * calc.valorImovel) })) : undefined}
                     onDesconto={(p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round(results.financiamento * (1 - p / 100)) }))}
+                    onAbsorver={calc.valorImovel > 0 ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
                     onRecalc={fluxo.financiamentoManual !== undefined ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
                     onDelete={() => setFluxo((p) => ({ ...p, financiamentoManual: 0 }))}
                     total={formatCurrency(results.financiamento)} />
