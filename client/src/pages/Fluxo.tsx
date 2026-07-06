@@ -187,7 +187,7 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
     <div className="flex items-center gap-1.5 justify-end">
       {onPctParcela && (
         <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Definir valor da PARCELA por % do imóvel"
-          style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }}
+          style={{ background: "rgba(40,0,255,0.14)", color: "#2800FF" }}
           onClick={() => pedirPct("Valor de CADA parcela, em % do valor do imóvel:", onPctParcela)}>
           <Percent size={12} />
         </button>
@@ -207,7 +207,7 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
       )}
       {onRecalc && (
         <button className="press w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center" title="Recalcular parcelas"
-          style={{ background: "rgba(40,0,255,0.14)", color: "#5A43FF" }} onClick={onRecalc}>
+          style={{ background: "rgba(40,0,255,0.14)", color: "#2800FF" }} onClick={onRecalc}>
           <RefreshCw size={12} />
         </button>
       )}
@@ -232,7 +232,7 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
       {/* Desktop: linha de tabela */}
       <div className="hidden md:grid md:grid-cols-[1.15fr_.55fr_.95fr_.6fr_.85fr_.95fr_auto] gap-2 items-center px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
+          <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#2800FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
           {badge && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
         </div>
         <div>{parcelasNode}</div>
@@ -247,7 +247,7 @@ function SerieRow({ serie, badge, parcelas, onParcelas, valorNode, venc, onVenc,
       <div className="md:hidden p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm font-bold tracking-wider uppercase truncate" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
+            <span className="text-sm font-bold tracking-wider uppercase truncate" style={{ color: "#2800FF", fontFamily: "var(--font-mono)" }}>{serie}</span>
             {badge && <span className="text-[9px] px-1.5 py-0.5 rounded shrink-0" style={{ background: "#1A1A1A", color: "#898A8E", fontFamily: "var(--font-mono)" }}>{badge}</span>}
           </div>
           {acoesNode}
@@ -606,7 +606,7 @@ export default function FluxoPage() {
         <div className="relative px-4 md:px-6 pt-10 md:pt-14 pb-9 md:pb-12 max-w-7xl mx-auto">
           <div className="wipe inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase mb-6"
             style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
-            <Zap size={11} style={{ color: "#5A43FF" }} /> Distribuição do capital
+            <Zap size={11} style={{ color: "#2800FF" }} /> Distribuição do capital
           </div>
           <h1 className="uppercase tracking-tight" style={{ fontFamily: "var(--font-display)", fontWeight: 700, lineHeight: 0.98 }}>
             <span className="wipe block text-4xl sm:text-5xl md:text-6xl" style={{ color: "#FFFFFF" }}>Fluxo de</span>
@@ -677,7 +677,7 @@ export default function FluxoPage() {
               <img src="/vitacon-logo.png" alt="Vitacon" style={{ height: 22, width: "auto", display: "block" }} />
               <div className="flex items-center gap-3 mt-3">
                 <div style={{ width: 34, height: 2, background: "#2800FF" }} />
-                <span className="text-[11px] tracking-[0.3em] uppercase" style={{ color: "#5A43FF", fontFamily: "var(--font-mono)" }}>
+                <span className="text-[11px] tracking-[0.3em] uppercase" style={{ color: "#2800FF", fontFamily: "var(--font-mono)" }}>
                   Plano de Pagamento
                 </span>
               </div>
@@ -882,10 +882,10 @@ export default function FluxoPage() {
             {/* LEGENDA das ações */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 px-1">
               {[
-                { icon: <Percent size={11} />, cor: "#5A43FF", txt: "define cada parcela por % do imóvel" },
+                { icon: <Percent size={11} />, cor: "#2800FF", txt: "define cada parcela por % do imóvel" },
                 { icon: <BadgePercent size={11} />, cor: "#3FD68F", txt: "desconto na série" },
                 { icon: <ArrowDownToLine size={11} />, cor: "#FBBF24", txt: "puxa o que falta p/ essa série" },
-                { icon: <RefreshCw size={11} />, cor: "#5A43FF", txt: "redivide o ato entre as parcelas" },
+                { icon: <RefreshCw size={11} />, cor: "#2800FF", txt: "redivide o ato entre as parcelas" },
                 { icon: <Trash2 size={11} />, cor: "#FF6B57", txt: "apaga a série" },
               ].map(({ icon, cor, txt }) => (
                 <span key={txt} className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "#898A8E", fontFamily: "var(--font-sans)" }}>

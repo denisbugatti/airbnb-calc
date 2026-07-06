@@ -140,7 +140,7 @@
 /* ─────────────────────────────────────────────────────────
    DARK THEME — Vitacon (Style Guide Fev/2025)
    Preto absoluto #000000, superfícies #1A1A1A (Private),
-   azul #2800FF em fills; #5A43FF para texto pequeno.
+   azul #2800FF puro em fills e texto (brand book).
    ───────────────────────────────────────────────────────── */
 .dark {
   --background: #000000;

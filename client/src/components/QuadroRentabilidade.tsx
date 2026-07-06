@@ -16,7 +16,7 @@ const Q = {
   bg: "#000000",
   banda: "#1A1A1A",
   azul: "#2800FF",
-  azulTexto: "#5A43FF",
+  azulTexto: "#2800FF",
   azulBg: "rgba(40,0,255,0.16)",
   branco: "#FFFFFF",
   cinza: "#B3B3B3",
@@ -116,7 +116,7 @@ export function QuadroRentabilidade({ inputs, results, nomeEmpreendimento }: Pro
               className="press px-2.5 py-1 rounded-lg text-[11px] font-semibold"
               style={{
                 background: retornos[k] ? "rgba(40,0,255,0.18)" : "#141414",
-                color: retornos[k] ? "#5A43FF" : "#666",
+                color: retornos[k] ? "#2800FF" : "#666",
                 border: `1px solid ${retornos[k] ? "rgba(90,67,255,0.4)" : "#2A2A2A"}`,
               }}
               onClick={() => toggleRetorno(k)}>

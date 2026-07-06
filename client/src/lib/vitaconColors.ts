@@ -5,7 +5,7 @@
  *
  * Regra de uso do azul no escuro: #2800FF puro em PREENCHIMENTOS (botões,
  * chips, barras, display grande); para TEXTO pequeno sobre preto usa-se
- * #5A43FF (mesmo matiz, luminância suficiente para leitura).
+ * Azul sempre puro #2800FF (fidelidade total ao brand book).
  */
 import { useMemo } from "react";
 
@@ -19,8 +19,8 @@ function alpha(hex: string, a: number): string {
 
 export function useVitaconColors(isDark: boolean) {
   return useMemo(() => {
-    // Texto azul legível: puro no claro (8,6:1 sobre branco), luminoso no escuro
-    const blue = isDark ? "#5A43FF" : "#2800FF";
+    // Azul da marca puro em todo lugar (decisão 05/07/2026 — fidelidade ao brand book)
+    const blue = "#2800FF";
     const green = isDark ? "#3FD68F" : "#0E8A4A";
     const amber = isDark ? "#FBBF24" : "#B45309";
     const red = isDark ? "#FF6B57" : "#D42600";

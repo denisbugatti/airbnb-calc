@@ -12,11 +12,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { FluxoProvider } from "@/contexts/FluxoContext";
 import { CenariosProvider } from "@/contexts/CenariosContext";
-import HistoricoCenarios from "@/components/HistoricoCenarios";
-import { useFluxo } from "@/contexts/FluxoContext";
 import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
-import { Calculator, GitBranch } from "lucide-react";
+import { Calculator, GitBranch, History } from "lucide-react";
+import CenariosPage from "@/pages/Cenarios";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -42,6 +41,7 @@ function NavBar() {
   const tabs = [
     { path: "/fluxo", label: "Fluxo de Pagamento", icon: <GitBranch size={14} /> },
     { path: "/", label: "Calculadora", icon: <Calculator size={14} /> },
+    { path: "/cenarios", label: "Cenários", icon: <History size={14} /> },
   ];
 
   return (
@@ -112,10 +112,10 @@ function Router() {
     >
       <div className="relative" style={{ zIndex: 1 }}>
         <NavBar />
-        <RouterHistorico />
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/fluxo" component={FluxoPage} />
+          <Route path="/cenarios" component={CenariosPage} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>
@@ -125,17 +125,6 @@ function Router() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-function RouterHistorico() {
-  const { fluxo } = useFluxo();
-  return (
-    <HistoricoCenarios
-      onRestaurar={(_cenario) => {
-        // Restaurar é tratado dentro do Home.tsx via evento customizado
-        window.dispatchEvent(new CustomEvent("restaurar-cenario", { detail: _cenario }));
-      }}
-    />
-  );
-}
 function App() {
   return (
     <ErrorBoundary>

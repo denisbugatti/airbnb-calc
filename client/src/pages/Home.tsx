@@ -241,27 +241,33 @@ function SectionHeader({ icon, label, colors }: { icon: React.ReactNode; label: 
   );
 }
 
-// ─── Waterfall Bar ────────────────────────────────────────────────────────────
-function WaterfallBar({ label, value, total, color, isNegative = false, colors }: {
-  label: string; value: number; total: number; color: string; isNegative?: boolean; colors: ReturnType<typeof useColors>;
+// ─── Waterfall Bar — estilo widget: label acima, barra fina, valor à direita ──
+function WaterfallBar({ label, value, total, valueColor, fill, isNegative = false, index = 0, colors }: {
+  label: string; value: number; total: number; valueColor: string; fill: string;
+  isNegative?: boolean; index?: number; colors: ReturnType<typeof useColors>;
 }) {
-  const pct = total > 0 ? Math.min((Math.abs(value) / total) * 100, 100) : 0;
+  const pct = total > 0 ? Math.min(Math.abs(value) / total, 1) : 0;
   return (
-    <div className="flex items-center gap-2 md:gap-3">
-      <div className="w-24 md:w-32 text-right shrink-0">
-        <span className="text-xs" style={{ color: colors.text3 }}>{label}</span>
-      </div>
-      <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
-        <motion.div
-          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="h-full rounded-full" style={{ background: color }}
-        />
-      </div>
-      <div className="w-20 md:w-24 shrink-0 text-right">
-        <span className="text-xs font-semibold" style={{ color: isNegative ? colors.red : color, fontFamily: "var(--font-mono)" }}>
+    <div>
+      <div className="flex items-baseline justify-between gap-3 mb-1.5">
+        <span
+          className="text-[10px] uppercase tracking-[0.18em] truncate"
+          style={{ color: colors.text3, fontFamily: "var(--font-mono)" }}
+        >
+          {label}
+        </span>
+        <span className="text-xs font-semibold shrink-0" style={{ color: valueColor, fontFamily: "var(--font-mono)" }}>
           {isNegative ? "−" : ""}{formatCurrency(Math.abs(value))}
         </span>
+      </div>
+      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: colors.inputBg }}>
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: fill, originX: 0 }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: pct }}
+          transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1], delay: Math.min(index * 0.045, 0.4) }}
+        />
       </div>
     </div>
   );
@@ -464,7 +470,7 @@ export default function HomePage() {
         <div className="relative px-4 md:px-6 pt-10 md:pt-14 pb-9 md:pb-12 max-w-7xl mx-auto">
           <div className="wipe inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase mb-6"
             style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
-            <Zap size={11} style={{ color: "#5A43FF" }} /> Análise em tempo real
+            <Zap size={11} style={{ color: "#2800FF" }} /> Análise em tempo real
           </div>
           {/* H2 visível para SEO — descreve a seção principal */}
           <h2 className="sr-only">Simulador de Rentabilidade para Locação de Curta Temporada</h2>
@@ -794,31 +800,46 @@ export default function HomePage() {
                 formatter={formatCurrency} icon={<DollarSign size={14} />} accent="blue" isDark={isDark} colors={colors} />
             </div>
 
-            {/* Composição da renda */}
+            {/* Composição da renda — número grande + barras finas (estilo widget) */}
             <GlassPanel delay={0.1} colors={colors}>
               <SectionHeader icon={<BarChart3 size={13} />} label="Composição da Renda" colors={colors} />
-              <div className="space-y-2">
-                {/* Ordem: Receita bruta (topo) -> custos ordenados do maior para o menor -> Renda líquida (base) */}
-                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal} color={colors.blue} colors={colors} />
-                <div className="h-px my-2" style={{ background: colors.divider }} />
+              <div className="mb-6">
+                <div
+                  className="text-4xl md:text-5xl font-black leading-none"
+                  style={{ color: isPositive ? colors.text1 : colors.red, fontFamily: "var(--font-display)", letterSpacing: "0.01em" }}
+                >
+                  {results.rendaMensalLiquida < 0 ? "−" : "+"}{formatCurrency(Math.abs(results.rendaMensalLiquida))}
+                </div>
+                <div
+                  className="text-[10px] uppercase tracking-[0.25em] mt-2"
+                  style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}
+                >
+                  Renda líquida / mês
+                </div>
+              </div>
+              <div className="space-y-3.5">
+                <WaterfallBar label="Receita bruta" value={results.receitaBrutaMensal} total={results.receitaBrutaMensal}
+                  valueColor={colors.blue} fill={colors.blue} index={0} colors={colors} />
                 {[
-                  { label: "Financiamento", value: results.parcelaFinanciamento, color: colors.amber },
-                  { label: "Adm + Seguro", value: results.adminSeguro, color: colors.amber },
-                  { label: `Plataforma (${Math.round(inputs.taxaPlataforma * 100)}%)`, value: results.taxaPlataformaValor, color: colors.amber },
-                  { label: "Limpeza", value: results.custoLimpezaMensal, color: colors.amber },
-                  { label: "Gestão", value: results.gestaoValor, color: colors.amber },
-                  { label: "Condomínio", value: inputs.condominio, color: colors.red },
-                  { label: "Wi-Fi/Água/Luz", value: inputs.wifi + inputs.agua + inputs.luz, color: colors.red },
-                  { label: "IPTU", value: inputs.iptuMensal, color: colors.red },
+                  { label: "Financiamento", value: results.parcelaFinanciamento },
+                  { label: "Adm + Seguro", value: results.adminSeguro },
+                  { label: `Plataforma (${Math.round(inputs.taxaPlataforma * 100)}%)`, value: results.taxaPlataformaValor },
+                  { label: "Limpeza", value: results.custoLimpezaMensal },
+                  { label: "Gestão", value: results.gestaoValor },
+                  { label: "Condomínio", value: inputs.condominio },
+                  { label: "Wi-Fi/Água/Luz", value: inputs.wifi + inputs.agua + inputs.luz },
+                  { label: "IPTU", value: inputs.iptuMensal },
                 ].filter((d) => d.value > 0 || ["Financiamento", "Adm + Seguro", "Condomínio", "Wi-Fi/Água/Luz", "IPTU"].includes(d.label))
                   .sort((a, b) => b.value - a.value)
-                  .map(({ label, value, color }) => (
-                    <WaterfallBar key={label} label={label} value={value} total={results.receitaBrutaMensal} color={color} isNegative colors={colors} />
+                  .map(({ label, value }, i) => (
+                    <WaterfallBar key={label} label={label} value={value} total={results.receitaBrutaMensal}
+                      valueColor={colors.text3} fill="#3F3F46" isNegative index={i + 1} colors={colors} />
                   ))
                 }
-                <div className="h-px my-2" style={{ background: colors.divider }} />
+                <div className="h-px my-1" style={{ background: colors.divider }} />
                 <WaterfallBar label="Renda líquida" value={results.rendaMensalLiquida} total={results.receitaBrutaMensal}
-                  color={isPositive ? colors.green : colors.red} colors={colors} />
+                  valueColor={isPositive ? colors.green : colors.red} fill={isPositive ? colors.blue : colors.red}
+                  index={7} colors={colors} />
               </div>
             </GlassPanel>
 
