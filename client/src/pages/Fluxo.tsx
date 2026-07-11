@@ -563,16 +563,15 @@ export default function FluxoPage() {
     // segundo plano e o Chrome congela a renderização → o html-to-image trava).
     // Depois mostra a peça num overlay de tela cheia, com botão de baixar.
     setExportandoPlano(true);
-    // Alarga temporariamente a peça para caber TODOS os blocos numa imagem só
-    const scroller = el.querySelector<HTMLElement>(".overflow-x-auto");
-    const inner = scroller?.firstElementChild as HTMLElement | null;
-    const larguraFileira = inner ? inner.scrollWidth : 0;
-    const larguraAlvo = Math.max(el.clientWidth, larguraFileira + 40);
+    // .exporting força os cartões a uma única linha (nowrap + largura fixa por bloco).
+    // Aplica ANTES de medir para o scrollWidth já refletir a fileira em linha única,
+    // e alarga a peça para caber todos os blocos numa imagem só.
     const prevWidth = el.style.width;
-    const prevOverflow = scroller ? scroller.style.overflow : "";
-    el.style.width = `${larguraAlvo}px`;
     el.classList.add("exporting");
-    if (scroller) scroller.style.overflow = "visible";
+    const fileira = el.querySelector<HTMLElement>(".plano-cards");
+    const larguraFileira = fileira ? fileira.scrollWidth : 0;
+    const larguraAlvo = Math.max(el.clientWidth, larguraFileira + 40);
+    el.style.width = `${larguraAlvo}px`;
     try {
       const t0 = performance.now();
       // Embute as fontes só UMA vez por sessão (é a etapa cara); depois reusa o CSS.
@@ -593,7 +592,6 @@ export default function FluxoPage() {
     } finally {
       el.style.width = prevWidth;
       el.classList.remove("exporting");
-      if (scroller) scroller.style.overflow = prevOverflow;
       setExportandoPlano(false);
     }
   };
@@ -790,21 +788,20 @@ export default function FluxoPage() {
               </div>
             );
             return (
-              /* Todos os blocos numa única linha horizontal: séries → Total → Financiamento → Imóvel */
-              <div className="overflow-x-auto">
-                <div className="flex"
-                  style={{ gap: 1, background: "#242424", border: "1px solid #242424", width: "max-content", minWidth: "100%" }}>
-                  {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total.
-                      Nesse caso o bloco mostra o total da série (é o "Total Investido"), não o valor da parcela. */}
-                  {(series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
-                    ? [{ ...series[0], value: series[0].total, solid: true }, ...resumo.slice(1)]
-                    : [...series, ...resumo]
-                  ).map((c) => (
-                    <div key={c.label} style={{ minWidth: 190, flex: "1 0 auto" }}>
-                      <Cartao {...c} />
-                    </div>
-                  ))}
-                </div>
+              /* Na tela: cartões quebram em linhas (sem scroll horizontal), bem espaçados.
+                 No export (.exporting): forçados a uma única linha horizontal (ver index.css). */
+              <div className="plano-cards flex flex-wrap"
+                style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
+                {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total.
+                    Nesse caso o bloco mostra o total da série (é o "Total Investido"), não o valor da parcela. */}
+                {(series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
+                  ? [{ ...series[0], value: series[0].total, solid: true }, ...resumo.slice(1)]
+                  : [...series, ...resumo]
+                ).map((c) => (
+                  <div key={c.label} className="plano-card" style={{ flex: "1 1 170px", minWidth: 150 }}>
+                    <Cartao {...c} />
+                  </div>
+                ))}
               </div>
             );
           })()}

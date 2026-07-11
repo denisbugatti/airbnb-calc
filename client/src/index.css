@@ -416,6 +416,15 @@
     animation: none !important;
     transition: none !important;
   }
+  /* No export, os cartões voltam a uma única linha horizontal (largura fixa por bloco);
+     na tela eles quebram em várias linhas (flex-wrap) para não gerar scroll horizontal. */
+  .exporting .plano-cards {
+    flex-wrap: nowrap !important;
+  }
+  .exporting .plano-card {
+    flex: 0 0 200px !important;
+    min-width: 200px !important;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .rise, .rise-1, .rise-2, .rise-3, .rise-4, .wipe, .wipe-2, .v-line {
