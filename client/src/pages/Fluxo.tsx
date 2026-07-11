@@ -554,9 +554,17 @@ export default function FluxoPage() {
   const [serieMenuOpen, setSerieMenuOpen] = useState(false);
   const planoRef = useRef<HTMLDivElement>(null);
   const [exportandoPlano, setExportandoPlano] = useState(false);
-  const baixarPlanoPNG = async () => {
+  const abrirPlanoPNG = async () => {
     const el = planoRef.current;
     if (!el) return;
+    // Abre a aba JÁ (síncrono, no gesto do clique) para o popup não ser bloqueado;
+    // mostra "gerando" enquanto o PNG é montado e depois injeta a imagem final.
+    const win = window.open("", "_blank");
+    win?.document.write(
+      `<!doctype html><meta charset="utf-8"><title>Gerando imagem…</title>` +
+      `<body style="margin:0;background:#000;color:#898A8E;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;">` +
+      `<div style="font-size:13px;letter-spacing:.25em;text-transform:uppercase;">Gerando imagem…</div></body>`
+    );
     setExportandoPlano(true);
     // Alarga temporariamente a peça para caber TODOS os blocos numa imagem só
     const scroller = el.querySelector<HTMLElement>(".overflow-x-auto");
@@ -575,12 +583,38 @@ export default function FluxoPage() {
         new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout na geração do PNG")), 45000)),
       ]);
       console.info(`[plano-png] gerado em ${Math.round(performance.now() - t0)}ms`);
-      const link = document.createElement("a");
-      link.download = `plano-pagamento-${nomeEmpreendimento || "vitacon"}.png`;
-      link.href = dataUrl;
-      link.click();
+      const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+      const nomeArq = `plano-pagamento-${(nomeEmpreendimento || "vitacon").replace(/[^\w.-]+/g, "-")}.png`;
+      const titulo = nomeEmpreendimento ? `Plano de Pagamento · ${esc(nomeEmpreendimento)}` : "Plano de Pagamento";
+      const paginaHTML =
+        `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">` +
+        `<meta name="viewport" content="width=device-width, initial-scale=1"><title>${titulo}</title>` +
+        `<style>*{margin:0;padding:0;box-sizing:border-box}` +
+        `body{background:#000;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}` +
+        `.bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;` +
+        `padding:14px 20px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border-bottom:1px solid #1f1f1f}` +
+        `.t{font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#898A8E}` +
+        `.btn{display:inline-flex;align-items:center;gap:8px;background:#2800FF;color:#fff;text-decoration:none;` +
+        `font-weight:600;font-size:14px;padding:10px 18px;border-radius:10px;box-shadow:0 2px 10px rgba(40,0,255,.4);white-space:nowrap}` +
+        `.btn:active{transform:scale(.97)}.wrap{display:flex;justify-content:center;padding:24px 16px 56px}` +
+        `img{max-width:100%;height:auto;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.7)}</style></head>` +
+        `<body><div class="bar"><span class="t">${titulo}</span>` +
+        `<a class="btn" href="${dataUrl}" download="${esc(nomeArq)}">&#8681;&nbsp;Baixar PNG</a></div>` +
+        `<div class="wrap"><img src="${dataUrl}" alt="Plano de Pagamento"></div></body></html>`;
+      if (win) {
+        win.document.open();
+        win.document.write(paginaHTML);
+        win.document.close();
+      } else {
+        // Popup bloqueado: baixa direto como fallback
+        const link = document.createElement("a");
+        link.download = nomeArq;
+        link.href = dataUrl;
+        link.click();
+      }
     } catch (e) {
       console.error("[plano-png] falhou:", e);
+      win?.close();
     } finally {
       el.style.width = prevWidth;
       el.classList.remove("exporting");
@@ -703,11 +737,12 @@ export default function FluxoPage() {
           style={{ background: "#000000", border: "1px solid #1F1F1F" }}>
           {/* Baixar a peça (fica fora da área exportada) */}
           <div className="flex justify-end mb-4">
-            <button onClick={baixarPlanoPNG} disabled={exportandoPlano}
+            <button onClick={abrirPlanoPNG} disabled={exportandoPlano}
               className="press flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90"
+              title="Abre o plano em uma nova aba, com opção de baixar"
               style={{ background: "#2800FF", color: "#fff", boxShadow: "0 2px 8px rgba(40,0,255,0.3)", opacity: exportandoPlano ? 0.7 : 1 }}>
               <Download size={14} />
-              {exportandoPlano ? "Exportando..." : "Baixar PNG"}
+              {exportandoPlano ? "Gerando..." : "Ver / Baixar PNG"}
             </button>
           </div>
 
