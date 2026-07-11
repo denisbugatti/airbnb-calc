@@ -740,18 +740,20 @@ export default function FluxoPage() {
             const vi = calc.valorImovel;
             const pctDe = (v: number) => (vi > 0 ? `${((v / vi) * 100).toFixed(0)}%` : "");
             const totalSeries = results.totalInvestido + calc.mobilia;
-            const series: { label: string; pct: string; value: number }[] = [
-              ...(results.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(results.totalAto), value: results.totalAto }] : []),
-              ...(results.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(results.totalMensais), value: results.totalMensais }] : []),
-              ...(results.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(results.totalSemestrais), value: results.totalSemestrais }] : []),
-              ...(results.totalAnuais > 0 ? [{ label: `Anuais ${fluxo.anuais.length}×`, pct: pctDe(results.totalAnuais), value: results.totalAnuais }] : []),
+            // Séries com mais de uma parcela mostram o valor de CADA parcela (o "N×" indica a quantidade);
+            // `total` guarda a soma da série (usado para % e para a lógica do bloco azul de série única).
+            const series: { label: string; pct: string; value: number; total: number }[] = [
+              ...(results.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(results.totalAto), value: fluxo.parcelasAto > 1 ? Math.round(results.totalAto / fluxo.parcelasAto) : results.totalAto, total: results.totalAto }] : []),
+              ...(results.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(results.totalMensais), value: fluxo.numMensais > 1 ? fluxo.valorMensal : results.totalMensais, total: results.totalMensais }] : []),
+              ...(results.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(results.totalSemestrais), value: semestrais.length > 1 ? (semestrais[0]?.valor ?? 0) : results.totalSemestrais, total: results.totalSemestrais }] : []),
+              ...(results.totalAnuais > 0 ? [{ label: `Anuais ${fluxo.anuais.length}×`, pct: pctDe(results.totalAnuais), value: fluxo.anuais.length > 1 ? (fluxo.anuais[0]?.valor ?? 0) : results.totalAnuais, total: results.totalAnuais }] : []),
               ...(fluxo.extras ?? []).filter((e) => e.valor * e.parcelas > 0).map((e) => ({
                 label: e.parcelas > 1 ? `${e.tipo} ${e.parcelas}×` : e.tipo,
-                pct: pctDe(e.valor * e.parcelas), value: e.valor * e.parcelas,
+                pct: pctDe(e.valor * e.parcelas), value: e.parcelas > 1 ? e.valor : e.valor * e.parcelas, total: e.valor * e.parcelas,
               })),
-              ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia }] : []),
+              ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia, total: calc.mobilia }] : []),
             ];
-            const resumo: { label: string; pct: string; value: number; solid?: boolean }[] = [
+            const resumo: { label: string; pct: string; value: number; total?: number; solid?: boolean }[] = [
               { label: "Total Investido", pct: vi > 0 ? `${((totalSeries / vi) * 100).toFixed(0)}%` : "", value: totalSeries, solid: true },
               ...(fluxo.financiamentoExcluido ? [] : [{ label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento }]),
               { label: "Valor do Imóvel", pct: "", value: vi },
@@ -775,9 +777,10 @@ export default function FluxoPage() {
               <div className="overflow-x-auto">
                 <div className="flex"
                   style={{ gap: 1, background: "#242424", border: "1px solid #242424", width: "max-content", minWidth: "100%" }}>
-                  {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total */}
-                  {(series.length === 1 && Math.abs(series[0].value - totalSeries) < 1
-                    ? [{ ...series[0], solid: true }, ...resumo.slice(1)]
+                  {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total.
+                      Nesse caso o bloco mostra o total da série (é o "Total Investido"), não o valor da parcela. */}
+                  {(series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
+                    ? [{ ...series[0], value: series[0].total, solid: true }, ...resumo.slice(1)]
                     : [...series, ...resumo]
                   ).map((c) => (
                     <div key={c.label} style={{ minWidth: 190, flex: "1 0 auto" }}>
