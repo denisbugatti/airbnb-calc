@@ -7,7 +7,7 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { toPng } from "html-to-image";
+import { toPng, getFontEmbedCSS } from "html-to-image";
 import { useFluxo, mesAtualFn, proximoMes, MESES } from "@/contexts/FluxoContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -551,20 +551,17 @@ export default function FluxoPage() {
   const [exporting, setExporting] = useState(false);
   // incluiDecoracao vem do FluxoContext (compartilhado com a Calculadora)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [planoPreviewUrl, setPlanoPreviewUrl] = useState<string | null>(null);
   const [serieMenuOpen, setSerieMenuOpen] = useState(false);
   const planoRef = useRef<HTMLDivElement>(null);
+  const fontEmbedCache = useRef<string | null>(null);
   const [exportandoPlano, setExportandoPlano] = useState(false);
   const abrirPlanoPNG = async () => {
     const el = planoRef.current;
     if (!el) return;
-    // Abre a aba JÁ (síncrono, no gesto do clique) para o popup não ser bloqueado;
-    // mostra "gerando" enquanto o PNG é montado e depois injeta a imagem final.
-    const win = window.open("", "_blank");
-    win?.document.write(
-      `<!doctype html><meta charset="utf-8"><title>Gerando imagem…</title>` +
-      `<body style="margin:0;background:#000;color:#898A8E;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;">` +
-      `<div style="font-size:13px;letter-spacing:.25em;text-transform:uppercase;">Gerando imagem…</div></body>`
-    );
+    // Gera o PNG com esta aba EM FOCO (abrir uma aba nova joga a aba geradora para
+    // segundo plano e o Chrome congela a renderização → o html-to-image trava).
+    // Depois mostra a peça num overlay de tela cheia, com botão de baixar.
     setExportandoPlano(true);
     // Alarga temporariamente a peça para caber TODOS os blocos numa imagem só
     const scroller = el.querySelector<HTMLElement>(".overflow-x-auto");
@@ -578,49 +575,34 @@ export default function FluxoPage() {
     if (scroller) scroller.style.overflow = "visible";
     try {
       const t0 = performance.now();
+      // Embute as fontes só UMA vez por sessão (é a etapa cara); depois reusa o CSS.
+      if (fontEmbedCache.current === null) {
+        fontEmbedCache.current = await getFontEmbedCSS(el);
+      }
+      // pixelRatio adaptativo: 2 no desktop; 1,5 em telas menores (rasterização bem mais leve no mobile)
+      const ratio = window.innerWidth < 700 ? 1.5 : 2;
       const dataUrl = await Promise.race([
-        toPng(el, { pixelRatio: 2, backgroundColor: "#000000" }),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout na geração do PNG")), 45000)),
+        toPng(el, { pixelRatio: ratio, backgroundColor: "#000000", fontEmbedCSS: fontEmbedCache.current }),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout na geração do PNG")), 90000)),
       ]);
       console.info(`[plano-png] gerado em ${Math.round(performance.now() - t0)}ms`);
-      const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-      const nomeArq = `plano-pagamento-${(nomeEmpreendimento || "vitacon").replace(/[^\w.-]+/g, "-")}.png`;
-      const titulo = nomeEmpreendimento ? `Plano de Pagamento · ${esc(nomeEmpreendimento)}` : "Plano de Pagamento";
-      const paginaHTML =
-        `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">` +
-        `<meta name="viewport" content="width=device-width, initial-scale=1"><title>${titulo}</title>` +
-        `<style>*{margin:0;padding:0;box-sizing:border-box}` +
-        `body{background:#000;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}` +
-        `.bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;` +
-        `padding:14px 20px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border-bottom:1px solid #1f1f1f}` +
-        `.t{font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:#898A8E}` +
-        `.btn{display:inline-flex;align-items:center;gap:8px;background:#2800FF;color:#fff;text-decoration:none;` +
-        `font-weight:600;font-size:14px;padding:10px 18px;border-radius:10px;box-shadow:0 2px 10px rgba(40,0,255,.4);white-space:nowrap}` +
-        `.btn:active{transform:scale(.97)}.wrap{display:flex;justify-content:center;padding:24px 16px 56px}` +
-        `img{max-width:100%;height:auto;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.7)}</style></head>` +
-        `<body><div class="bar"><span class="t">${titulo}</span>` +
-        `<a class="btn" href="${dataUrl}" download="${esc(nomeArq)}">&#8681;&nbsp;Baixar PNG</a></div>` +
-        `<div class="wrap"><img src="${dataUrl}" alt="Plano de Pagamento"></div></body></html>`;
-      if (win) {
-        win.document.open();
-        win.document.write(paginaHTML);
-        win.document.close();
-      } else {
-        // Popup bloqueado: baixa direto como fallback
-        const link = document.createElement("a");
-        link.download = nomeArq;
-        link.href = dataUrl;
-        link.click();
-      }
+      setPlanoPreviewUrl(dataUrl);
     } catch (e) {
       console.error("[plano-png] falhou:", e);
-      win?.close();
+      alert("Não foi possível gerar a imagem agora. Tente novamente em instantes.");
     } finally {
       el.style.width = prevWidth;
       el.classList.remove("exporting");
       if (scroller) scroller.style.overflow = prevOverflow;
       setExportandoPlano(false);
     }
+  };
+  const baixarPlanoDireto = () => {
+    if (!planoPreviewUrl) return;
+    const link = document.createElement("a");
+    link.download = `plano-pagamento-${(nomeEmpreendimento || "vitacon").replace(/[^\w.-]+/g, "-")}.png`;
+    link.href = planoPreviewUrl;
+    link.click();
   };
   const [exportTheme, setExportTheme] = useState<"dark" | "light">("dark");
 
@@ -1105,6 +1087,38 @@ export default function FluxoPage() {
                 Salvar imagem
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW DO PLANO — tela cheia na própria aba (abrir nova aba congela a geração) */}
+      {planoPreviewUrl && (
+        <div className="fixed inset-0 z-[60] flex flex-col"
+          style={{ background: "rgba(0,0,0,0.94)", backdropFilter: "blur(6px)" }}>
+          {/* Barra fixa: nome + baixar + fechar */}
+          <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-3 shrink-0"
+            style={{ borderBottom: "1px solid #1f1f1f", background: "rgba(0,0,0,0.55)" }}>
+            <span className="text-[11px] tracking-[0.25em] uppercase truncate" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
+              Plano de Pagamento{nomeEmpreendimento ? ` · ${nomeEmpreendimento}` : ""}
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={baixarPlanoDireto}
+                className="press flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: "#2800FF", color: "#fff", boxShadow: "0 2px 10px rgba(40,0,255,0.4)" }}>
+                <Download size={14} /> Baixar PNG
+              </button>
+              <button onClick={() => setPlanoPreviewUrl(null)}
+                className="press w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: "#1A1A1A", color: "#B3B3B3", border: "1px solid #2A2A2A" }} title="Fechar">
+                <XIcon size={16} />
+              </button>
+            </div>
+          </div>
+          {/* Imagem (scroll) — clique fora fecha */}
+          <div className="flex-1 overflow-auto p-4 md:p-8" onClick={() => setPlanoPreviewUrl(null)}>
+            <img src={planoPreviewUrl} alt="Plano de Pagamento" onClick={(e) => e.stopPropagation()}
+              className="mx-auto block"
+              style={{ maxWidth: "100%", height: "auto", borderRadius: 12, boxShadow: "0 24px 70px rgba(0,0,0,0.7)" }} />
           </div>
         </div>
       )}
