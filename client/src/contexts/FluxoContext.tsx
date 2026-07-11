@@ -45,6 +45,8 @@ export interface FluxoInputs {
   extras?: SerieExtra[];
   /** Override manual do financiamento; undefined = automático (saldo restante) */
   financiamentoManual?: number;
+  /** Quando true, o financiamento é excluído do fluxo (pagamento à vista): linha/cartão somem e o saldo a financiar vira 0 */
+  financiamentoExcluido?: boolean;
 }
 
 export interface FluxoResults {
@@ -116,9 +118,11 @@ function calcularFluxo(fluxo: FluxoInputs, valorImovel: number): FluxoResults {
   const totalAnuais = fluxo.anuais.reduce((s, p) => s + p.valor, 0);
   const totalExtras = (fluxo.extras ?? []).reduce((s, e) => s + e.valor * e.parcelas, 0);
   const totalInvestido = totalAto + totalMensais + totalSemestrais + totalAnuais + totalExtras;
-  const financiamento = fluxo.financiamentoManual !== undefined
-    ? fluxo.financiamentoManual
-    : Math.max(0, valorImovel - totalInvestido);
+  const financiamento = fluxo.financiamentoExcluido
+    ? 0
+    : fluxo.financiamentoManual !== undefined
+      ? fluxo.financiamentoManual
+      : Math.max(0, valorImovel - totalInvestido);
   return { totalAto, totalMensais, totalSemestrais, totalAnuais, totalExtras, totalInvestido, financiamento };
 }
 

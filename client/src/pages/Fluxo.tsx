@@ -731,7 +731,9 @@ export default function FluxoPage() {
           </div>
           {/* Statement */}
           <p className="mb-7 text-2xl md:text-4xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, lineHeight: 1.15 }}>
-            Entrada de {pctInvestido.toFixed(0)}%, o resto financiado.
+            {fluxo.financiamentoExcluido
+              ? `Pagamento à vista, sem financiamento.`
+              : `Entrada de ${pctInvestido.toFixed(0)}%, o resto financiado.`}
           </p>
           {/* Cartões dinâmicos — um por série ativa, refletindo a Condição de Pagamento */}
           {(() => {
@@ -751,7 +753,7 @@ export default function FluxoPage() {
             ];
             const resumo: { label: string; pct: string; value: number; solid?: boolean }[] = [
               { label: "Total Investido", pct: vi > 0 ? `${((totalSeries / vi) * 100).toFixed(0)}%` : "", value: totalSeries, solid: true },
-              { label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento },
+              ...(fluxo.financiamentoExcluido ? [] : [{ label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento }]),
               { label: "Valor do Imóvel", pct: "", value: vi },
             ];
             const Cartao = ({ label, pct, value, solid }: { label: string; pct: string; value: number; solid?: boolean }) => (
@@ -895,17 +897,19 @@ export default function FluxoPage() {
                       onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor + results.financiamento / Math.max(1, e.parcelas)) } : e) })) : undefined}
                       onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
                   ))}
-                  <SerieRow colors={colors} serie="Financiamento"
-                    parcelas={calc.prazoMeses}
-                    onParcelas={(n) => setCalcField("prazoMeses", Math.min(600, n))}
-                    valorNode={<EditableValue value={results.financiamento} onChange={(v) => setFluxo((p) => ({ ...p, financiamentoManual: v }))} colors={colors} />}
-                    pct={calc.valorImovel > 0 ? (results.financiamento / calc.valorImovel) * 100 : undefined}
-                    onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round((Math.min(100, p) / 100) * calc.valorImovel) })) : undefined}
-                    onDesconto={(p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round(results.financiamento * (1 - p / 100)) }))}
-                    onAbsorver={calc.valorImovel > 0 ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
-                    onRecalc={fluxo.financiamentoManual !== undefined ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
-                    onDelete={() => setFluxo((p) => ({ ...p, financiamentoManual: 0 }))}
-                    total={formatCurrency(results.financiamento)} />
+                  {!fluxo.financiamentoExcluido && (
+                    <SerieRow colors={colors} serie="Financiamento"
+                      parcelas={calc.prazoMeses}
+                      onParcelas={(n) => setCalcField("prazoMeses", Math.min(600, n))}
+                      valorNode={<EditableValue value={results.financiamento} onChange={(v) => setFluxo((p) => ({ ...p, financiamentoManual: v }))} colors={colors} />}
+                      pct={calc.valorImovel > 0 ? (results.financiamento / calc.valorImovel) * 100 : undefined}
+                      onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round((Math.min(100, p) / 100) * calc.valorImovel) })) : undefined}
+                      onDesconto={(p) => setFluxo((prev) => ({ ...prev, financiamentoManual: Math.round(results.financiamento * (1 - p / 100)) }))}
+                      onAbsorver={calc.valorImovel > 0 ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
+                      onRecalc={fluxo.financiamentoManual !== undefined ? () => setFluxo((p) => ({ ...p, financiamentoManual: undefined })) : undefined}
+                      onDelete={() => setFluxo((p) => ({ ...p, financiamentoExcluido: true, financiamentoManual: undefined }))}
+                      total={formatCurrency(results.financiamento)} />
+                  )}
                 </div>
               );
             })()}
@@ -959,7 +963,7 @@ export default function FluxoPage() {
                             fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : (tipo === "SINAL" ? 2 : 1));
                           return;
                         }
-                        if (tipo === "FINANCIAMENTO") { setFluxo((p) => ({ ...p, financiamentoManual: undefined })); return; }
+                        if (tipo === "FINANCIAMENTO") { setFluxo((p) => ({ ...p, financiamentoExcluido: false, financiamentoManual: undefined })); return; }
                         if (tipo === "MENSAL") { setFluxo((p) => ({ ...p, numMensais: p.numMensais > 0 ? p.numMensais : 37 })); return; }
                         if (tipo === "DECOR") { if (calc.mobilia === 0) setCalcField("mobilia", 30000); return; }
                         setFluxo((p) => ({
@@ -984,7 +988,9 @@ export default function FluxoPage() {
           className="rounded-xl px-4 py-3 text-xs"
           style={{ background: colors.greenBg, border: `1px solid ${colors.greenBorder}`, color: colors.green }}>
           <strong>ROI calculado sobre o Total Investido ({formatCurrency(results.totalInvestido)}).</strong>{" "}
-          O financiamento ({formatCurrency(results.financiamento)}) é atualizado automaticamente na calculadora principal como "Saldo a Financiar".
+          {fluxo.financiamentoExcluido
+            ? `Pagamento à vista — sem financiamento; o saldo a financiar na calculadora é R$ 0.`
+            : `O financiamento (${formatCurrency(results.financiamento)}) é atualizado automaticamente na calculadora principal como "Saldo a Financiar".`}
         </motion.div>
       </div>
 
