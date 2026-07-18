@@ -11,6 +11,8 @@ interface Usuario {
   nome: string;
   /** Prefixo curto do hash — identifica o usuário para escopo de dados locais */
   userKey: string;
+  /** Dia do login (AAAA-MM-DD) — a sessão expira na virada do dia */
+  dia?: string;
 }
 
 interface AuthCtx {
@@ -46,12 +48,23 @@ async function sha256Hex(texto: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function hoje(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function carregarSessao(): Usuario | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as Usuario;
-    return s?.nome && s?.userKey ? s : null;
+    if (!s?.nome || !s?.userKey) return null;
+    // Sessão expira na virada do dia: cada dia pede login de novo
+    if (s.dia !== hoje()) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return s;
   } catch {
     return null;
   }
@@ -68,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hash = await sha256Hex(digitos);
     const nome = USUARIOS[hash];
     if (!nome) return null;
-    const u: Usuario = { nome, userKey: hash.slice(0, 12) };
+    const u: Usuario = { nome, userKey: hash.slice(0, 12), dia: hoje() };
     localStorage.setItem(SESSION_KEY, JSON.stringify(u));
     setUsuario(u);
     return u;
