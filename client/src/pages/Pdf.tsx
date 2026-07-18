@@ -18,6 +18,7 @@ import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/
 import { useCenarios } from "@/contexts/CenariosContext";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { PaginaInstitucional, PaginaEntregas, PaginaChatGPT, PaginaValorizacao } from "@/pdf/PaginasVitacon";
+import { PaginaPaulistaAbertura, PaginaPaulistaTimesSquare, PaginaPaulistaFluxo, PaginaPaulistaHospitais } from "@/pdf/PaginasPaulista";
 
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
@@ -197,6 +198,7 @@ export default function PdfPage() {
   const { cenarios } = useCenarios();
 
   const [fonte, setFonte] = useState<string>("atual"); // "atual" | id do cenário
+  const [regiao, setRegiao] = useState<string>("paulista"); // "paulista" | "nenhuma"
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
   const paginasRef = useRef<HTMLDivElement>(null);
@@ -253,8 +255,16 @@ export default function PdfPage() {
     }
   };
 
+  const paginasRegiao: { titulo: string; el: React.ReactNode }[] = regiao === "paulista" ? [
+    { titulo: "Região — Avenida Paulista", el: <PaginaPaulistaAbertura /> },
+    { titulo: "Região — Times Square Paulistana", el: <PaginaPaulistaTimesSquare /> },
+    { titulo: "Região — 1,5 milhão por dia", el: <PaginaPaulistaFluxo /> },
+    { titulo: "Região — Cinturão hospitalar", el: <PaginaPaulistaHospitais /> },
+  ] : [];
+
   const paginas: { titulo: string; el: React.ReactNode }[] = [
     { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" /> },
+    ...paginasRegiao,
     { titulo: "Vitacon — Institucional", el: <PaginaInstitucional /> },
     { titulo: "Últimas entregas", el: <PaginaEntregas /> },
     { titulo: "Até o ChatGPT sabe", el: <PaginaChatGPT /> },
@@ -285,7 +295,19 @@ export default function PdfPage() {
         </motion.div>
 
         {/* Controles */}
-        <div className="grid md:grid-cols-3 gap-3 mb-8">
+        <div className="grid md:grid-cols-4 gap-3 mb-8">
+          <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+            <div className="text-[10px] uppercase tracking-[0.25em] mb-2" style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}>Região</div>
+            <select
+              value={regiao}
+              onChange={(e) => setRegiao(e.target.value)}
+              className="w-full rounded-xl px-3 py-2.5 text-sm font-semibold outline-none"
+              style={{ background: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.text1 }}
+            >
+              <option value="paulista">Avenida Paulista</option>
+              <option value="nenhuma">Sem páginas de região</option>
+            </select>
+          </div>
           <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
             <div className="text-[10px] uppercase tracking-[0.25em] mb-2" style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}>Fonte dos dados</div>
             <select
@@ -364,8 +386,17 @@ export default function PdfPage() {
                   <div data-pdf-page style={{ position: "absolute", top: 0, left: 0, width: 1920, height: 1080, transform: "scale(var(--pdf-scale, 0.5))", transformOrigin: "top left" }}
                     ref={(el) => {
                       if (el && el.parentElement) {
-                        const w = el.parentElement.clientWidth;
-                        el.style.setProperty("--pdf-scale", String(w / 1920));
+                        const pai = el.parentElement;
+                        const aplicar = () => {
+                          const w = pai.clientWidth;
+                          if (w > 0) el.style.setProperty("--pdf-scale", String(w / 1920));
+                        };
+                        aplicar();
+                        // Recalcula sempre que o container mudar (evita escala 0 se medir escondido)
+                        if (!el.dataset.obs) {
+                          el.dataset.obs = "1";
+                          new ResizeObserver(aplicar).observe(pai);
+                        }
                       }
                     }}>
                     {p.el}
