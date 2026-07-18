@@ -14,8 +14,11 @@ import { FluxoProvider } from "@/contexts/FluxoContext";
 import { CenariosProvider } from "@/contexts/CenariosContext";
 import Home from "./pages/Home";
 import FluxoPage from "./pages/Fluxo";
-import { Calculator, DollarSign, History } from "lucide-react";
+import { Calculator, DollarSign, History, FileText, LogOut } from "lucide-react";
 import CenariosPage from "@/pages/Cenarios";
+import PdfPage from "@/pages/Pdf";
+import LoginPage from "@/pages/Login";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { SplashScreen } from "./components/SplashScreen";
 
@@ -42,6 +45,7 @@ function NavBar() {
     { path: "/fluxo", label: "Fluxo de Pagamento", icon: <DollarSign size={14} /> },
     { path: "/", label: "Calculadora", icon: <Calculator size={14} /> },
     { path: "/cenarios", label: "Cenários", icon: <History size={14} /> },
+    { path: "/pdf", label: "PDF", icon: <FileText size={14} /> },
   ];
 
   return (
@@ -86,16 +90,33 @@ function NavBar() {
         })}
       </div>
 
-      {/* Right: label */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span
-          className="hidden md:block text-[10px] uppercase tracking-widest"
-          style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}
-        >
-          Rentabilidade Imobiliária
-        </span>
-      </div>
+      {/* Right: usuário logado + sair */}
+      <NavUsuario colors={colors} />
     </nav>
+  );
+}
+
+function NavUsuario({ colors }: { colors: ReturnType<typeof useVitaconColors> }) {
+  const { usuario, logout } = useAuth();
+  if (!usuario) return <div className="shrink-0" />;
+  const primeiroNome = usuario.nome.split(" ")[0];
+  return (
+    <div className="flex items-center gap-2 shrink-0">
+      <span
+        className="hidden sm:block text-[10px] uppercase tracking-widest"
+        style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}
+      >
+        {primeiroNome}
+      </span>
+      <button
+        onClick={logout}
+        className="press w-7 h-7 rounded-lg flex items-center justify-center"
+        style={{ background: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.text3 }}
+        title={`Sair (${usuario.nome})`}
+      >
+        <LogOut size={12} />
+      </button>
+    </div>
   );
 }
 
@@ -116,6 +137,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/fluxo" component={FluxoPage} />
           <Route path="/cenarios" component={CenariosPage} />
+          <Route path="/pdf" component={PdfPage} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>
@@ -125,19 +147,31 @@ function Router() {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+function Gate() {
+  const { usuario } = useAuth();
+  if (!usuario) return <LoginPage />;
+  return (
+    <>
+      <SplashScreen />
+      <Router />
+    </>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
-        <FluxoProvider>
-          <CenariosProvider>
-            <TooltipProvider>
-              <Toaster />
-              <SplashScreen />
-              <Router />
-            </TooltipProvider>
-          </CenariosProvider>
-        </FluxoProvider>
+        <AuthProvider>
+          <FluxoProvider>
+            <CenariosProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Gate />
+              </TooltipProvider>
+            </CenariosProvider>
+          </FluxoProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

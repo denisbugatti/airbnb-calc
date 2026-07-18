@@ -111,7 +111,7 @@ export function buildAnuais(qtd: number, valorImovel: number): ParcelaAnual[] {
   }));
 }
 
-function calcularFluxo(fluxo: FluxoInputs, valorImovel: number): FluxoResults {
+export function calcularFluxo(fluxo: FluxoInputs, valorImovel: number): FluxoResults {
   const totalAto = fluxo.ato.reduce((s, p) => s + p.valor, 0);
   const totalMensais = fluxo.valorMensal * fluxo.numMensais;
   const totalSemestrais = (fluxo.semestrais ?? []).reduce((s, p) => s + p.valor, 0);
@@ -473,4 +473,4 @@ export function useFluxo() {
   return ctx;
 }
 
-export { calcularFluxo, mesAtual };
+export { mesAtual };

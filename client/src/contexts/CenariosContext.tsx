@@ -2,7 +2,8 @@
  * CenariosContext.tsx — Histórico de cenários salvos
  * Persiste em localStorage. Cada cenário captura inputs da Calculadora + Fluxo.
  */
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import type { CalculatorInputs } from "@/lib/calculator";
 import type { FluxoInputs } from "@/contexts/FluxoContext";
 
@@ -32,11 +33,15 @@ interface CenariosCtx {
 
 const CenariosContext = createContext<CenariosCtx | null>(null);
 
-const STORAGE_KEY = "airbnb_calc_cenarios_v1";
+const LEGACY_KEY = "airbnb_calc_cenarios_v1";
 
-function loadFromStorage(): Cenario[] {
+function chaveDoUsuario(userKey: string | null): string {
+  return userKey ? `${LEGACY_KEY}:${userKey}` : LEGACY_KEY;
+}
+
+function loadFromStorage(key: string): Cenario[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     return JSON.parse(raw) as Cenario[];
   } catch {
@@ -44,16 +49,32 @@ function loadFromStorage(): Cenario[] {
   }
 }
 
-function saveToStorage(cenarios: Cenario[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cenarios));
-  } catch {
-    // quota exceeded — silently ignore
-  }
-}
-
 export function CenariosProvider({ children }: { children: ReactNode }) {
-  const [cenarios, setCenarios] = useState<Cenario[]>(() => loadFromStorage());
+  const { usuario } = useAuth();
+  const storageKey = chaveDoUsuario(usuario?.userKey ?? null);
+
+  const [cenarios, setCenarios] = useState<Cenario[]>(() => loadFromStorage(storageKey));
+
+  const saveToStorage = useCallback((lista: Cenario[]) => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(lista));
+    } catch {
+      // quota exceeded — silently ignore
+    }
+  }, [storageKey]);
+
+  // Troca de usuário: recarrega a lista dele; na primeira vez, migra os cenários
+  // antigos (pré-login) para a conta que entrar primeiro neste navegador.
+  useEffect(() => {
+    if (usuario?.userKey && localStorage.getItem(storageKey) === null) {
+      const legado = localStorage.getItem(LEGACY_KEY);
+      if (legado) {
+        localStorage.setItem(storageKey, legado);
+        localStorage.removeItem(LEGACY_KEY);
+      }
+    }
+    setCenarios(loadFromStorage(storageKey));
+  }, [storageKey, usuario?.userKey]);
 
   const salvarCenario = useCallback((
     nome: string,
@@ -76,7 +97,7 @@ export function CenariosProvider({ children }: { children: ReactNode }) {
       saveToStorage(updated);
       return updated;
     });
-  }, []);
+  }, [saveToStorage]);
 
   const removerCenario = useCallback((id: string) => {
     setCenarios(prev => {
@@ -84,7 +105,7 @@ export function CenariosProvider({ children }: { children: ReactNode }) {
       saveToStorage(updated);
       return updated;
     });
-  }, []);
+  }, [saveToStorage]);
 
   const duplicarCenario = useCallback((id: string) => {
     setCenarios(prev => {
@@ -100,12 +121,12 @@ export function CenariosProvider({ children }: { children: ReactNode }) {
       saveToStorage(updated);
       return updated;
     });
-  }, []);
+  }, [saveToStorage]);
 
   const limparHistorico = useCallback(() => {
     setCenarios([]);
-    localStorage.removeItem(STORAGE_KEY);
-  }, []);
+    localStorage.removeItem(storageKey);
+  }, [storageKey]);
 
   return (
     <CenariosContext.Provider value={{ cenarios, salvarCenario, removerCenario, duplicarCenario, limparHistorico }}>
