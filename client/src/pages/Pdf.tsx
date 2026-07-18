@@ -17,6 +17,7 @@ import { calcular, formatCurrency, defaultInputs, type CalculatorInputs, type Ca
 import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/contexts/FluxoContext";
 import { useCenarios } from "@/contexts/CenariosContext";
 import { useVitaconColors } from "@/lib/vitaconColors";
+import { PaginaInstitucional, PaginaEntregas, PaginaChatGPT, PaginaValorizacao } from "@/pdf/PaginasVitacon";
 
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
@@ -254,6 +255,10 @@ export default function PdfPage() {
 
   const paginas: { titulo: string; el: React.ReactNode }[] = [
     { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" /> },
+    { titulo: "Vitacon — Institucional", el: <PaginaInstitucional /> },
+    { titulo: "Últimas entregas", el: <PaginaEntregas /> },
+    { titulo: "Até o ChatGPT sabe", el: <PaginaChatGPT /> },
+    { titulo: "Valorização média 92%", el: <PaginaValorizacao /> },
     { titulo: "Plano de Pagamento", el: <PaginaPlano dados={dados} /> },
     { titulo: "Simulação de Rentabilidade", el: <PaginaRentabilidade dados={dados} fotoUrl={fotoUrl} /> },
     { titulo: "Cadastro exclusivo", el: <PaginaFixa src="/pdf-assets/fim-62.png" alt="Cadastro exclusivo" /> },
