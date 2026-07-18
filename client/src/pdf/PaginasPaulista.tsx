@@ -67,43 +67,6 @@ export function PaginaPaulistaAbertura() {
   );
 }
 
-// ─── 2. Times Square Paulistana — LEDs liberados ─────────────────────────────
-export function PaginaPaulistaTimesSquare() {
-  return (
-    <div style={{ width: 1920, height: 1080, position: "relative", overflow: "hidden", background: "#000", fontFamily: "var(--font-sans)" }}>
-      <img src="/pdf-assets/paulista-neon.jpg" alt="Times Square Paulistana"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 42%, rgba(0,0,0,0.08) 100%)" }} />
-
-      <div style={{ position: "absolute", left: 88, top: 96 }}>
-        <Kicker>Times Square Paulistana</Kicker>
-      </div>
-
-      <div style={{ position: "absolute", left: 88, top: 248, maxWidth: 860 }}>
-        <h1 style={{ margin: 0, fontSize: 78, fontWeight: 400, color: "#FFF", lineHeight: 1.14 }}>
-          Agora os prédios podem ter <span style={{ fontWeight: 700, color: "#FFF", borderBottom: `5px solid ${AZUL}` }}>painéis de LED</span>, igual à Times Square.
-        </h1>
-        <p style={{ margin: "30px 0 0", fontSize: 27, lineHeight: 1.5, color: "rgba(255,255,255,0.78)", maxWidth: 660 }}>
-          A Câmara de São Paulo flexibilizou a Lei Cidade Limpa: a Paulista entra na era dos
-          letreiros luminosos — mais fluxo, mais vitrine, mais valor por metro quadrado.
-        </p>
-      </div>
-
-      {/* Card da manchete (recriado em vetor) */}
-      <div style={{ position: "absolute", left: 88, bottom: 72, width: 780, background: "#FFFFFF", borderRadius: 16, padding: "34px 38px", boxShadow: "0 30px 80px rgba(0,0,0,0.6)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.18em", color: "#0A0A0B", fontFamily: "var(--font-mono)" }}>O GLOBO</span>
-          <span style={{ width: 4, height: 4, borderRadius: 99, background: "#B3B3B3" }} />
-          <span style={{ fontSize: 14, color: "#737373", fontFamily: "var(--font-mono)" }}>SÃO PAULO · 29/05/2025</span>
-        </div>
-        <p style={{ margin: 0, fontSize: 27, fontWeight: 700, lineHeight: 1.3, color: "#0A0A0B" }}>
-          ‘Times Square paulistana’: vereadores e painéis de LED avançam sobre a Lei Cidade Limpa
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ─── 3. 1,5 milhão de pessoas por dia ────────────────────────────────────────
 export function PaginaPaulistaFluxo() {
   return (
@@ -127,29 +90,24 @@ export function PaginaPaulistaFluxo() {
         </p>
       </div>
 
-      {/* Card real da busca */}
-      <div style={{ width: 700, marginRight: 96, flexShrink: 0 }}>
+      {/* Card real da busca, dentro de um tablet */}
+      <div style={{ width: 900, marginRight: 88, flexShrink: 0, background: "#0D0D0D", border: "2px solid #3A3A3C", borderRadius: 42, padding: "22px 26px 30px", boxShadow: "0 50px 120px rgba(40,0,255,0.25)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px 14px" }}>
+          <span style={{ fontSize: 17, fontWeight: 600, color: "#E6E6E6", fontFamily: "var(--font-mono)" }}>9:41</span>
+          <span style={{ fontSize: 15, color: "#898A8E", fontFamily: "var(--font-mono)" }}>Wi-Fi · 100%</span>
+        </div>
         <img src="/pdf-assets/paulista-google-card.jpg" alt="Busca: quantas pessoas passam na Avenida Paulista por dia — 1,5 milhão/dia"
-          style={{ width: "100%", borderRadius: 18, boxShadow: "0 40px 100px rgba(40,0,255,0.22)" }} />
+          style={{ width: "100%", borderRadius: 16, display: "block" }} />
       </div>
     </div>
   );
 }
 
 // ─── 4. Cinturão hospitalar — raios 500 m / 1 km / 2 km ──────────────────────
-const RAIOS: { alcance: string; hospitais: string[] }[] = [
-  {
-    alcance: "500 M",
-    hospitais: ["Hospital Sírio-Libanês", "Hospital Oswaldo Cruz", "Sancta Maggiore", "Hospital Santa Catarina", "Fleury"],
-  },
-  {
-    alcance: "1 KM",
-    hospitais: ["Pro Matre Paulista", "Santa Maria · Grupo Santa Joana", "Hospital SAHA", "Hospital Paulistano", "HCor", "Grupo H.Olhos", "Santa Joana"],
-  },
-  {
-    alcance: "2 KM",
-    hospitais: ["Hospital Samaritano", "Leforte", "Albert Einstein", "Hospital IGESP", "BP — Beneficência Portuguesa", "Santa Rita", "Hospital Nove de Julho", "A.C.Camargo Cancer Center", "Hospital Luz"],
-  },
+const COLUNAS_LOGOS: { alcance: string; img: string }[] = [
+  { alcance: "500 M", img: "/pdf-assets/logos-500m.png" },
+  { alcance: "1 KM", img: "/pdf-assets/logos-1km.png" },
+  { alcance: "2 KM", img: "/pdf-assets/logos-2km.png" },
 ];
 
 export function PaginaPaulistaHospitais() {
@@ -162,7 +120,6 @@ export function PaginaPaulistaHospitais() {
           borderRadius: "50%", border: `1.5px solid rgba(40,0,255,${0.5 - i * 0.14})`,
         }} />
       ))}
-      <div style={{ position: "absolute", left: 136, top: 526, width: 28, height: 28, borderRadius: 99, background: AZUL, boxShadow: "0 0 60px rgba(40,0,255,0.9)" }} />
 
       {/* Coluna da marca */}
       <div style={{ width: 560, flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 88 }}>
@@ -175,16 +132,55 @@ export function PaginaPaulistaHospitais() {
         </h1>
       </div>
 
-      {/* Colunas de alcance */}
-      <div style={{ flex: 1, display: "flex", padding: "110px 96px 90px 40px", gap: 56 }}>
-        {RAIOS.map((r, i) => (
-          <div key={r.alcance} style={{ flex: 1, paddingLeft: i === 0 ? 0 : 56, borderLeft: i === 0 ? "none" : "1px solid #1F1F1F" }}>
-            <div style={{ fontSize: 46, fontWeight: 800, color: AZUL, fontFamily: "var(--font-display)" }}>{r.alcance}</div>
-            <div style={{ width: 40, height: 3, background: "#2A2A2A", margin: "18px 0 30px" }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 21 }}>
-              {r.hospitais.map((h) => (
-                <span key={h} style={{ fontSize: 23, fontWeight: 500, color: "#E6E6E6", lineHeight: 1.25 }}>{h}</span>
-              ))}
+      {/* Colunas de alcance — logos oficiais dos hospitais */}
+      <div style={{ flex: 1, display: "flex", padding: "96px 96px 70px 40px", gap: 48 }}>
+        {COLUNAS_LOGOS.map((c, i) => (
+          <div key={c.alcance} style={{ flex: 1, paddingLeft: i === 0 ? 0 : 48, borderLeft: i === 0 ? "none" : "1px solid #1F1F1F", display: "flex", flexDirection: "column" }}>
+            <div style={{ fontSize: 46, fontWeight: 800, color: AZUL, fontFamily: "var(--font-display)" }}>{c.alcance}</div>
+            <div style={{ width: 40, height: 3, background: "#2A2A2A", margin: "18px 0 26px" }} />
+            <img src={c.img} alt={`Hospitais a ${c.alcance}`} style={{ width: "100%", maxHeight: 800, objectFit: "contain", objectPosition: "top left" }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── 5. Rede de saúde — fotos dos hospitais ──────────────────────────────────
+const HOSPITAIS_FOTOS: { foto: string; nome: string }[] = [
+  { foto: "/pdf-assets/hosp-oswaldo-cruz.jpg", nome: "Hospital Oswaldo Cruz" },
+  { foto: "/pdf-assets/hosp-beneficencia-portuguesa.jpg", nome: "Beneficência Portuguesa" },
+  { foto: "/pdf-assets/hosp-santa-catarina.jpg", nome: "Hospital Santa Catarina" },
+  { foto: "/pdf-assets/hosp-sancta-maggiore.jpg", nome: "Sancta Maggiore" },
+  { foto: "/pdf-assets/hosp-hcor.jpg", nome: "Hospital HCor" },
+  { foto: "/pdf-assets/hosp-sirio-libanes.jpg", nome: "Hospital Sírio-Libanês" },
+  { foto: "/pdf-assets/hosp-santa-joana.jpg", nome: "Hospital Santa Joana" },
+  { foto: "/pdf-assets/hosp-ac-camargo.jpg", nome: "Hospital A.C.Camargo" },
+];
+
+export function PaginaPaulistaSaude() {
+  return (
+    <div style={{ width: 1920, height: 1080, background: "#000", fontFamily: "var(--font-sans)", display: "flex", overflow: "hidden" }}>
+      {/* Coluna do título */}
+      <div style={{ width: 500, flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 88 }}>
+        <Kicker>Saúde ao redor</Kicker>
+        <h1 style={{ margin: "24px 0 0", fontSize: 72, fontWeight: 800, color: "#FFF", fontFamily: "var(--font-display)", lineHeight: 1.05 }}>
+          Rede de<br />saúde.
+        </h1>
+        <p style={{ margin: "28px 0 0", fontSize: 36, fontWeight: 300, color: "#FFF", lineHeight: 1.25 }}>
+          Hub com <span style={{ color: AZUL, fontWeight: 700 }}>+26</span><br />hospitais.
+        </p>
+      </div>
+
+      {/* Grid 4×2 de fotos com tarjas */}
+      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18, padding: "72px 88px 72px 24px", alignContent: "center" }}>
+        {HOSPITAIS_FOTOS.map((h) => (
+          <div key={h.nome} style={{ display: "flex", flexDirection: "column" }}>
+            <img src={h.foto} alt={h.nome} style={{ width: "100%", aspectRatio: "1 / 1.08", objectFit: "cover", display: "block" }} />
+            <div style={{ background: "#0D0D0D", borderLeft: `3px solid ${AZUL}`, padding: "12px 12px" }}>
+              <span style={{ fontSize: 14.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "#E6E6E6", fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}>
+                {h.nome}
+              </span>
             </div>
           </div>
         ))}

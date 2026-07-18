@@ -18,7 +18,7 @@ import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/
 import { useCenarios } from "@/contexts/CenariosContext";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { PaginaInstitucional, PaginaEntregas, PaginaChatGPT, PaginaValorizacao } from "@/pdf/PaginasVitacon";
-import { PaginaPaulistaAbertura, PaginaPaulistaTimesSquare, PaginaPaulistaFluxo, PaginaPaulistaHospitais } from "@/pdf/PaginasPaulista";
+import { PaginaPaulistaAbertura, PaginaPaulistaSaude, PaginaPaulistaFluxo, PaginaPaulistaHospitais } from "@/pdf/PaginasPaulista";
 
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
@@ -257,7 +257,7 @@ export default function PdfPage() {
 
   const paginasRegiao: { titulo: string; el: React.ReactNode }[] = regiao === "paulista" ? [
     { titulo: "Região — Avenida Paulista", el: <PaginaPaulistaAbertura /> },
-    { titulo: "Região — Times Square Paulistana", el: <PaginaPaulistaTimesSquare /> },
+    { titulo: "Região — Rede de saúde", el: <PaginaPaulistaSaude /> },
     { titulo: "Região — 1,5 milhão por dia", el: <PaginaPaulistaFluxo /> },
     { titulo: "Região — Cinturão hospitalar", el: <PaginaPaulistaHospitais /> },
   ] : [];
