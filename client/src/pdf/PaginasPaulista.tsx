@@ -104,10 +104,10 @@ export function PaginaPaulistaFluxo() {
 }
 
 // ─── 4. Cinturão hospitalar — raios 500 m / 1 km / 2 km ──────────────────────
-const COLUNAS_LOGOS: { alcance: string; h: number; duasColunas?: boolean; logos: string[] }[] = [
-  { alcance: "500 M", h: 66, logos: ["500m-01", "500m-02", "500m-03", "500m-04", "500m-05"] },
-  { alcance: "1 KM", h: 58, logos: ["1km-01", "1km-02", "1km-07", "1km-03", "1km-04", "1km-05", "1km-06"] },
-  { alcance: "2 KM", h: 52, duasColunas: true, logos: ["2km-01", "2km-02", "2km-10", "2km-03", "2km-04", "2km-05", "2km-06", "2km-07", "2km-08", "2km-09"] },
+const COLUNAS_LOGOS: { alcance: string; chip: number; logoH: number; duasColunas?: boolean; logos: string[] }[] = [
+  { alcance: "500 M", chip: 96, logoH: 54, logos: ["500m-01", "500m-02", "500m-03", "500m-04", "500m-05"] },
+  { alcance: "1 KM", chip: 88, logoH: 50, logos: ["1km-01", "1km-02", "1km-07", "1km-03", "1km-04", "1km-05", "1km-06"] },
+  { alcance: "2 KM", chip: 84, logoH: 46, duasColunas: true, logos: ["2km-01", "2km-02", "2km-10", "2km-03", "2km-04", "2km-05", "2km-06", "2km-07", "2km-08", "2km-09"] },
 ];
 
 export function PaginaPaulistaHospitais() {
@@ -132,22 +132,35 @@ export function PaginaPaulistaHospitais() {
         </h1>
       </div>
 
-      {/* Colunas de alcance — logos oficiais, tamanho e espaçamento uniformes */}
-      <div style={{ flex: 1, display: "flex", padding: "88px 96px 64px 40px", gap: 48 }}>
+      {/* Colunas de alcance — cada logo numa célula idêntica (agrupamento uniforme) */}
+      <div style={{ flex: 1, display: "flex", padding: "84px 96px 60px 40px", gap: 40 }}>
         {COLUNAS_LOGOS.map((c, i) => (
-          <div key={c.alcance} style={{ flex: 1, paddingLeft: i === 0 ? 0 : 48, borderLeft: i === 0 ? "none" : "1px solid #1F1F1F", display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 46, fontWeight: 800, color: AZUL, fontFamily: "var(--font-display)" }}>{c.alcance}</div>
-            <div style={{ width: 40, height: 3, background: "#2A2A2A", margin: "18px 0 34px" }} />
+          <div key={c.alcance} style={{ flex: 1, paddingLeft: i === 0 ? 0 : 40, borderLeft: i === 0 ? "none" : "1px solid #1F1F1F", display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
+              <span style={{ fontSize: 46, fontWeight: 800, color: AZUL, fontFamily: "var(--font-display)" }}>{c.alcance}</span>
+              <span style={{ fontSize: 16, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C5C5C", fontFamily: "var(--font-mono)" }}>
+                {c.logos.length} hospitais
+              </span>
+            </div>
+            <div style={{ width: 40, height: 3, background: "#2A2A2A", margin: "16px 0 28px" }} />
             <div style={{
-              display: c.duasColunas ? "grid" : "flex",
-              gridTemplateColumns: c.duasColunas ? "1fr 1fr" : undefined,
-              flexDirection: "column",
-              gap: c.duasColunas ? "40px 28px" : 42,
+              display: "grid",
+              gridTemplateColumns: c.duasColunas ? "1fr 1fr" : "1fr",
+              gap: 14,
               alignContent: "start",
             }}>
               {c.logos.map((l) => (
-                <div key={l} style={{ height: c.h, display: "flex", alignItems: "center" }}>
-                  <img src={`/pdf-assets/logo-${l}.png`} alt="" style={{ maxHeight: c.h, maxWidth: "100%", objectFit: "contain" }} />
+                <div key={l} style={{
+                  height: c.chip,
+                  background: "#0A0A0A",
+                  border: "1px solid #1C1C1E",
+                  borderRadius: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 20px",
+                }}>
+                  <img src={`/pdf-assets/logo-${l}.png`} alt="" style={{ maxHeight: c.logoH, maxWidth: "84%", objectFit: "contain" }} />
                 </div>
               ))}
             </div>
