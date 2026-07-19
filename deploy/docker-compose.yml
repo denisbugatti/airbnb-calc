@@ -1,12 +1,17 @@
-# App isolado: calculadora de rentabilidade (airbnbcalculadora.com.br)
-# Não interfere em nenhum outro container do servidor.
+# Produção (VPS seal-vps · Hostinger): Traefik na frente resolve TLS e domínio.
+# Espelho do compose que roda em /docker/airbnb-calc no servidor.
+# O container roda o servidor Node (estáticos + /api/img-proxy + /api/fotos-pagina).
 services:
   airbnb-calc:
     build:
-      context: ..
-      dockerfile: Dockerfile
+      context: https://github.com/denisbugatti/airbnb-calc.git#redesign-vitacon
     container_name: airbnb-calc
     restart: unless-stopped
-    ports:
-      # Porta do host definida no deploy (ajustar se 8090 estiver ocupada)
-      - "8090:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airbnbcalc.entrypoints=websecure"
+      - "traefik.http.routers.airbnbcalc.rule=Host(`airbnbcalculadora.com.br`) || Host(`www.airbnbcalculadora.com.br`) || Host(`airbnb.srv1619878.hstgr.cloud`)"
+      - "traefik.http.routers.airbnbcalc.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.airbnbcalc.middlewares=airbnbcalc-compress"
+      - "traefik.http.middlewares.airbnbcalc-compress.compress=true"
+      - "traefik.http.services.airbnbcalc.loadbalancer.server.port=80"

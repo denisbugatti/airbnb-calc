@@ -26,7 +26,16 @@ async function startServer() {
     void handleFotosPagina(req, res);
   });
 
-  app.use(express.static(staticPath));
+  // Assets e fontes têm hash/versão no nome — cache agressivo, como no nginx
+  app.use(
+    express.static(staticPath, {
+      setHeaders(res, filePath) {
+        if (/[/\\](assets|fonts)[/\\]/.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    }),
+  );
 
   // Handle client-side routing - serve index.html for all routes
   app.get("*", (_req, res) => {
