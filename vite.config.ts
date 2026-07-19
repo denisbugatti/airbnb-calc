@@ -5,6 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { handleImgProxy } from "./server/imgProxy";
+import { handleFotosPagina } from "./server/fotosPagina";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -203,7 +205,21 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+function vitePluginImgProxy(): Plugin {
+  return {
+    name: "vitacon-img-proxy",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/api/img-proxy", (req, res) => {
+        void handleImgProxy(req, res);
+      });
+      server.middlewares.use("/api/fotos-pagina", (req, res) => {
+        void handleFotosPagina(req, res);
+      });
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), vitePluginImgProxy()];
 
 export default defineConfig({
   plugins,
