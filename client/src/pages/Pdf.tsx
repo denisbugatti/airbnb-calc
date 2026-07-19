@@ -529,17 +529,39 @@ export default function PdfPage() {
   const toggleGerador = (id: string) =>
     setGeradoresAtivos((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  // Mantém a ordem canônica de GERADORES, independentemente da ordem de seleção
-  const paginasGeradores: { titulo: string; el: React.ReactNode }[] = GERADORES
-    .filter((g) => geradoresAtivos.includes(g.id))
-    .map((g) => ({ titulo: g.titulo, el: g.el }));
+  const moverGerador = (id: string, dir: -1 | 1) =>
+    setGeradoresAtivos((prev) => {
+      const i = prev.indexOf(id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const prox = [...prev];
+      [prox[i], prox[j]] = [prox[j], prox[i]];
+      return prox;
+    });
 
-  const paginasFotosEmp = fotosEmp.map((f, i) => ({
+  // Ações disponíveis no card do preview. Páginas fixas não trazem `acoes`.
+  type PaginaDeck = {
+    titulo: string; el: React.ReactNode;
+    acoes?: { excluir: () => void; mover: (dir: -1 | 1) => void; primeira: boolean; ultima: boolean };
+  };
+
+  // A ordem segue geradoresAtivos (reordenável no preview); "Todos" restaura a
+  // ordem canônica do catálogo.
+  const paginasGeradores: PaginaDeck[] = geradoresAtivos
+    .map((id) => GERADORES.find((g) => g.id === id))
+    .filter((g): g is (typeof GERADORES)[number] => Boolean(g))
+    .map((g, i, lista) => ({
+      titulo: g.titulo, el: g.el,
+      acoes: { excluir: () => toggleGerador(g.id), mover: (dir) => moverGerador(g.id, dir), primeira: i === 0, ultima: i === lista.length - 1 },
+    }));
+
+  const paginasFotosEmp: PaginaDeck[] = fotosEmp.map((f, i) => ({
     titulo: `Foto do empreendimento ${String(i + 1).padStart(2, "0")}`,
     el: <PaginaFoto src={viaProxy(f.url)} alt={`Foto ${i + 1} do empreendimento ${dados.nomeEmpreendimento || ""}`.trim()} />,
+    acoes: { excluir: () => removerFoto(f.id), mover: (dir: -1 | 1) => moverFoto(f.id, dir), primeira: i === 0, ultima: i === fotosEmp.length - 1 },
   }));
 
-  const paginas: { titulo: string; el: React.ReactNode }[] = [
+  const paginas: PaginaDeck[] = [
     { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" /> },
     { titulo: "Valorize com a cidade", el: <PaginaFixa src="/pdf-assets/valorize-cidade.jpg" alt="Valorize com a cidade" /> },
     ...paginasGeradores,
@@ -808,6 +830,18 @@ export default function PdfPage() {
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold" style={{ color: colors.blue, fontFamily: "var(--font-mono)" }}>{String(i + 1).padStart(2, "0")}</span>
                 <span className="text-[10px] uppercase tracking-[0.25em]" style={{ color: colors.text4, fontFamily: "var(--font-mono)" }}>{p.titulo}</span>
+                {p.acoes && (
+                  <span className="ml-auto flex items-center gap-1">
+                    <button onClick={() => p.acoes!.mover(-1)} disabled={p.acoes.primeira}
+                      className="press px-1.5 text-xs" title="Mover para cima"
+                      style={{ color: colors.text3, opacity: p.acoes.primeira ? 0.25 : 1 }}>↑</button>
+                    <button onClick={() => p.acoes!.mover(1)} disabled={p.acoes.ultima}
+                      className="press px-1.5 text-xs" title="Mover para baixo"
+                      style={{ color: colors.text3, opacity: p.acoes.ultima ? 0.25 : 1 }}>↓</button>
+                    <button onClick={p.acoes.excluir} className="press px-1.5 text-xs" title="Excluir esta página do PDF"
+                      style={{ color: colors.red }}>✕</button>
+                  </span>
+                )}
               </div>
               <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
                 {/* container mantém o aspect ratio; o conteúdo 1920×1080 é escalado para caber */}
