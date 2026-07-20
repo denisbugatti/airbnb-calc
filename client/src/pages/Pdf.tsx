@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { jsPDF } from "jspdf";
-import { toPng, getFontEmbedCSS } from "html-to-image";
+import { toJpeg, getFontEmbedCSS } from "html-to-image";
 import { Download, ImagePlus, X as XIcon, FileText } from "lucide-react";
 import { calcular, formatCurrency, defaultInputs, type CalculatorInputs, type CalculatorResults } from "@/lib/calculator";
 import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/contexts/FluxoContext";
@@ -35,6 +35,14 @@ const PIXEL_TRANSPARENTE =
 // Teto de tempo por página. Com o patch do html-to-image nenhuma página deveria
 // travar, mas isto garante que a fila jamais fica presa numa única página.
 const TIMEOUT_PAGINA_MS = 45000;
+
+// Quantas páginas rasterizar ao mesmo tempo. É o que derruba o tempo total das
+// 100+ páginas; acima disso a thread principal e a memória saturam sem ganho.
+const CONCORRENCIA = 4;
+
+// Qualidade do JPEG. 0.95 mantém texto/vetor nítidos e ainda é muito mais rápido
+// e leve que PNG (que o jsPDF ainda re-deflaciona página a página).
+const QUALIDADE_JPEG = 0.95;
 
 /**
  * Espera todas as imagens do preview carregarem antes de rasterizar. Aquece o
@@ -63,7 +71,7 @@ function preloadImagens(raiz: HTMLElement, msPorImagem: number): Promise<void[]>
 }
 
 /**
- * Rasteriza uma página do deck em PNG 1920×1080 com teto de tempo. Faz uma
+ * Rasteriza uma página do deck em JPEG 1920×1080 com teto de tempo. Faz uma
  * segunda tentativa em caso de falha transitória; se ainda assim não sair,
  * devolve `null` para a página ser pulada — nunca para o PDF inteiro.
  */
@@ -78,8 +86,9 @@ async function rasterizarPagina(node: HTMLElement, fontEmbedCSS: string): Promis
       }, TIMEOUT_PAGINA_MS);
     });
     try {
-      const png = await Promise.race([
-        toPng(node, {
+      const jpeg = await Promise.race([
+        toJpeg(node, {
+          quality: QUALIDADE_JPEG,
           pixelRatio: 1,
           backgroundColor: "#000000",
           width: 1920,
@@ -98,7 +107,7 @@ async function rasterizarPagina(node: HTMLElement, fontEmbedCSS: string): Promis
         }),
         limite,
       ]);
-      if (png) return png;
+      if (jpeg) return jpeg;
     } catch (e) {
       console.warn("[pdf] página falhou (tentativa " + (tentativa + 1) + "):", e);
     } finally {
@@ -612,21 +621,37 @@ export default function PdfPage() {
       }
 
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1920, 1080], compress: true });
+
+      // Rasteriza várias páginas em paralelo (pool limitado) — é o que derruba o
+      // tempo total. Cada worker puxa o próximo índice livre; a montagem no PDF
+      // continua na ordem original mais abaixo.
+      const imagens: (string | null)[] = new Array(total).fill(null);
+      let concluidas = 0;
+      let proxima = 0;
+      const trabalhador = async () => {
+        while (true) {
+          const i = proxima++;
+          if (i >= total) return;
+          imagens[i] = await rasterizarPagina(nos[i], fontEmbedCSS);
+          concluidas++;
+          setProgresso({ atual: concluidas, total });
+          statusPreview(`Gerando o PDF… ${concluidas} de ${total}`);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, total) }, trabalhador));
+
+      // Monta na ordem original; página que não saiu é registrada e pulada.
+      statusPreview("Montando o PDF…");
       let adicionadas = 0;
       for (let i = 0; i < total; i++) {
-        setProgresso({ atual: i + 1, total });
-        statusPreview(`Gerando o PDF… página ${i + 1} de ${total}`);
-        const png = await rasterizarPagina(nos[i], fontEmbedCSS);
-        if (png) {
+        const img = imagens[i];
+        if (img) {
           if (adicionadas > 0) pdf.addPage([1920, 1080], "landscape");
-          pdf.addImage(png, "PNG", 0, 0, 1920, 1080);
+          pdf.addImage(img, "JPEG", 0, 0, 1920, 1080);
           adicionadas++;
         } else {
           falhas.push(i + 1);
         }
-        // Devolve o controle ao navegador entre páginas pesadas: o preview
-        // repinta o progresso e o coletor de lixo respira.
-        await new Promise((r) => setTimeout(r, 0));
       }
 
       if (adicionadas === 0) throw new Error("nenhuma página pôde ser renderizada");
