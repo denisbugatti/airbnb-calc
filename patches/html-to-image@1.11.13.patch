@@ -1,0 +1,109 @@
+diff --git a/es/util.js b/es/util.js
+index 90a3cd19a6bcc763d98cbd476fde17f4bc0428fa..82b1cd66f84db52bf536a7525ce86d793ad4d09e 100644
+--- a/es/util.js
++++ b/es/util.js
+@@ -148,12 +148,28 @@ export function canvasToBlob(canvas, options = {}) {
+ export function createImage(url) {
+     return new Promise((resolve, reject) => {
+         const img = new Image();
++        let settled = false;
++        const done = () => {
++            if (settled)
++                return;
++            settled = true;
++            requestAnimationFrame(() => resolve(img));
++        };
+         img.onload = () => {
+-            img.decode().then(() => {
+-                requestAnimationFrame(() => resolve(img));
+-            });
++            // `decode()` can reject (EncodingError) for large SVG-wrapped nodes;
++            // resolve regardless so the caller never hangs waiting on decode.
++            const p = img.decode ? img.decode() : Promise.resolve();
++            p.then(done, done);
++        };
++        img.onerror = (err) => {
++            if (settled)
++                return;
++            settled = true;
++            reject(err);
+         };
+-        img.onerror = reject;
++        // Backstop: never leave the promise pending forever if neither
++        // load nor error fires (some browsers silently drop huge SVG images).
++        setTimeout(done, 30000);
+         img.crossOrigin = 'anonymous';
+         img.decoding = 'async';
+         img.src = url;
+diff --git a/lib/util.js b/lib/util.js
+index 6a6ae9c8bd15b276d46773d853c2182aaba8326e..6cd9ad96bf0818075a92364822ceb8cd05a61fde 100644
+--- a/lib/util.js
++++ b/lib/util.js
+@@ -201,12 +201,28 @@ exports.canvasToBlob = canvasToBlob;
+ function createImage(url) {
+     return new Promise(function (resolve, reject) {
+         var img = new Image();
++        var settled = false;
++        var done = function () {
++            if (settled)
++                return;
++            settled = true;
++            requestAnimationFrame(function () { return resolve(img); });
++        };
+         img.onload = function () {
+-            img.decode().then(function () {
+-                requestAnimationFrame(function () { return resolve(img); });
+-            });
++            // `decode()` can reject (EncodingError) for large SVG-wrapped nodes;
++            // resolve regardless so the caller never hangs waiting on decode.
++            var p = img.decode ? img.decode() : Promise.resolve();
++            p.then(done, done);
++        };
++        img.onerror = function (err) {
++            if (settled)
++                return;
++            settled = true;
++            reject(err);
+         };
+-        img.onerror = reject;
++        // Backstop: never leave the promise pending forever if neither
++        // load nor error fires (some browsers silently drop huge SVG images).
++        setTimeout(done, 30000);
+         img.crossOrigin = 'anonymous';
+         img.decoding = 'async';
+         img.src = url;
+diff --git a/src/util.ts b/src/util.ts
+index 3d430c8f33948972f8991c3b3d5ebcf234662c21..8bc4c58ae35bfc7db01924e888934a594c1a5066 100644
+--- a/src/util.ts
++++ b/src/util.ts
+@@ -199,12 +199,26 @@ export function canvasToBlob(
+ export function createImage(url: string): Promise<HTMLImageElement> {
+   return new Promise((resolve, reject) => {
+     const img = new Image()
++    let settled = false
++    const done = () => {
++      if (settled) return
++      settled = true
++      requestAnimationFrame(() => resolve(img))
++    }
+     img.onload = () => {
+-      img.decode().then(() => {
+-        requestAnimationFrame(() => resolve(img))
+-      })
++      // `decode()` can reject (EncodingError) for large SVG-wrapped nodes;
++      // resolve regardless so the caller never hangs waiting on decode.
++      const p = img.decode ? img.decode() : Promise.resolve()
++      p.then(done, done)
++    }
++    img.onerror = (err) => {
++      if (settled) return
++      settled = true
++      reject(err)
+     }
+-    img.onerror = reject
++    // Backstop: never leave the promise pending forever if neither
++    // load nor error fires (some browsers silently drop huge SVG images).
++    setTimeout(done, 30000)
+     img.crossOrigin = 'anonymous'
+     img.decoding = 'async'
+     img.src = url

@@ -31,8 +31,11 @@ export async function handleImgProxy(req: IncomingMessage, res: ServerResponse):
   if (HOST_PRIVADO.test(alvo.hostname)) return responder(400, "Host não permitido");
 
   try {
+    // Uma origem lenta/pendurada não pode segurar a conexão para sempre — sem
+    // este teto, o gerador de PDF fica preso esperando a imagem no cliente.
     const resp = await fetch(alvo, {
       redirect: "follow",
+      signal: AbortSignal.timeout(20000),
       headers: {
         // Alguns CDNs bloqueiam o user-agent padrão do Node
         "User-Agent":

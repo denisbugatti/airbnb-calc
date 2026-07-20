@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { jsPDF } from "jspdf";
-import { toPng } from "html-to-image";
+import { toPng, getFontEmbedCSS } from "html-to-image";
 import { Download, ImagePlus, X as XIcon, FileText } from "lucide-react";
 import { calcular, formatCurrency, defaultInputs, type CalculatorInputs, type CalculatorResults } from "@/lib/calculator";
 import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/contexts/FluxoContext";
@@ -26,6 +26,87 @@ import { PaginaLinhaLaranja } from "@/pdf/PaginasMetro";
 
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
+
+// Pixel transparente: uma imagem que não carregar entra vazia no lugar dela,
+// em vez de derrubar (ou travar) a rasterização da página inteira.
+const PIXEL_TRANSPARENTE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+// Teto de tempo por página. Com o patch do html-to-image nenhuma página deveria
+// travar, mas isto garante que a fila jamais fica presa numa única página.
+const TIMEOUT_PAGINA_MS = 45000;
+
+/**
+ * Espera todas as imagens do preview carregarem antes de rasterizar. Aquece o
+ * cache do navegador (o html-to-image rebusca cada src para embutir como data
+ * URL) e não fica preso num link morto — cada imagem tem seu próprio teto.
+ */
+function preloadImagens(raiz: HTMLElement, msPorImagem: number): Promise<void[]> {
+  const imgs = Array.from(raiz.querySelectorAll("img"));
+  return Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalWidth > 0) return resolve();
+          let pronto = false;
+          const fim = () => {
+            if (pronto) return;
+            pronto = true;
+            resolve();
+          };
+          img.addEventListener("load", fim, { once: true });
+          img.addEventListener("error", fim, { once: true });
+          setTimeout(fim, msPorImagem);
+        }),
+    ),
+  );
+}
+
+/**
+ * Rasteriza uma página do deck em PNG 1920×1080 com teto de tempo. Faz uma
+ * segunda tentativa em caso de falha transitória; se ainda assim não sair,
+ * devolve `null` para a página ser pulada — nunca para o PDF inteiro.
+ */
+async function rasterizarPagina(node: HTMLElement, fontEmbedCSS: string): Promise<string | null> {
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    const ctrl = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limite = new Promise<null>((resolve) => {
+      timer = setTimeout(() => {
+        ctrl.abort();
+        resolve(null);
+      }, TIMEOUT_PAGINA_MS);
+    });
+    try {
+      const png = await Promise.race([
+        toPng(node, {
+          pixelRatio: 1,
+          backgroundColor: "#000000",
+          width: 1920,
+          height: 1080,
+          // O nó do preview carrega scale(var(--pdf-scale)) para caber na tela;
+          // sem anular no clone, o slide sai a ~36% num canto da página.
+          style: { transform: "scale(1)" },
+          cacheBust: false,
+          // As fotos vêm todas de /api/img-proxy e só diferem no query string;
+          // sem isto o cache interno as trata como a mesma imagem.
+          includeQueryParams: true,
+          fontEmbedCSS,
+          imagePlaceholder: PIXEL_TRANSPARENTE,
+          // Aborta um fetch de imagem que trave; o erro vira o placeholder acima.
+          fetchRequestInit: { signal: ctrl.signal },
+        }),
+        limite,
+      ]);
+      if (png) return png;
+    } catch (e) {
+      console.warn("[pdf] página falhou (tentativa " + (tentativa + 1) + "):", e);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+  return null;
+}
 
 // ─── Geradores de demanda — o usuário escolhe quais entram no PDF ─────────────
 const GERADORES: { id: string; titulo: string; el: React.ReactNode }[] = [
@@ -370,6 +451,7 @@ export default function PdfPage() {
   const [geradoresAtivos, setGeradoresAtivos] = useState<string[]>(() => GERADORES.map((g) => g.id));
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
+  const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
   const paginasRef = useRef<HTMLDivElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -492,37 +574,82 @@ export default function PdfPage() {
     const raiz = paginasRef.current;
     if (!raiz || gerando) return;
     setGerando(true);
+    setProgresso(null);
     // A aba do preview abre JÁ no clique: depois dos awaits o navegador perde o
     // gesto do usuário e o bloqueador de pop-up barraria o window.open.
     const abaPreview = window.open("", "_blank");
+    const statusPreview = (msg: string) => {
+      if (!abaPreview || abaPreview.closed) return;
+      try {
+        const alvo = abaPreview.document.getElementById("status");
+        if (alvo) alvo.textContent = msg;
+      } catch {
+        /* a aba já navegou para o PDF ou foi fechada */
+      }
+    };
     if (abaPreview) {
       abaPreview.document.write(
-        '<title>Gerando PDF…</title><body style="background:#000;color:#fff;font-family:sans-serif;display:grid;place-items:center;height:100vh;margin:0">Gerando o PDF…</body>',
+        '<title>Gerando PDF…</title><body style="background:#000;color:#fff;font-family:sans-serif;display:grid;place-items:center;height:100vh;margin:0"><div id="status">Gerando o PDF…</div></body>',
       );
     }
+    const nos = Array.from(raiz.querySelectorAll<HTMLElement>("[data-pdf-page]"));
+    const total = nos.length;
+    const falhas: number[] = [];
     try {
-      const nos = Array.from(raiz.querySelectorAll<HTMLElement>("[data-pdf-page]"));
-      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1920, 1080], compress: true });
-      for (let i = 0; i < nos.length; i++) {
-        const png = await toPng(nos[i], {
-          pixelRatio: 1, backgroundColor: "#000000", width: 1920, height: 1080,
-          // O nó do preview carrega scale(var(--pdf-scale)) para caber na tela;
-          // sem anular no clone, o slide sai a ~36% num canto da página.
-          style: { transform: "scale(1)" },
-        });
-        if (i > 0) pdf.addPage([1920, 1080], "landscape");
-        pdf.addImage(png, "PNG", 0, 0, 1920, 1080);
+      // Aquece o cache das imagens antes de rasterizar — um link fora do ar
+      // não pode mais segurar a geração para sempre.
+      statusPreview("Carregando imagens…");
+      await preloadImagens(raiz, 20000);
+
+      // Embute as fontes uma única vez e reaproveita em todas as páginas. Sem
+      // isto o html-to-image refaz o embed de fonte a cada página (100+ vezes),
+      // o que deixa a geração lentíssima e propensa a travar.
+      let fontEmbedCSS = "";
+      try {
+        fontEmbedCSS = await getFontEmbedCSS(nos[0] ?? raiz);
+      } catch {
+        /* segue sem o cache de fonte — cada página embute a sua */
       }
+
+      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1920, 1080], compress: true });
+      let adicionadas = 0;
+      for (let i = 0; i < total; i++) {
+        setProgresso({ atual: i + 1, total });
+        statusPreview(`Gerando o PDF… página ${i + 1} de ${total}`);
+        const png = await rasterizarPagina(nos[i], fontEmbedCSS);
+        if (png) {
+          if (adicionadas > 0) pdf.addPage([1920, 1080], "landscape");
+          pdf.addImage(png, "PNG", 0, 0, 1920, 1080);
+          adicionadas++;
+        } else {
+          falhas.push(i + 1);
+        }
+        // Devolve o controle ao navegador entre páginas pesadas: o preview
+        // repinta o progresso e o coletor de lixo respira.
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
+      if (adicionadas === 0) throw new Error("nenhuma página pôde ser renderizada");
+
       const nomeArq = `vitacon-${(dados.nomeEmpreendimento || "apresentacao").replace(/[^\w.-]+/g, "-").toLowerCase()}.pdf`;
       const url = URL.createObjectURL(pdf.output("blob"));
-      if (abaPreview) abaPreview.location.href = url;
+      if (abaPreview && !abaPreview.closed) abaPreview.location.href = url;
       pdf.save(nomeArq);
+
+      if (falhas.length) {
+        alert(
+          `O PDF foi gerado, mas ${falhas.length} ${falhas.length === 1 ? "página não pôde" : "páginas não puderam"} ser ` +
+            `renderizada${falhas.length === 1 ? "" : "s"} (nº ${falhas.join(", ")}). ` +
+            "Costuma ser uma foto com link fora do ar — remova-a e gere de novo.",
+        );
+      }
     } catch (e) {
       abaPreview?.close();
       console.error("[pdf] falhou:", e);
       alert("Não foi possível gerar o PDF agora. Tente novamente.");
     } finally {
       setGerando(false);
+      setProgresso(null);
     }
   };
 
@@ -819,7 +946,11 @@ export default function PdfPage() {
             style={{ background: colors.blue, color: "#FFFFFF", fontFamily: "var(--font-display)", opacity: gerando ? 0.7 : 1 }}
           >
             {gerando ? <FileText size={15} /> : <Download size={15} />}
-            {gerando ? "Gerando PDF..." : "Gerar PDF"}
+            {gerando
+              ? progresso
+                ? `Gerando ${progresso.atual}/${progresso.total}...`
+                : "Gerando PDF..."
+              : "Gerar PDF"}
           </button>
         </div>
 
