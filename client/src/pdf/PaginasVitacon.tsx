@@ -15,9 +15,10 @@ const CINZA = "#898A8E";
 // ─── 1. Institucional + Reclame Aqui ─────────────────────────────────────────
 export function PaginaInstitucional() {
   const stats = [
-    { numero: "+70", sub: "Projetos desenvolvidos" },
+    { numero: "+150", sub: "Projetos desenvolvidos" },
     { numero: "+10 mil", sub: "Unidades" },
-    { numero: "15", sub: "Anos de mercado" },
+    { numero: "17", sub: "Anos de mercado" },
+    { numero: "R$8bi", sub: "VGV acumulado" },
   ];
   return (
     <div style={{ width: 1920, height: 1080, background: "#000", fontFamily: "var(--font-sans)", padding: "64px 96px", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", overflow: "hidden" }}>
