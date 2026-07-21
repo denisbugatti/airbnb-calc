@@ -117,6 +117,98 @@ async function rasterizarPagina(node: HTMLElement, fontEmbedCSS: string): Promis
   return null;
 }
 
+// ─── Caminho rápido: páginas que são só uma imagem ───────────────────────────
+// As imagens do preview já foram carregadas e são same-origin (inclusive o
+// /api/img-proxy), então desenhamos direto num canvas 1920×1080 e mandamos pro
+// PDF — sem html-to-image, sem SVG gigante, sem chance de travar. É o grosso das
+// 100+ páginas (slides fixos + fotos do empreendimento).
+
+/** Carrega a imagem do cache do navegador (já pré-carregada) com teto de tempo. */
+function carregarImagem(src: string, ms: number): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const t = setTimeout(() => reject(new Error("timeout ao carregar imagem")), ms);
+    img.onload = () => {
+      clearTimeout(t);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(t);
+      reject(new Error("erro ao carregar imagem"));
+    };
+    img.src = src;
+  });
+}
+
+function novaCanvas(): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = 1920;
+  c.height = 1080;
+  return c;
+}
+
+/** Desenha a imagem cobrindo todo o quadro (recorta o excedente), centralizada. */
+function desenharCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
+  const escala = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const iw = img.naturalWidth * escala;
+  const ih = img.naturalHeight * escala;
+  ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
+}
+
+/** Desenha a imagem inteira dentro do quadro (sem cortar), centralizada. */
+function desenharContain(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
+  const escala = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  const iw = img.naturalWidth * escala;
+  const ih = img.naturalHeight * escala;
+  ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
+}
+
+/** Slide de imagem cheia (capa, entregas, encerramento…): cover direto no canvas. */
+async function imagemParaJpeg(src: string): Promise<string | null> {
+  try {
+    const img = await carregarImagem(src, 20000);
+    const c = novaCanvas();
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, 1920, 1080);
+    desenharCover(ctx, img, 1920, 1080);
+    return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
+  } catch (e) {
+    console.warn("[pdf] imagem falhou:", src, e);
+    return null;
+  }
+}
+
+/**
+ * Foto do empreendimento — replica o preview no canvas: horizontal cobre a tela;
+ * vertical fica inteira (`contain`) sobre ela mesma desfocada e escurecida.
+ */
+async function fotoParaJpeg(src: string): Promise<string | null> {
+  try {
+    const img = await carregarImagem(src, 20000);
+    const c = novaCanvas();
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, 1920, 1080);
+    if (img.naturalWidth >= img.naturalHeight) {
+      desenharCover(ctx, img, 1920, 1080);
+    } else {
+      ctx.filter = "blur(40px)";
+      desenharCover(ctx, img, 1920, 1080);
+      ctx.filter = "none";
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(0, 0, 1920, 1080);
+      desenharContain(ctx, img, 1920, 1080);
+    }
+    return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
+  } catch (e) {
+    console.warn("[pdf] foto falhou:", src, e);
+    return null;
+  }
+}
+
 // ─── Geradores de demanda — o usuário escolhe quais entram no PDF ─────────────
 const GERADORES: { id: string; titulo: string; el: React.ReactNode }[] = [
   // Avenida Paulista
@@ -602,7 +694,7 @@ export default function PdfPage() {
       );
     }
     const nos = Array.from(raiz.querySelectorAll<HTMLElement>("[data-pdf-page]"));
-    const total = nos.length;
+    const total = paginas.length;
     const falhas: number[] = [];
     try {
       // Aquece o cache das imagens antes de rasterizar — um link fora do ar
@@ -610,21 +702,27 @@ export default function PdfPage() {
       statusPreview("Carregando imagens…");
       await preloadImagens(raiz, 20000);
 
-      // Embute as fontes uma única vez e reaproveita em todas as páginas. Sem
-      // isto o html-to-image refaz o embed de fonte a cada página (100+ vezes),
-      // o que deixa a geração lentíssima e propensa a travar.
+      // Embute as fontes uma única vez e reaproveita nas páginas de layout. Só
+      // precisamos disto se houver página de DOM (as de imagem/foto vão diretas).
+      // Com teto de tempo: se travar num @font-face cross-origin, segue sem
+      // fonte embutida em vez de pendurar a geração inteira antes de começar.
       let fontEmbedCSS = "";
-      try {
-        fontEmbedCSS = await getFontEmbedCSS(nos[0] ?? raiz);
-      } catch {
-        /* segue sem o cache de fonte — cada página embute a sua */
+      if (paginas.some((p) => !p.imagem && !p.foto)) {
+        try {
+          fontEmbedCSS = await Promise.race([
+            getFontEmbedCSS(raiz),
+            new Promise<string>((resolve) => setTimeout(() => resolve(""), 15000)),
+          ]);
+        } catch {
+          /* segue sem o cache de fonte */
+        }
       }
 
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1920, 1080], compress: true });
 
-      // Rasteriza várias páginas em paralelo (pool limitado) — é o que derruba o
-      // tempo total. Cada worker puxa o próximo índice livre; a montagem no PDF
-      // continua na ordem original mais abaixo.
+      // Captura várias páginas em paralelo (pool limitado). Página que é só uma
+      // imagem vai direto pro canvas (rápido, não trava); só as de layout passam
+      // pelo html-to-image. A montagem no PDF continua na ordem original.
       const imagens: (string | null)[] = new Array(total).fill(null);
       let concluidas = 0;
       let proxima = 0;
@@ -632,7 +730,12 @@ export default function PdfPage() {
         while (true) {
           const i = proxima++;
           if (i >= total) return;
-          imagens[i] = await rasterizarPagina(nos[i], fontEmbedCSS);
+          const p = paginas[i];
+          imagens[i] = p.imagem
+            ? await imagemParaJpeg(p.imagem)
+            : p.foto
+              ? await fotoParaJpeg(p.foto)
+              : await rasterizarPagina(nos[i], fontEmbedCSS);
           concluidas++;
           setProgresso({ atual: concluidas, total });
           statusPreview(`Gerando o PDF… ${concluidas} de ${total}`);
@@ -692,8 +795,12 @@ export default function PdfPage() {
     });
 
   // Ações disponíveis no card do preview. Páginas fixas não trazem `acoes`.
+  // `imagem`/`foto`: páginas que são só uma imagem vão direto pro PDF via canvas
+  // (sem html-to-image). `el` continua sendo o que aparece no preview.
   type PaginaDeck = {
     titulo: string; el: React.ReactNode;
+    imagem?: string; // slide de imagem cheia (cover)
+    foto?: string; // foto do empreendimento (aspecto: horizontal cover, vertical contain+blur)
     acoes?: { excluir: () => void; mover: (dir: -1 | 1) => void; primeira: boolean; ultima: boolean };
   };
 
@@ -710,17 +817,18 @@ export default function PdfPage() {
   const paginasFotosEmp: PaginaDeck[] = fotosEmp.map((f, i) => ({
     titulo: `Foto do empreendimento ${String(i + 1).padStart(2, "0")}`,
     el: <PaginaFoto src={viaProxy(f.url)} alt={`Foto ${i + 1} do empreendimento ${dados.nomeEmpreendimento || ""}`.trim()} />,
+    foto: viaProxy(f.url),
     acoes: { excluir: () => removerFoto(f.id), mover: (dir: -1 | 1) => moverFoto(f.id, dir), primeira: i === 0, ultima: i === fotosEmp.length - 1 },
   }));
 
   const paginas: PaginaDeck[] = [
-    { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" /> },
-    { titulo: "Valorize com a cidade", el: <PaginaFixa src="/pdf-assets/valorize-cidade.jpg" alt="Valorize com a cidade" /> },
+    { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" />, imagem: "/pdf-assets/capa-01.png" },
+    { titulo: "Valorize com a cidade", el: <PaginaFixa src="/pdf-assets/valorize-cidade.jpg" alt="Valorize com a cidade" />, imagem: "/pdf-assets/valorize-cidade.jpg" },
     ...paginasGeradores,
     { titulo: "Vitacon — Institucional", el: <PaginaInstitucional /> },
-    { titulo: "Últimas entregas", el: <PaginaEntregas /> },
+    { titulo: "Últimas entregas", el: <PaginaEntregas />, imagem: "/pdf-assets/entregas-2k.jpg" },
     { titulo: "Até o ChatGPT sabe", el: <PaginaChatGPT /> },
-    { titulo: "A primeira Fincorporadora do mundo", el: <PaginaFixa src="/pdf-assets/fincorporadora.jpg" alt="A primeira Fincorporadora do mundo" /> },
+    { titulo: "A primeira Fincorporadora do mundo", el: <PaginaFixa src="/pdf-assets/fincorporadora.jpg" alt="A primeira Fincorporadora do mundo" />, imagem: "/pdf-assets/fincorporadora.jpg" },
     // Bloco do empreendimento, fechando em Plano de Pagamento: abertura com a
     // foto vertical (upload local; sem ela, a 1ª da galeria) → galeria → fluxo.
     ...(fotoUrl || fotosEmp.length > 0
@@ -729,8 +837,8 @@ export default function PdfPage() {
     ...paginasFotosEmp,
     { titulo: "Plano de Pagamento", el: <PaginaPlano dados={dados} /> },
     { titulo: "Simulação de Rentabilidade", el: <PaginaRentabilidade dados={dados} fotoUrl={fotoUrl} /> },
-    { titulo: "Cadastro exclusivo", el: <PaginaFixa src="/pdf-assets/fim-62.png" alt="Cadastro exclusivo" /> },
-    { titulo: "Encerramento", el: <PaginaFixa src="/pdf-assets/fim-63.png" alt="Encerramento" /> },
+    { titulo: "Cadastro exclusivo", el: <PaginaFixa src="/pdf-assets/fim-62.png" alt="Cadastro exclusivo" />, imagem: "/pdf-assets/fim-62.png" },
+    { titulo: "Encerramento", el: <PaginaFixa src="/pdf-assets/fim-63.png" alt="Encerramento" />, imagem: "/pdf-assets/fim-63.png" },
   ];
 
   return (
