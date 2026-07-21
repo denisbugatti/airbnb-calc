@@ -21,11 +21,6 @@ import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/
 import { useCenarios } from "@/contexts/CenariosContext";
 import { useVitaconColors } from "@/lib/vitaconColors";
 import { PaginaInstitucional, PaginaEntregas, PaginaChatGPT } from "@/pdf/PaginasVitacon";
-import { PaginaPaulistaAbertura, PaginaPaulistaSaude, PaginaPaulistaFluxo, PaginaPaulistaHospitais, PaginaTrafegoAereo, PaginaFreiCaneca, PaginaMackenzie, PaginaPacaembuArena, PaginaPacaembuComplexo, PaginaEspm, PaginaSirioBelaVista, PaginaOswaldoCruz, PaginaBP } from "@/pdf/PaginasPaulista";
-import { PaginaFariaLimaAbertura, PaginaFariaLimaFluxo, PaginaSuperJK1, PaginaSuperJK2, PaginaItaimBibi, PaginaFariaLimaEmpresas, PaginaCidadeJardim, PaginaShopsFariaLima, PaginaOscarFreire, PaginaHospitalClinicas, PaginaAlbertEinstein, PaginaLink, PaginaInsper, PaginaReboucas, PaginaCjShopsJardins, PaginaSirioBrooklin, PaginaBerriniChucri, PaginaHelipontos } from "@/pdf/PaginasFariaLima";
-import { PaginaIdhMoema, PaginaCongonhas } from "@/pdf/PaginasMoema";
-import { PaginaAllianzAbertura, PaginaAllianzDemanda, PaginaAllianzProximidade, PaginaPucPerdizes, PaginaBelasArtes, PaginaPerdizesPolo, PaginaSpExpoAbertura, PaginaSpExpoNumeros, PaginaAfya, PaginaG4 } from "@/pdf/PaginasAllianz";
-import { PaginaLinhaLaranja } from "@/pdf/PaginasMetro";
 
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
@@ -180,63 +175,61 @@ async function capturarPagina(node: HTMLElement, ehFoto: boolean, fontEmbedCSS: 
 }
 
 // ─── Geradores de demanda — o usuário escolhe quais entram no PDF ─────────────
-const GERADORES: { id: string; titulo: string; el: React.ReactNode }[] = [
-  // Avenida Paulista
-  { id: "paulista-abertura", titulo: "Paulista — Abertura", el: <PaginaPaulistaAbertura /> },
-  { id: "paulista-saude", titulo: "Paulista — Rede de saúde", el: <PaginaPaulistaSaude /> },
-  { id: "paulista-fluxo", titulo: "Paulista — 1,5 milhão por dia", el: <PaginaPaulistaFluxo /> },
-  { id: "paulista-hospitais", titulo: "Paulista — Cinturão hospitalar", el: <PaginaPaulistaHospitais /> },
-  { id: "frei-caneca", titulo: "Centro de Convenções Frei Caneca", el: <PaginaFreiCaneca /> },
-  // Faria Lima / Itaim Bibi
-  { id: "faria-abertura", titulo: "Faria Lima — Abertura", el: <PaginaFariaLimaAbertura /> },
-  { id: "faria-fluxo", titulo: "Faria Lima — 145 mil executivos", el: <PaginaFariaLimaFluxo /> },
-  { id: "faria-itaim", titulo: "Faria Lima — Itaim Bibi", el: <PaginaItaimBibi /> },
-  { id: "faria-super-jk-1", titulo: "Faria Lima — Super JK (foto 1)", el: <PaginaSuperJK1 /> },
-  { id: "faria-super-jk-2", titulo: "Faria Lima — Super JK (foto 2)", el: <PaginaSuperJK2 /> },
-  { id: "faria-cidade-jardim", titulo: "Faria Lima — CJ Shops (Cidade Jardim)", el: <PaginaCidadeJardim /> },
-  { id: "faria-shops-torre", titulo: "Faria Lima — Shops Faria Lima (torre)", el: <PaginaShopsFariaLima /> },
-  { id: "faria-empresas", titulo: "Faria Lima — Empresas na região", el: <PaginaFariaLimaEmpresas /> },
-  { id: "faria-helipontos", titulo: "Faria Lima — mais helipontos que pontos de ônibus", el: <PaginaHelipontos /> },
-  { id: "reboucas", titulo: "Avenida Rebouças (nova Faria Lima)", el: <PaginaReboucas /> },
-  { id: "berrini-chucri", titulo: "Berrini × Chucri Zaidan", el: <PaginaBerriniChucri /> },
-  // Perdizes / Allianz Parque
-  { id: "allianz-abertura", titulo: "Allianz Parque — Abertura", el: <PaginaAllianzAbertura /> },
-  { id: "allianz-demanda", titulo: "Allianz Parque — Demanda (+2,5 mi/ano)", el: <PaginaAllianzDemanda /> },
-  { id: "allianz-proximidade", titulo: "Allianz Parque — 2 minutos a pé", el: <PaginaAllianzProximidade /> },
-  { id: "puc-perdizes", titulo: "PUC-SP — Campus Perdizes", el: <PaginaPucPerdizes /> },
-  { id: "perdizes-polo", titulo: "Perdizes — polo de educação, saúde e lazer", el: <PaginaPerdizesPolo /> },
-  { id: "pacaembu-arena", titulo: "Pacaembu — 40 mil em noite de show", el: <PaginaPacaembuArena /> },
-  { id: "pacaembu-complexo", titulo: "Pacaembu — complexo multiuso", el: <PaginaPacaembuComplexo /> },
-  { id: "linha-laranja", titulo: "Metrô — Linha 6-Laranja (universidades)", el: <PaginaLinhaLaranja /> },
-  // Vila Mariana
-  { id: "belas-artes", titulo: "Belas Artes — Vila Mariana", el: <PaginaBelasArtes /> },
-  { id: "mackenzie", titulo: "Mackenzie — hospedagem oficial", el: <PaginaMackenzie /> },
-  { id: "espm", titulo: "ESPM — demanda de longa permanência", el: <PaginaEspm /> },
-  // Moema / Congonhas
-  { id: "idh-moema", titulo: "Moema — IDH 0,961", el: <PaginaIdhMoema /> },
-  { id: "congonhas", titulo: "Congonhas — 1,9 milhão de passageiros/mês", el: <PaginaCongonhas /> },
-  // Jardins
-  { id: "oscar-freire", titulo: "Rua Oscar Freire", el: <PaginaOscarFreire /> },
-  { id: "cj-shops-jardins", titulo: "CJ Shops Jardins (JHSF)", el: <PaginaCjShopsJardins /> },
-  // Saúde
-  { id: "hospital-clinicas", titulo: "Hospital das Clínicas", el: <PaginaHospitalClinicas /> },
-  { id: "albert-einstein", titulo: "Albert Einstein — nova unidade", el: <PaginaAlbertEinstein /> },
-  { id: "sirio-brooklin", titulo: "Sírio-Libanês — nova unidade (Brooklin)", el: <PaginaSirioBrooklin /> },
-  { id: "sirio-bela-vista", titulo: "Sírio-Libanês — Bela Vista", el: <PaginaSirioBelaVista /> },
-  { id: "oswaldo-cruz", titulo: "Hospital Alemão Oswaldo Cruz", el: <PaginaOswaldoCruz /> },
-  { id: "bp-bela-vista", titulo: "BP — Beneficência Portuguesa", el: <PaginaBP /> },
-  // Educação de elite
-  { id: "link-school", titulo: "Link School (universidade dos bilionários)", el: <PaginaLink /> },
-  { id: "insper", titulo: "Insper", el: <PaginaInsper /> },
-  // São Paulo Expo
-  { id: "sp-expo-abertura", titulo: "São Paulo Expo — Abertura", el: <PaginaSpExpoAbertura /> },
-  { id: "sp-expo-numeros", titulo: "São Paulo Expo — Números", el: <PaginaSpExpoNumeros /> },
-  // Parcerias — demanda embarcada
-  { id: "afya", titulo: "Afya Educação Médica + Vitacon", el: <PaginaAfya /> },
-  { id: "g4", titulo: "G4 Educação + Vitacon", el: <PaginaG4 /> },
-  // Global
-  { id: "trafego-aereo", titulo: "Maior tráfego aéreo do mundo", el: <PaginaTrafegoAereo /> },
-];
+// São páginas FIXAS (não dependem dos dados), então ficam pré-renderizadas como
+// imagem 1920×1080 em client/public/pdf-assets/geradores/<id>.jpg. Assim entram
+// no PDF como imagem já carregada (instantâneo) em vez de rasterizar o DOM a cada
+// vez. O código-fonte de cada página segue em @/pdf/Paginas*.tsx (Paulista,
+// FariaLima, Moema, Allianz, Metro) — a fonte de verdade do visual. Para mudar o
+// design de um gerador: edite o componente lá, renderize-o a 1920×1080 e
+// substitua o .jpg correspondente (mesmo id).
+const GERADORES: { id: string; titulo: string; el: React.ReactNode }[] = (
+  [
+    { id: "paulista-abertura", titulo: "Paulista — Abertura" },
+    { id: "paulista-saude", titulo: "Paulista — Rede de saúde" },
+    { id: "paulista-fluxo", titulo: "Paulista — 1,5 milhão por dia" },
+    { id: "paulista-hospitais", titulo: "Paulista — Cinturão hospitalar" },
+    { id: "frei-caneca", titulo: "Centro de Convenções Frei Caneca" },
+    { id: "faria-abertura", titulo: "Faria Lima — Abertura" },
+    { id: "faria-fluxo", titulo: "Faria Lima — 145 mil executivos" },
+    { id: "faria-itaim", titulo: "Faria Lima — Itaim Bibi" },
+    { id: "faria-super-jk-1", titulo: "Faria Lima — Super JK (foto 1)" },
+    { id: "faria-super-jk-2", titulo: "Faria Lima — Super JK (foto 2)" },
+    { id: "faria-cidade-jardim", titulo: "Faria Lima — CJ Shops (Cidade Jardim)" },
+    { id: "faria-shops-torre", titulo: "Faria Lima — Shops Faria Lima (torre)" },
+    { id: "faria-empresas", titulo: "Faria Lima — Empresas na região" },
+    { id: "faria-helipontos", titulo: "Faria Lima — mais helipontos que pontos de ônibus" },
+    { id: "reboucas", titulo: "Avenida Rebouças (nova Faria Lima)" },
+    { id: "berrini-chucri", titulo: "Berrini × Chucri Zaidan" },
+    { id: "allianz-abertura", titulo: "Allianz Parque — Abertura" },
+    { id: "allianz-demanda", titulo: "Allianz Parque — Demanda (+2,5 mi/ano)" },
+    { id: "allianz-proximidade", titulo: "Allianz Parque — 2 minutos a pé" },
+    { id: "puc-perdizes", titulo: "PUC-SP — Campus Perdizes" },
+    { id: "perdizes-polo", titulo: "Perdizes — polo de educação, saúde e lazer" },
+    { id: "pacaembu-arena", titulo: "Pacaembu — 40 mil em noite de show" },
+    { id: "pacaembu-complexo", titulo: "Pacaembu — complexo multiuso" },
+    { id: "linha-laranja", titulo: "Metrô — Linha 6-Laranja (universidades)" },
+    { id: "belas-artes", titulo: "Belas Artes — Vila Mariana" },
+    { id: "mackenzie", titulo: "Mackenzie — hospedagem oficial" },
+    { id: "espm", titulo: "ESPM — demanda de longa permanência" },
+    { id: "idh-moema", titulo: "Moema — IDH 0,961" },
+    { id: "congonhas", titulo: "Congonhas — 1,9 milhão de passageiros/mês" },
+    { id: "oscar-freire", titulo: "Rua Oscar Freire" },
+    { id: "cj-shops-jardins", titulo: "CJ Shops Jardins (JHSF)" },
+    { id: "hospital-clinicas", titulo: "Hospital das Clínicas" },
+    { id: "albert-einstein", titulo: "Albert Einstein — nova unidade" },
+    { id: "sirio-brooklin", titulo: "Sírio-Libanês — nova unidade (Brooklin)" },
+    { id: "sirio-bela-vista", titulo: "Sírio-Libanês — Bela Vista" },
+    { id: "oswaldo-cruz", titulo: "Hospital Alemão Oswaldo Cruz" },
+    { id: "bp-bela-vista", titulo: "BP — Beneficência Portuguesa" },
+    { id: "link-school", titulo: "Link School (universidade dos bilionários)" },
+    { id: "insper", titulo: "Insper" },
+    { id: "sp-expo-abertura", titulo: "São Paulo Expo — Abertura" },
+    { id: "sp-expo-numeros", titulo: "São Paulo Expo — Números" },
+    { id: "afya", titulo: "Afya Educação Médica + Vitacon" },
+    { id: "g4", titulo: "G4 Educação + Vitacon" },
+    { id: "trafego-aereo", titulo: "Maior tráfego aéreo do mundo" },
+  ] as { id: string; titulo: string }[]
+).map((g) => ({ ...g, el: <PaginaFixa src={`/pdf-assets/geradores/${g.id}.jpg`} alt={g.titulo} /> }));
 
 // ─── Dados consolidados para as páginas dinâmicas ────────────────────────────
 interface DadosPdf {
