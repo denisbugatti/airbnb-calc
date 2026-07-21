@@ -56,10 +56,10 @@ const QUALIDADE_JPEG = 0.95;
 // Quantas páginas capturar ao mesmo tempo. Baixo de propósito: só as páginas de
 // layout são pesadas (html-to-image); manter poucas em voo evita estourar a
 // memória (o que deixava a geração lentíssima em navegador carregado).
-const CONCORRENCIA_DOM = 3;
-// Teto de tempo para o html-to-image (só páginas de layout). O patch da lib já
-// evita travar; isto garante que nenhuma página segura a fila.
-const TIMEOUT_DOM_MS = 20000;
+const CONCORRENCIA_DOM = 2;
+// Teto de tempo para o html-to-image (só páginas de layout). Generoso porque em
+// navegador carregado a rasterização fica lenta; há uma 2ª tentativa se estourar.
+const TIMEOUT_DOM_MS = 45000;
 // Imagem que não carregar entra vazia em vez de derrubar a página.
 const PIXEL_TRANSPARENTE =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
@@ -85,91 +85,134 @@ function desenharContain(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w
   ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
 }
 
-/** Slide de imagem cheia: desenha a img JÁ carregada direto no canvas (instantâneo). */
-function coverParaJpeg(img: HTMLImageElement): string | null {
-  if (!img.naturalWidth) return null;
+/** Canvas 1920×1080 já com fundo preto pronto para desenhar. */
+function novaCanvasPreta(): { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null } {
   const c = novaCanvas();
   const ctx = c.getContext("2d");
-  if (!ctx) return null;
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, 1920, 1080);
-  desenharCover(ctx, img, 1920, 1080);
-  return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
-}
-
-/** Foto do empreendimento: horizontal cobre a tela; vertical fica inteira sobre ela mesma desfocada. */
-function fotoParaJpeg(img: HTMLImageElement): string | null {
-  if (!img.naturalWidth) return null;
-  const c = novaCanvas();
-  const ctx = c.getContext("2d");
-  if (!ctx) return null;
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, 1920, 1080);
-  if (img.naturalWidth >= img.naturalHeight) {
-    desenharCover(ctx, img, 1920, 1080);
-  } else {
-    ctx.filter = "blur(40px)";
-    desenharCover(ctx, img, 1920, 1080);
-    ctx.filter = "none";
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
+  if (ctx) {
+    ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, 1920, 1080);
-    desenharContain(ctx, img, 1920, 1080);
   }
+  return { c, ctx };
+}
+
+/** Slide de imagem cheia. Se a img não carregou, sai só o fundo preto (a página
+ *  NUNCA é pulada). Sempre devolve um JPEG. */
+function coverParaJpeg(img: HTMLImageElement | null): string {
+  const { c, ctx } = novaCanvasPreta();
+  if (ctx && img && img.naturalWidth) desenharCover(ctx, img, 1920, 1080);
   return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
 }
 
-/** Página de layout/texto: rasteriza o DOM com html-to-image (com teto de tempo). */
-async function rasterizarDom(node: HTMLElement, fontEmbedCSS: string): Promise<string | null> {
-  const ctrl = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const limite = new Promise<null>((resolve) => {
-    timer = setTimeout(() => {
-      ctrl.abort();
-      resolve(null);
-    }, TIMEOUT_DOM_MS);
-  });
-  try {
-    return await Promise.race([
-      toJpeg(node, {
-        quality: QUALIDADE_JPEG,
-        pixelRatio: 1,
-        backgroundColor: "#000000",
-        width: 1920,
-        height: 1080,
-        // O nó do preview vem com scale(var(--pdf-scale)); anula no clone.
-        style: { transform: "scale(1)" },
-        cacheBust: false,
-        includeQueryParams: true,
-        fontEmbedCSS,
-        imagePlaceholder: PIXEL_TRANSPARENTE,
-        fetchRequestInit: { signal: ctrl.signal },
-      }),
-      limite,
-    ]);
-  } catch (e) {
-    console.warn("[pdf] página de layout falhou:", e);
-    return null;
-  } finally {
-    if (timer) clearTimeout(timer);
+/** Foto do empreendimento: horizontal cobre; vertical fica inteira sobre ela mesma
+ *  desfocada. Se a foto não carregou, sai fundo preto (nunca pula). Sempre JPEG. */
+function fotoParaJpeg(img: HTMLImageElement | null): string {
+  const { c, ctx } = novaCanvasPreta();
+  if (ctx && img && img.naturalWidth) {
+    if (img.naturalWidth >= img.naturalHeight) {
+      desenharCover(ctx, img, 1920, 1080);
+    } else {
+      ctx.filter = "blur(40px)";
+      desenharCover(ctx, img, 1920, 1080);
+      ctx.filter = "none";
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(0, 0, 1920, 1080);
+      desenharContain(ctx, img, 1920, 1080);
+    }
   }
+  return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
 }
 
 /**
- * Captura uma página do deck. Se for só imagem (foto do empreendimento, ou um nó
- * sem texto com uma única imagem cheia), desenha a img já carregada direto no
- * canvas — instantâneo. Caso contrário, rasteriza o DOM.
+ * Carrega uma imagem de forma robusta (com retentativas). O preview pode não ter
+ * terminado de baixar a foto (proxy lento), então aqui insistimos. Devolve o
+ * elemento pronto ou null.
+ */
+async function carregarRobusto(src: string, tentativas = 2, msPorTentativa = 32000): Promise<HTMLImageElement | null> {
+  for (let t = 0; t < tentativas; t++) {
+    const img = await new Promise<HTMLImageElement | null>((resolve) => {
+      const im = new Image();
+      const timer = setTimeout(() => resolve(null), msPorTentativa);
+      im.onload = () => {
+        clearTimeout(timer);
+        resolve(im.naturalWidth ? im : null);
+      };
+      im.onerror = () => {
+        clearTimeout(timer);
+        resolve(null);
+      };
+      // Nas retentativas força nova busca no proxy (a anterior pode ter dado timeout/502).
+      im.src = t === 0 ? src : src + (src.includes("?") ? "&" : "?") + "_r=" + t;
+    });
+    if (img) return img;
+  }
+  return null;
+}
+
+/** Página de layout/texto: rasteriza o DOM com html-to-image. Faz uma 2ª tentativa
+ *  se estourar o tempo (navegador carregado). */
+async function rasterizarDom(node: HTMLElement, fontEmbedCSS: string): Promise<string | null> {
+  for (let t = 0; t < 2; t++) {
+    const ctrl = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limite = new Promise<null>((resolve) => {
+      timer = setTimeout(() => {
+        ctrl.abort();
+        resolve(null);
+      }, TIMEOUT_DOM_MS);
+    });
+    try {
+      const r = await Promise.race([
+        toJpeg(node, {
+          quality: QUALIDADE_JPEG,
+          pixelRatio: 1,
+          backgroundColor: "#000000",
+          width: 1920,
+          height: 1080,
+          // O nó do preview vem com scale(var(--pdf-scale)); anula no clone.
+          style: { transform: "scale(1)" },
+          cacheBust: false,
+          includeQueryParams: true,
+          fontEmbedCSS,
+          imagePlaceholder: PIXEL_TRANSPARENTE,
+          // Uma imagem interna que falhe (foto com link fora do ar) NÃO derruba a
+          // página — sem isto o html-to-image rejeita tudo e a página some.
+          onImageErrorHandler: () => undefined,
+          fetchRequestInit: { signal: ctrl.signal },
+        }),
+        limite,
+      ]);
+      if (r) return r;
+    } catch (e) {
+      console.warn("[pdf] página de layout falhou (tentativa " + (t + 1) + "):", e);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+  return null;
+}
+
+const imgPronta = (im?: HTMLImageElement): HTMLImageElement | null =>
+  im && im.complete && im.naturalWidth ? im : null;
+
+/**
+ * Captura uma página do deck. Páginas de imagem (foto do empreendimento ou nó sem
+ * texto com uma única imagem cheia) são desenhadas direto no canvas a partir da
+ * imagem já carregada — e NUNCA são puladas (se a imagem demorar, carrega com
+ * retry; se ainda assim falhar, sai fundo preto). Só as de layout rasterizam o DOM.
  */
 async function capturarPagina(node: HTMLElement, ehFoto: boolean, fontEmbedCSS: string): Promise<string | null> {
   const imgs = Array.from(node.querySelectorAll("img")) as HTMLImageElement[];
   if (ehFoto) {
     const principal = imgs.find((im) => !im.hasAttribute("aria-hidden")) ?? imgs[imgs.length - 1];
-    if (principal) {
-      const r = fotoParaJpeg(principal);
-      if (r) return r;
-    }
-  } else if ((node.textContent || "").trim() === "" && imgs.length === 1) {
-    const r = coverParaJpeg(imgs[0]);
-    if (r) return r;
+    let img = imgPronta(principal);
+    if (!img && principal?.src) img = await carregarRobusto(principal.src);
+    return fotoParaJpeg(img); // nunca null
+  }
+  if ((node.textContent || "").trim() === "" && imgs.length === 1) {
+    let img = imgPronta(imgs[0]);
+    if (!img && imgs[0]?.src) img = await carregarRobusto(imgs[0].src);
+    return coverParaJpeg(img); // nunca null
   }
   return rasterizarDom(node, fontEmbedCSS);
 }
@@ -717,8 +760,8 @@ export default function PdfPage() {
 
       if (falhas.length) {
         alert(
-          `O PDF abriu, mas ${falhas.length} ${falhas.length === 1 ? "página não pôde" : "páginas não puderam"} ser ` +
-            `gerada${falhas.length === 1 ? "" : "s"} (nº ${falhas.join(", ")}). Costuma ser uma foto com link fora do ar.`,
+          `O PDF abriu, mas ${falhas.length} ${falhas.length === 1 ? "página de texto não pôde" : "páginas de texto não puderam"} ser ` +
+            `renderizada${falhas.length === 1 ? "" : "s"} (nº ${falhas.join(", ")}). Gere de novo — costuma sair na segunda.`,
         );
       }
     } catch (e) {

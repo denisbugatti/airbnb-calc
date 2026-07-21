@@ -31,18 +31,28 @@ export async function handleImgProxy(req: IncomingMessage, res: ServerResponse):
   if (HOST_PRIVADO.test(alvo.hostname)) return responder(400, "Host não permitido");
 
   try {
-    // Uma origem lenta/pendurada não pode segurar a conexão para sempre — sem
-    // este teto, o gerador de PDF fica preso esperando a imagem no cliente.
-    const resp = await fetch(alvo, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(20000),
-      headers: {
-        // Alguns CDNs bloqueiam o user-agent padrão do Node
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-        Accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5",
-      },
-    });
+    const buscar = () =>
+      // Teto por tentativa: uma origem pendurada não pode segurar a conexão para
+      // sempre, mas 30s dá margem para origens lentas (Drive, sites pesados).
+      fetch(alvo, {
+        redirect: "follow",
+        signal: AbortSignal.timeout(30000),
+        headers: {
+          // Alguns CDNs bloqueiam o user-agent padrão do Node
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+          Accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5",
+        },
+      });
+    // Uma nova tentativa cobre falha transitória/timeout da origem (comum quando
+    // o gerador busca muitas fotos de uma vez).
+    let resp: Response;
+    try {
+      resp = await buscar();
+      if (!resp.ok) resp = await buscar();
+    } catch {
+      resp = await buscar();
+    }
     if (!resp.ok) return responder(502, `A origem respondeu ${resp.status}`);
 
     const tipo = (resp.headers.get("content-type") ?? "").split(";")[0].trim();
