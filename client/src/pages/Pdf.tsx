@@ -1,17 +1,18 @@
 /**
  * Pdf.tsx — Gerador de PDF Vitacon (aba PDF).
- * v1: monta o material com capa fixa + Plano de Pagamento + Simulação de
- * Rentabilidade (dos dados atuais ou de um cenário salvo) + páginas fixas de
- * cadastro e encerramento, no formato 1920×1080 idêntico ao brochure ON Paulista.
+ * Monta o material: capa fixa + geradores de demanda + institucional + fotos do
+ * empreendimento + Plano de Pagamento + Simulação de Rentabilidade (dos dados
+ * atuais ou de um cenário salvo) + páginas fixas de cadastro e encerramento, no
+ * formato 1920×1080 (paisagem).
  *
- * Cada página é um nó DOM de 1920×1080 rasterizado com html-to-image e montado
- * num PDF paisagem via jsPDF. As páginas de região/geradores/fotos entram nas
- * próximas versões, uma a uma.
+ * "Gerar PDF" usa o motor de impressão do próprio navegador (window.print()):
+ * cada página é um nó DOM de 1920×1080 que vira uma página do PDF via @page +
+ * @media print. É instantâneo, vetorial (texto nítido) e não trava — nada de
+ * rasterizar página a página em JS.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { jsPDF } from "jspdf";
-import { toJpeg, getFontEmbedCSS } from "html-to-image";
 import { Download, ImagePlus, X as XIcon, FileText } from "lucide-react";
 import { calcular, formatCurrency, defaultInputs, type CalculatorInputs, type CalculatorResults } from "@/lib/calculator";
 import { useFluxo, calcularFluxo, type FluxoInputs, type FluxoResults } from "@/contexts/FluxoContext";
@@ -27,27 +28,10 @@ import { PaginaLinhaLaranja } from "@/pdf/PaginasMetro";
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
 
-// Pixel transparente: uma imagem que não carregar entra vazia no lugar dela,
-// em vez de derrubar (ou travar) a rasterização da página inteira.
-const PIXEL_TRANSPARENTE =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-
-// Teto de tempo por página. Com o patch do html-to-image nenhuma página deveria
-// travar, mas isto garante que a fila jamais fica presa numa única página.
-const TIMEOUT_PAGINA_MS = 45000;
-
-// Quantas páginas rasterizar ao mesmo tempo. É o que derruba o tempo total das
-// 100+ páginas; acima disso a thread principal e a memória saturam sem ganho.
-const CONCORRENCIA = 4;
-
-// Qualidade do JPEG. 0.95 mantém texto/vetor nítidos e ainda é muito mais rápido
-// e leve que PNG (que o jsPDF ainda re-deflaciona página a página).
-const QUALIDADE_JPEG = 0.95;
-
 /**
- * Espera todas as imagens do preview carregarem antes de rasterizar. Aquece o
- * cache do navegador (o html-to-image rebusca cada src para embutir como data
- * URL) e não fica preso num link morto — cada imagem tem seu próprio teto.
+ * Espera as imagens do material carregarem antes de abrir a impressão, para o
+ * PDF não sair com fotos faltando. Não fica preso num link morto — cada imagem
+ * tem seu próprio teto de tempo.
  */
 function preloadImagens(raiz: HTMLElement, msPorImagem: number): Promise<void[]> {
   const imgs = Array.from(raiz.querySelectorAll("img"));
@@ -68,145 +52,6 @@ function preloadImagens(raiz: HTMLElement, msPorImagem: number): Promise<void[]>
         }),
     ),
   );
-}
-
-/**
- * Rasteriza uma página do deck em JPEG 1920×1080 com teto de tempo. Faz uma
- * segunda tentativa em caso de falha transitória; se ainda assim não sair,
- * devolve `null` para a página ser pulada — nunca para o PDF inteiro.
- */
-async function rasterizarPagina(node: HTMLElement, fontEmbedCSS: string): Promise<string | null> {
-  for (let tentativa = 0; tentativa < 2; tentativa++) {
-    const ctrl = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const limite = new Promise<null>((resolve) => {
-      timer = setTimeout(() => {
-        ctrl.abort();
-        resolve(null);
-      }, TIMEOUT_PAGINA_MS);
-    });
-    try {
-      const jpeg = await Promise.race([
-        toJpeg(node, {
-          quality: QUALIDADE_JPEG,
-          pixelRatio: 1,
-          backgroundColor: "#000000",
-          width: 1920,
-          height: 1080,
-          // O nó do preview carrega scale(var(--pdf-scale)) para caber na tela;
-          // sem anular no clone, o slide sai a ~36% num canto da página.
-          style: { transform: "scale(1)" },
-          cacheBust: false,
-          // As fotos vêm todas de /api/img-proxy e só diferem no query string;
-          // sem isto o cache interno as trata como a mesma imagem.
-          includeQueryParams: true,
-          fontEmbedCSS,
-          imagePlaceholder: PIXEL_TRANSPARENTE,
-          // Aborta um fetch de imagem que trave; o erro vira o placeholder acima.
-          fetchRequestInit: { signal: ctrl.signal },
-        }),
-        limite,
-      ]);
-      if (jpeg) return jpeg;
-    } catch (e) {
-      console.warn("[pdf] página falhou (tentativa " + (tentativa + 1) + "):", e);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  }
-  return null;
-}
-
-// ─── Caminho rápido: páginas que são só uma imagem ───────────────────────────
-// As imagens do preview já foram carregadas e são same-origin (inclusive o
-// /api/img-proxy), então desenhamos direto num canvas 1920×1080 e mandamos pro
-// PDF — sem html-to-image, sem SVG gigante, sem chance de travar. É o grosso das
-// 100+ páginas (slides fixos + fotos do empreendimento).
-
-/** Carrega a imagem do cache do navegador (já pré-carregada) com teto de tempo. */
-function carregarImagem(src: string, ms: number): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const t = setTimeout(() => reject(new Error("timeout ao carregar imagem")), ms);
-    img.onload = () => {
-      clearTimeout(t);
-      resolve(img);
-    };
-    img.onerror = () => {
-      clearTimeout(t);
-      reject(new Error("erro ao carregar imagem"));
-    };
-    img.src = src;
-  });
-}
-
-function novaCanvas(): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = 1920;
-  c.height = 1080;
-  return c;
-}
-
-/** Desenha a imagem cobrindo todo o quadro (recorta o excedente), centralizada. */
-function desenharCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
-  const escala = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-  const iw = img.naturalWidth * escala;
-  const ih = img.naturalHeight * escala;
-  ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
-}
-
-/** Desenha a imagem inteira dentro do quadro (sem cortar), centralizada. */
-function desenharContain(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
-  const escala = Math.min(w / img.naturalWidth, h / img.naturalHeight);
-  const iw = img.naturalWidth * escala;
-  const ih = img.naturalHeight * escala;
-  ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
-}
-
-/** Slide de imagem cheia (capa, entregas, encerramento…): cover direto no canvas. */
-async function imagemParaJpeg(src: string): Promise<string | null> {
-  try {
-    const img = await carregarImagem(src, 20000);
-    const c = novaCanvas();
-    const ctx = c.getContext("2d");
-    if (!ctx) return null;
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, 1920, 1080);
-    desenharCover(ctx, img, 1920, 1080);
-    return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
-  } catch (e) {
-    console.warn("[pdf] imagem falhou:", src, e);
-    return null;
-  }
-}
-
-/**
- * Foto do empreendimento — replica o preview no canvas: horizontal cobre a tela;
- * vertical fica inteira (`contain`) sobre ela mesma desfocada e escurecida.
- */
-async function fotoParaJpeg(src: string): Promise<string | null> {
-  try {
-    const img = await carregarImagem(src, 20000);
-    const c = novaCanvas();
-    const ctx = c.getContext("2d");
-    if (!ctx) return null;
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, 1920, 1080);
-    if (img.naturalWidth >= img.naturalHeight) {
-      desenharCover(ctx, img, 1920, 1080);
-    } else {
-      ctx.filter = "blur(40px)";
-      desenharCover(ctx, img, 1920, 1080);
-      ctx.filter = "none";
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.fillRect(0, 0, 1920, 1080);
-      desenharContain(ctx, img, 1920, 1080);
-    }
-    return c.toDataURL("image/jpeg", QUALIDADE_JPEG);
-  } catch (e) {
-    console.warn("[pdf] foto falhou:", src, e);
-    return null;
-  }
 }
 
 // ─── Geradores de demanda — o usuário escolhe quais entram no PDF ─────────────
@@ -551,10 +396,17 @@ export default function PdfPage() {
   const [fonte, setFonte] = useState<string>("atual"); // "atual" | id do cenário
   const [geradoresAtivos, setGeradoresAtivos] = useState<string[]>(() => GERADORES.map((g) => g.id));
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
-  const [gerando, setGerando] = useState(false);
-  const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
+  const [imprimindo, setImprimindo] = useState(false);
   const paginasRef = useRef<HTMLDivElement>(null);
+  const impressaoRef = useRef<HTMLDivElement>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Ao fechar a caixa de impressão do navegador, desmonta o material de impressão.
+  useEffect(() => {
+    const aoFechar = () => setImprimindo(false);
+    window.addEventListener("afterprint", aoFechar);
+    return () => window.removeEventListener("afterprint", aoFechar);
+  }, []);
 
   // Galeria de fotos do empreendimento (por link), persistida entre sessões
   const [fotosEmp, setFotosEmp] = useState<FotoEmp[]>(() => {
@@ -671,114 +523,33 @@ export default function PdfPage() {
     setFotoUrl(URL.createObjectURL(f));
   };
 
+  // "Gerar PDF" agora imprime: monta o material em tamanho real (1920×1080 por
+  // página, sem escala), espera imagens + fontes e abre a caixa de impressão do
+  // navegador. O usuário escolhe "Salvar como PDF" — é o motor nativo do Chrome
+  // renderizando o DOM direto: instantâneo, vetorial (texto nítido) e sem
+  // qualquer rasterização em JS que possa travar.
   const gerarPdf = async () => {
-    const raiz = paginasRef.current;
-    if (!raiz || gerando) return;
-    setGerando(true);
-    setProgresso(null);
-    // A aba do preview abre JÁ no clique: depois dos awaits o navegador perde o
-    // gesto do usuário e o bloqueador de pop-up barraria o window.open.
-    const abaPreview = window.open("", "_blank");
-    const statusPreview = (msg: string) => {
-      if (!abaPreview || abaPreview.closed) return;
+    if (imprimindo) return;
+    setImprimindo(true);
+    // Deixa o material de impressão montar no DOM antes de imprimir.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
+    const raiz = impressaoRef.current;
+    if (raiz) {
       try {
-        const alvo = abaPreview.document.getElementById("status");
-        if (alvo) alvo.textContent = msg;
+        await preloadImagens(raiz, 20000);
       } catch {
-        /* a aba já navegou para o PDF ou foi fechada */
+        /* segue mesmo se alguma imagem demorar */
       }
-    };
-    if (abaPreview) {
-      abaPreview.document.write(
-        '<title>Gerando PDF…</title><body style="background:#000;color:#fff;font-family:sans-serif;display:grid;place-items:center;height:100vh;margin:0"><div id="status">Gerando o PDF…</div></body>',
-      );
     }
-    const nos = Array.from(raiz.querySelectorAll<HTMLElement>("[data-pdf-page]"));
-    const total = paginas.length;
-    const falhas: number[] = [];
     try {
-      // Aquece o cache das imagens antes de rasterizar — um link fora do ar
-      // não pode mais segurar a geração para sempre.
-      statusPreview("Carregando imagens…");
-      await preloadImagens(raiz, 20000);
-
-      // Embute as fontes uma única vez e reaproveita nas páginas de layout. Só
-      // precisamos disto se houver página de DOM (as de imagem/foto vão diretas).
-      // Com teto de tempo: se travar num @font-face cross-origin, segue sem
-      // fonte embutida em vez de pendurar a geração inteira antes de começar.
-      let fontEmbedCSS = "";
-      if (paginas.some((p) => !p.imagem && !p.foto)) {
-        try {
-          fontEmbedCSS = await Promise.race([
-            getFontEmbedCSS(raiz),
-            new Promise<string>((resolve) => setTimeout(() => resolve(""), 15000)),
-          ]);
-        } catch {
-          /* segue sem o cache de fonte */
-        }
-      }
-
-      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1920, 1080], compress: true });
-
-      // Captura várias páginas em paralelo (pool limitado). Página que é só uma
-      // imagem vai direto pro canvas (rápido, não trava); só as de layout passam
-      // pelo html-to-image. A montagem no PDF continua na ordem original.
-      const imagens: (string | null)[] = new Array(total).fill(null);
-      let concluidas = 0;
-      let proxima = 0;
-      const trabalhador = async () => {
-        while (true) {
-          const i = proxima++;
-          if (i >= total) return;
-          const p = paginas[i];
-          imagens[i] = p.imagem
-            ? await imagemParaJpeg(p.imagem)
-            : p.foto
-              ? await fotoParaJpeg(p.foto)
-              : await rasterizarPagina(nos[i], fontEmbedCSS);
-          concluidas++;
-          setProgresso({ atual: concluidas, total });
-          statusPreview(`Gerando o PDF… ${concluidas} de ${total}`);
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, total) }, trabalhador));
-
-      // Monta na ordem original; página que não saiu é registrada e pulada.
-      statusPreview("Montando o PDF…");
-      let adicionadas = 0;
-      for (let i = 0; i < total; i++) {
-        const img = imagens[i];
-        if (img) {
-          if (adicionadas > 0) pdf.addPage([1920, 1080], "landscape");
-          pdf.addImage(img, "JPEG", 0, 0, 1920, 1080);
-          adicionadas++;
-        } else {
-          falhas.push(i + 1);
-        }
-      }
-
-      if (adicionadas === 0) throw new Error("nenhuma página pôde ser renderizada");
-
-      const nomeArq = `vitacon-${(dados.nomeEmpreendimento || "apresentacao").replace(/[^\w.-]+/g, "-").toLowerCase()}.pdf`;
-      const url = URL.createObjectURL(pdf.output("blob"));
-      if (abaPreview && !abaPreview.closed) abaPreview.location.href = url;
-      pdf.save(nomeArq);
-
-      if (falhas.length) {
-        alert(
-          `O PDF foi gerado, mas ${falhas.length} ${falhas.length === 1 ? "página não pôde" : "páginas não puderam"} ser ` +
-            `renderizada${falhas.length === 1 ? "" : "s"} (nº ${falhas.join(", ")}). ` +
-            "Costuma ser uma foto com link fora do ar — remova-a e gere de novo.",
-        );
-      }
-    } catch (e) {
-      abaPreview?.close();
-      console.error("[pdf] falhou:", e);
-      alert("Não foi possível gerar o PDF agora. Tente novamente.");
-    } finally {
-      setGerando(false);
-      setProgresso(null);
+      await document.fonts?.ready;
+    } catch {
+      /* fontes já disponíveis */
     }
+    // Uma batida a mais para o layout assentar antes de abrir a impressão.
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    window.print();
+    // O cleanup (setImprimindo(false)) roda no evento "afterprint".
   };
 
   const toggleGerador = (id: string) =>
@@ -795,12 +566,8 @@ export default function PdfPage() {
     });
 
   // Ações disponíveis no card do preview. Páginas fixas não trazem `acoes`.
-  // `imagem`/`foto`: páginas que são só uma imagem vão direto pro PDF via canvas
-  // (sem html-to-image). `el` continua sendo o que aparece no preview.
   type PaginaDeck = {
     titulo: string; el: React.ReactNode;
-    imagem?: string; // slide de imagem cheia (cover)
-    foto?: string; // foto do empreendimento (aspecto: horizontal cover, vertical contain+blur)
     acoes?: { excluir: () => void; mover: (dir: -1 | 1) => void; primeira: boolean; ultima: boolean };
   };
 
@@ -817,18 +584,17 @@ export default function PdfPage() {
   const paginasFotosEmp: PaginaDeck[] = fotosEmp.map((f, i) => ({
     titulo: `Foto do empreendimento ${String(i + 1).padStart(2, "0")}`,
     el: <PaginaFoto src={viaProxy(f.url)} alt={`Foto ${i + 1} do empreendimento ${dados.nomeEmpreendimento || ""}`.trim()} />,
-    foto: viaProxy(f.url),
     acoes: { excluir: () => removerFoto(f.id), mover: (dir: -1 | 1) => moverFoto(f.id, dir), primeira: i === 0, ultima: i === fotosEmp.length - 1 },
   }));
 
   const paginas: PaginaDeck[] = [
-    { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" />, imagem: "/pdf-assets/capa-01.png" },
-    { titulo: "Valorize com a cidade", el: <PaginaFixa src="/pdf-assets/valorize-cidade.jpg" alt="Valorize com a cidade" />, imagem: "/pdf-assets/valorize-cidade.jpg" },
+    { titulo: "Capa", el: <PaginaFixa src="/pdf-assets/capa-01.png" alt="Capa Vitacon" /> },
+    { titulo: "Valorize com a cidade", el: <PaginaFixa src="/pdf-assets/valorize-cidade.jpg" alt="Valorize com a cidade" /> },
     ...paginasGeradores,
     { titulo: "Vitacon — Institucional", el: <PaginaInstitucional /> },
-    { titulo: "Últimas entregas", el: <PaginaEntregas />, imagem: "/pdf-assets/entregas-2k.jpg" },
+    { titulo: "Últimas entregas", el: <PaginaEntregas /> },
     { titulo: "Até o ChatGPT sabe", el: <PaginaChatGPT /> },
-    { titulo: "A primeira Fincorporadora do mundo", el: <PaginaFixa src="/pdf-assets/fincorporadora.jpg" alt="A primeira Fincorporadora do mundo" />, imagem: "/pdf-assets/fincorporadora.jpg" },
+    { titulo: "A primeira Fincorporadora do mundo", el: <PaginaFixa src="/pdf-assets/fincorporadora.jpg" alt="A primeira Fincorporadora do mundo" /> },
     // Bloco do empreendimento, fechando em Plano de Pagamento: abertura com a
     // foto vertical (upload local; sem ela, a 1ª da galeria) → galeria → fluxo.
     ...(fotoUrl || fotosEmp.length > 0
@@ -837,12 +603,26 @@ export default function PdfPage() {
     ...paginasFotosEmp,
     { titulo: "Plano de Pagamento", el: <PaginaPlano dados={dados} /> },
     { titulo: "Simulação de Rentabilidade", el: <PaginaRentabilidade dados={dados} fotoUrl={fotoUrl} /> },
-    { titulo: "Cadastro exclusivo", el: <PaginaFixa src="/pdf-assets/fim-62.png" alt="Cadastro exclusivo" />, imagem: "/pdf-assets/fim-62.png" },
-    { titulo: "Encerramento", el: <PaginaFixa src="/pdf-assets/fim-63.png" alt="Encerramento" />, imagem: "/pdf-assets/fim-63.png" },
+    { titulo: "Cadastro exclusivo", el: <PaginaFixa src="/pdf-assets/fim-62.png" alt="Cadastro exclusivo" /> },
+    { titulo: "Encerramento", el: <PaginaFixa src="/pdf-assets/fim-63.png" alt="Encerramento" /> },
   ];
 
   return (
     <div className="w-full px-4 md:px-6 py-6 md:py-10">
+      {/* Material de impressão em tamanho real — só existe no DOM durante a
+          impressão e só aparece no @media print (fica fora da tela normal).
+          Cada página é 1920×1080 e vira uma página do PDF pelo motor do navegador. */}
+      {imprimindo &&
+        createPortal(
+          <div ref={impressaoRef} className="pdf-print-root" aria-hidden>
+            {paginas.map((p, i) => (
+              <div className="pdf-print-page" key={`print-${i}`}>
+                {p.el}
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
       <div className="max-w-5xl mx-auto">
         {/* Header brochure */}
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }} className="mb-6 md:mb-8">
@@ -1074,16 +854,12 @@ export default function PdfPage() {
           </span>
           <button
             onClick={gerarPdf}
-            disabled={gerando}
+            disabled={imprimindo}
             className="press flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold uppercase tracking-wider"
-            style={{ background: colors.blue, color: "#FFFFFF", fontFamily: "var(--font-display)", opacity: gerando ? 0.7 : 1 }}
+            style={{ background: colors.blue, color: "#FFFFFF", fontFamily: "var(--font-display)", opacity: imprimindo ? 0.7 : 1 }}
           >
-            {gerando ? <FileText size={15} /> : <Download size={15} />}
-            {gerando
-              ? progresso
-                ? `Gerando ${progresso.atual}/${progresso.total}...`
-                : "Gerando PDF..."
-              : "Gerar PDF"}
+            {imprimindo ? <FileText size={15} /> : <Download size={15} />}
+            {imprimindo ? "Abrindo impressão..." : "Gerar PDF"}
           </button>
         </div>
 
