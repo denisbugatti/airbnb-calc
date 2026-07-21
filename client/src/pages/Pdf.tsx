@@ -461,19 +461,19 @@ function PaginaRentabilidade({ dados, fotoUrl }: { dados: DadosPdf; fotoUrl: str
   ];
 
   return (
-    <div style={{ width: 1920, height: 1080, background: "#000000", padding: "72px 88px", fontFamily: "var(--font-sans)", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: 1920, height: 1080, background: "#000000", padding: "56px 88px", fontFamily: "var(--font-sans)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <HeaderPagina rotulo="Simulação de Rentabilidade" nome={dados.nomeEmpreendimento} />
-      <div style={{ display: "flex", gap: 72, marginTop: 56, flex: 1, minHeight: 0 }}>
-        {/* Extrato */}
-        <div style={{ flex: "1 1 0", display: "flex", flexDirection: "column" }}>
-          <div style={{ background: "#141414", border: "1px solid #2A2A2A", padding: "30px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 72, marginTop: 36, flex: 1, minHeight: 0 }}>
+        {/* Extrato — centralizado na vertical para ficar equilibrado com 6 ou 7 linhas */}
+        <div style={{ flex: "1 1 0", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ background: "#141414", border: "1px solid #2A2A2A", padding: "22px 36px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 30, color: "#FFFFFF" }}>Total investido</span>
             <span style={{ fontSize: 42, color: AZUL, fontWeight: 600 }}>{formatCurrency(totalInvestido)}</span>
           </div>
           {linhas.map((l) => (
             <div key={l.label} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "22px 36px",
+              padding: "15px 36px",
               borderBottom: "1px solid #1F1F1F",
               background: l.destaque ? "rgba(40,0,255,0.10)" : "transparent",
               borderLeft: l.destaque ? `5px solid ${AZUL}` : "5px solid transparent",
@@ -482,11 +482,11 @@ function PaginaRentabilidade({ dados, fotoUrl }: { dados: DadosPdf; fotoUrl: str
               <span style={{ fontSize: 26, color: l.negativo ? AZUL : "#FFFFFF", fontWeight: 500 }}>{l.valor}</span>
             </div>
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "26px 36px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 36px" }}>
             <span style={{ fontSize: 30, color: "#FFFFFF" }}>Renda mensal líquida</span>
             <span style={{ fontSize: 40, color: AZUL, fontWeight: 600 }}>{formatCurrency(res.rendaMensalLiquida)}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "30px 36px", background: AZUL }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 36px", background: AZUL }}>
             <span style={{ fontSize: 32, color: "#FFFFFF", fontWeight: 600 }}>Renda anual líquida</span>
             <span style={{ fontSize: 44, color: "#FFFFFF", fontWeight: 700 }}>{formatCurrency(res.rendaMensalLiquida * 12)}</span>
           </div>
