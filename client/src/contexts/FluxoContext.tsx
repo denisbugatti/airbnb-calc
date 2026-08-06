@@ -47,6 +47,8 @@ export interface FluxoInputs {
   financiamentoManual?: number;
   /** Quando true, o financiamento é excluído do fluxo (pagamento à vista): linha/cartão somem e o saldo a financiar vira 0 */
   financiamentoExcluido?: boolean;
+  /** Desconto em R$ sobre o valor de tabela; undefined = sem desconto. valorImovel guarda o líquido (tabela − desconto) */
+  desconto?: number;
 }
 
 export interface FluxoResults {
@@ -167,6 +169,16 @@ interface SharedContextType {
   removeSemestral: () => void;
   removeSemestralAt: (idx: number) => void;
   reorderSemestrais: (fromIdx: number, toIdx: number) => void;
+
+  // ── Desconto sobre o valor de tabela ──────────────────────────────────────
+  /** Valor de tabela (original, sem desconto) = valorImovel + desconto */
+  valorTabela: number;
+  /** Aplica/atualiza o desconto em R$; o fluxo reescala sobre o valor líquido */
+  aplicarDesconto: (valor: number) => void;
+  /** Remove o desconto e restaura o valor de tabela como valor do imóvel */
+  removerDesconto: () => void;
+  /** Edita o valor de tabela mantendo o desconto aplicado */
+  setValorTabela: (tabela: number) => void;
 
   // ── Toggle decoração (compartilhado entre Fluxo e Calculadora) ─────────────
   incluiDecoracao: boolean;
@@ -423,6 +435,30 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ── Desconto sobre o valor de tabela ──────────────────────────────────────
+  // valorImovel guarda sempre o líquido; o desconto vive no fluxo e a tabela é derivada.
+  // Alterar tabela/desconto passa por syncFromCalc, que reescala as séries proporcionalmente.
+
+  const valorTabela = calc.valorImovel + (fluxo.desconto ?? 0);
+
+  const aplicarDesconto = useCallback((valor: number) => {
+    const v = Math.max(0, Math.min(Math.round(valor), valorTabela));
+    setFluxoState((prev) => ({ ...prev, desconto: v }));
+    syncFromCalc({ valorImovel: valorTabela - v });
+  }, [valorTabela, syncFromCalc]);
+
+  const removerDesconto = useCallback(() => {
+    setFluxoState((prev) => ({ ...prev, desconto: undefined }));
+    syncFromCalc({ valorImovel: valorTabela });
+  }, [valorTabela, syncFromCalc]);
+
+  const setValorTabela = useCallback((tabela: number) => {
+    const t = Math.max(0, Math.round(tabela));
+    const d = Math.min(fluxo.desconto ?? 0, t);
+    setFluxoState((prev) => ({ ...prev, desconto: prev.desconto !== undefined ? d : undefined }));
+    syncFromCalc({ valorImovel: t - d });
+  }, [fluxo.desconto, syncFromCalc]);
+
   const syncToCalc = useCallback((payload: SyncPayload) => {
     // No novo modelo, syncToCalc e syncFromCalc fazem a mesma coisa
     syncFromCalc(payload);
@@ -450,6 +486,7 @@ export function FluxoProvider({ children }: { children: ReactNode }) {
   return (
     <FluxoContext.Provider value={{
       calc, setCalc, setCalcField,
+      valorTabela, aplicarDesconto, removerDesconto, setValorTabela,
       incluiDecoracao, setIncluiDecoracao,
       fluxo, results, setFluxo,
       nomeEmpreendimento, setNomeEmpreendimento,

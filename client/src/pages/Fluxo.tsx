@@ -410,7 +410,7 @@ function gerarFluxoPNG(
 ): Promise<string> {
   return new Promise((resolve) => {
     const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-    const cols: { header: string; sub: string; value: string; isGreen?: boolean; isViolet?: boolean }[] = [];
+    const cols: { header: string; sub: string; value: string; isGreen?: boolean; isViolet?: boolean; isRed?: boolean }[] = [];
     fluxo.ato.forEach((p) => cols.push({ header: p.label, sub: p.mes, value: fmt(p.valor) }));
     cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
     (fluxo.semestrais ?? []).forEach((s, i) => cols.push({ header: `SEMESTRAL ${i + 1}`, sub: s.mes, value: fmt(s.valor), isViolet: true }));
@@ -418,7 +418,15 @@ function gerarFluxoPNG(
     if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(decoracao) });
     cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
     cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
-    cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(valorImovel) });
+    const desconto = fluxo.desconto ?? 0;
+    if (desconto > 0) {
+      const tabela = valorImovel + desconto;
+      cols.push({ header: "VALOR DE TABELA", sub: "sem desconto", value: fmt(tabela) });
+      cols.push({ header: "DESCONTO", sub: tabela > 0 ? `${((desconto / tabela) * 100).toFixed(1)}%` : "", value: `-${fmt(desconto)}`, isRed: true });
+      cols.push({ header: "VALOR DO IMOVEL", sub: "com desconto", value: fmt(valorImovel) });
+    } else {
+      cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(valorImovel) });
+    }
 
     // Paleta de cores por tema — identidade Vitacon (azul elétrico #2800FF)
     const isDarkTheme = exportTheme === "dark";
@@ -429,16 +437,20 @@ function gerarFluxoPNG(
       headerBlue: isDarkTheme ? "#3d2bb8" : "#2800ff",
       headerGreen: "#0e8a4a",
       headerViolet: isDarkTheme ? "#3d2bb8" : "#2800ff",
+      headerRed: "#c02418",
       headerTextColor: "#ffffff",
       headerSubBlue: isDarkTheme ? "#cfc8ff" : "#dcd6ff",
       headerSubGreen: isDarkTheme ? "#bbf7d0" : "#dcfce7",
       headerSubViolet: isDarkTheme ? "#cfc8ff" : "#dcd6ff",
+      headerSubRed: isDarkTheme ? "#fecaca" : "#fee2e2",
       cellBlueBg: isDarkTheme ? "#16141f" : "#f4f2ff",
       cellGreenBg: isDarkTheme ? "#dcfce7" : "#f0fdf4",
       cellVioletBg: isDarkTheme ? "#16141f" : "#f4f2ff",
+      cellRedBg: isDarkTheme ? "#241211" : "#fef2f2",
       cellBlueText: isDarkTheme ? "#e6e2ff" : "#1b1263",
       cellGreenText: "#15803d",
       cellVioletText: isDarkTheme ? "#e6e2ff" : "#1b1263",
+      cellRedText: isDarkTheme ? "#ff8a75" : "#c02418",
       divider: isDarkTheme ? "#262626" : "#e5e5e5",
       colDivider: isDarkTheme ? "#3a3a3a" : "#c9c9c9",
     };
@@ -478,8 +490,9 @@ function gerarFluxoPNG(
         const x = tableX + i * COL_W;
         const isGreen = col.isGreen;
         const isViolet = col.isViolet;
+        const isRed = col.isRed;
         // Header background
-        ctx.fillStyle = isGreen ? palette.headerGreen : isViolet ? palette.headerViolet : palette.headerBlue;
+        ctx.fillStyle = isGreen ? palette.headerGreen : isRed ? palette.headerRed : isViolet ? palette.headerViolet : palette.headerBlue;
         ctx.fillRect(x, tableY, COL_W, HEADER_H);
         // Header text
         ctx.fillStyle = palette.headerTextColor;
@@ -487,15 +500,15 @@ function gerarFluxoPNG(
         ctx.textAlign = "center";
         ctx.fillText(col.header, x + COL_W / 2, tableY + 26);
         if (col.sub) {
-          ctx.fillStyle = isGreen ? palette.headerSubGreen : isViolet ? palette.headerSubViolet : palette.headerSubBlue;
+          ctx.fillStyle = isGreen ? palette.headerSubGreen : isRed ? palette.headerSubRed : isViolet ? palette.headerSubViolet : palette.headerSubBlue;
           ctx.font = "10px system-ui, sans-serif";
           ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
         }
         // Cell background
-        ctx.fillStyle = isGreen ? palette.cellGreenBg : isViolet ? palette.cellVioletBg : palette.cellBlueBg;
+        ctx.fillStyle = isGreen ? palette.cellGreenBg : isRed ? palette.cellRedBg : isViolet ? palette.cellVioletBg : palette.cellBlueBg;
         ctx.fillRect(x, tableY + HEADER_H, COL_W, ROW_H);
         // Cell text
-        ctx.fillStyle = isGreen ? palette.cellGreenText : isViolet ? palette.cellVioletText : palette.cellBlueText;
+        ctx.fillStyle = isGreen ? palette.cellGreenText : isRed ? palette.cellRedText : isViolet ? palette.cellVioletText : palette.cellBlueText;
         ctx.font = "bold 13px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(col.value, x + COL_W / 2, tableY + HEADER_H + ROW_H / 2 + 5);
@@ -544,6 +557,7 @@ export default function FluxoPage() {
     setFluxo, syncValorImovelParaCalc, syncToCalc,
     nomeEmpreendimento, setNomeEmpreendimento,
     incluiDecoracao, setIncluiDecoracao,
+    valorTabela, aplicarDesconto, removerDesconto, setValorTabela,
   } = useFluxo();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -606,6 +620,24 @@ export default function FluxoPage() {
 
   const pctInvestido = calc.valorImovel > 0 ? (results.totalInvestido / calc.valorImovel) * 100 : 0;
   const pctFinanciamento = 100 - pctInvestido;
+
+  const desconto = fluxo.desconto ?? 0;
+  const temDesconto = fluxo.desconto !== undefined;
+  const pctDesconto = valorTabela > 0 ? (desconto / valorTabela) * 100 : 0;
+  // Aceita R$ (ex.: 50.000) ou % do valor de tabela (ex.: 5%)
+  const pedirDesconto = () => {
+    const raw = window.prompt("Desconto sobre o valor de tabela — em R$ (ex.: 50.000) ou % (ex.: 5%):");
+    if (raw == null) return;
+    const s = raw.trim();
+    if (!s) return;
+    if (s.includes("%")) {
+      const p = parseFloat(s.replace("%", "").replace(",", "."));
+      if (!isNaN(p) && p > 0) aplicarDesconto((p / 100) * valorTabela);
+    } else {
+      const v = fParse(s);
+      if (v > 0) aplicarDesconto(v);
+    }
+  };
 
   const handleExport = useCallback(async (incluirDecoracao = true) => {
     setExporting(true);
@@ -768,22 +800,33 @@ export default function FluxoPage() {
               })),
               ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia, total: calc.mobilia }] : []),
             ];
-            const resumo: { label: string; pct: string; value: number; total?: number; solid?: boolean }[] = [
+            const resumo: { label: string; pct: string; value: number; total?: number; solid?: boolean; red?: boolean; strike?: boolean }[] = [
               { label: "Total Investido", pct: vi > 0 ? `${((totalSeries / vi) * 100).toFixed(0)}%` : "", value: totalSeries, solid: true },
               ...(fluxo.financiamentoExcluido ? [] : [{ label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento }]),
-              { label: "Valor do Imóvel", pct: "", value: vi },
+              ...(desconto > 0
+                ? [
+                    { label: "Valor de Tabela", pct: "", value: valorTabela, strike: true },
+                    { label: "Desconto", pct: `−${pctDesconto.toFixed(pctDesconto % 1 ? 1 : 0)}%`, value: desconto, red: true },
+                    { label: "Valor do Imóvel", pct: "", value: vi },
+                  ]
+                : [{ label: "Valor do Imóvel", pct: "", value: vi }]),
             ];
-            const Cartao = ({ label, pct, value, solid }: { label: string; pct: string; value: number; solid?: boolean }) => (
+            const Cartao = ({ label, pct, value, solid, red, strike }: { label: string; pct: string; value: number; solid?: boolean; red?: boolean; strike?: boolean }) => (
               <div className="rise p-5 md:p-6" style={{ background: solid ? "#2800FF" : "#0A0A0A" }}>
                 <div className="text-[11px] tracking-[0.25em] uppercase mb-3"
-                  style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
+                  style={{ color: solid ? "rgba(255,255,255,0.75)" : red ? "#FF6B57" : "#898A8E", fontFamily: "var(--font-mono)" }}>
                   {label}
                 </div>
-                <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
+                <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : red ? "#FF6B57" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
                   {pct}
                 </div>
-                <div className="text-2xl md:text-3xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
-                  {formatCurrency(value)}
+                <div className="text-2xl md:text-3xl" style={{
+                  color: red ? "#FF6B57" : strike ? "#898A8E" : "#FFFFFF",
+                  fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em",
+                  textDecoration: strike ? "line-through" : undefined,
+                  whiteSpace: red || strike ? "nowrap" : undefined,
+                }}>
+                  {red ? `−${formatCurrency(value)}` : formatCurrency(value)}
                 </div>
               </div>
             );
@@ -931,11 +974,60 @@ export default function FluxoPage() {
               );
             })()}
 
+            {/* VALOR DE TABELA + DESCONTO — aparecem quando há desconto aplicado */}
+            {temDesconto && (
+              <>
+                <div className="flex justify-between items-center gap-4 px-5 py-3"
+                  style={{ background: "#0A0A0A", border: "1px solid #242424", borderBottom: "none" }}>
+                  <span className="text-sm font-semibold" style={{ color: "#B3B3B3", fontFamily: "var(--font-sans)" }}>
+                    Valor de tabela
+                  </span>
+                  <div className="w-44 text-right">
+                    <EditableValue value={valorTabela} onChange={(v) => setValorTabela(v)} colors={colors} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center gap-4 px-5 py-3"
+                  style={{ background: "rgba(255,107,87,0.10)", border: "1px solid rgba(255,107,87,0.35)", borderBottom: "none" }}>
+                  <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#FF6B57", fontFamily: "var(--font-sans)" }}>
+                    <BadgePercent size={14} />
+                    Desconto
+                    {pctDesconto > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,107,87,0.15)", fontFamily: "var(--font-mono)" }}>
+                        −{pctDesconto.toFixed(pctDesconto % 1 ? 1 : 0)}%
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-44 text-right">
+                      <EditableValue value={desconto} onChange={(v) => aplicarDesconto(v)} prefix="−R$"
+                        colors={{ ...colors, mono: "#FF6B57" }} />
+                    </div>
+                    <button className="press w-7 h-7 rounded-lg flex items-center justify-center shrink-0" title="Remover desconto (volta ao valor de tabela)"
+                      style={{ background: "rgba(255,107,87,0.15)", color: "#FF6B57" }} onClick={removerDesconto}>
+                      <XIcon size={12} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* VALOR TOTAL DO IMÓVEL — faixa sólida, editável */}
             <div className="flex justify-between items-center gap-4 px-5 py-4 mt-0"
               style={{ background: "#2800FF" }}>
-              <span className="text-sm md:text-base font-semibold" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}>
+              <span className="flex items-center gap-2.5 text-sm md:text-base font-semibold" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}>
                 Valor total do imóvel
+                {temDesconto ? (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.16)", color: "rgba(255,255,255,0.85)", fontFamily: "var(--font-mono)" }}>
+                    com desconto
+                  </span>
+                ) : (
+                  <button className="press flex items-center gap-1.5 text-[10px] px-2 py-1 rounded uppercase tracking-wider"
+                    title="Aplicar desconto sobre o valor de tabela"
+                    style={{ background: "rgba(255,255,255,0.16)", color: "#FFFFFF", fontFamily: "var(--font-mono)" }}
+                    onClick={pedirDesconto}>
+                    <BadgePercent size={11} /> Desconto
+                  </button>
+                )}
               </span>
               <div className="w-44 text-right">
                 <EditableValue value={calc.valorImovel} onChange={(v) => syncValorImovelParaCalc(v)} colors={colors} />
@@ -968,7 +1060,7 @@ export default function FluxoPage() {
               {serieMenuOpen && (
                 <div className="absolute right-0 bottom-12 z-30 rounded-xl overflow-hidden"
                   style={{ background: "#1A1A1A", border: "1px solid #2A2A2A", boxShadow: "0 16px 48px rgba(0,0,0,0.6)", minWidth: 240 }}>
-                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "FINANCIAMENTO", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
+                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "DESCONTO", "FINANCIAMENTO", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
                     <button key={tipo}
                       className="block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-black/40"
                       style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}
@@ -980,6 +1072,7 @@ export default function FluxoPage() {
                             fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : (tipo === "SINAL" ? 2 : 1));
                           return;
                         }
+                        if (tipo === "DESCONTO") { pedirDesconto(); return; }
                         if (tipo === "FINANCIAMENTO") { setFluxo((p) => ({ ...p, financiamentoExcluido: false, financiamentoManual: undefined })); return; }
                         if (tipo === "MENSAL") { setFluxo((p) => ({ ...p, numMensais: p.numMensais > 0 ? p.numMensais : 37 })); return; }
                         if (tipo === "DECOR") { if (calc.mobilia === 0) setCalcField("mobilia", 30000); return; }

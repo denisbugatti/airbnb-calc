@@ -26,6 +26,7 @@ import { PaginaLinhaLaranja } from "@/pdf/PaginasMetro";
 
 const AZUL = "#2800FF";
 const CINZA = "#898A8E";
+const VERMELHO = "#FF6B57";
 
 // ─── Geradores de demanda — o usuário escolhe quais entram no PDF ─────────────
 const GERADORES: { id: string; titulo: string; el: React.ReactNode }[] = [
@@ -237,7 +238,10 @@ function PaginaPlano({ dados }: { dados: DadosPdf }) {
   const pctInvestido = vi > 0 ? (totalSeries / vi) * 100 : 0;
   const semestrais = fluxo.semestrais ?? [];
 
-  const series: { label: string; pct: string; value: number; total: number; solid?: boolean }[] = [
+  const desconto = fluxo.desconto ?? 0;
+  const tabela = vi + desconto;
+
+  const series: { label: string; pct: string; value: number; total: number; solid?: boolean; red?: boolean; strike?: boolean }[] = [
     ...(r.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(r.totalAto), value: fluxo.parcelasAto > 1 ? Math.round(r.totalAto / fluxo.parcelasAto) : r.totalAto, total: r.totalAto }] : []),
     ...(r.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(r.totalMensais), value: fluxo.numMensais > 1 ? fluxo.valorMensal : r.totalMensais, total: r.totalMensais }] : []),
     ...(r.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(r.totalSemestrais), value: semestrais.length > 1 ? (semestrais[0]?.valor ?? 0) : r.totalSemestrais, total: r.totalSemestrais }] : []),
@@ -248,9 +252,15 @@ function PaginaPlano({ dados }: { dados: DadosPdf }) {
     })),
     ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia, total: calc.mobilia }] : []),
   ];
-  const resumo = [
+  const resumo: typeof series = [
     { label: "Total Investido", pct: vi > 0 ? `${pctInvestido.toFixed(0)}%` : "", value: totalSeries, total: totalSeries, solid: true },
     ...(fluxo.financiamentoExcluido ? [] : [{ label: "Financiamento", pct: pctDe(r.financiamento), value: r.financiamento, total: r.financiamento }]),
+    ...(desconto > 0
+      ? [
+          { label: "Valor de Tabela", pct: "", value: tabela, total: tabela, strike: true },
+          { label: "Desconto", pct: tabela > 0 ? `−${((desconto / tabela) * 100).toFixed(0)}%` : "", value: desconto, total: desconto, red: true },
+        ]
+      : []),
     { label: "Valor do Imóvel", pct: "", value: vi, total: vi },
   ];
   const cartoes = series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
@@ -277,14 +287,14 @@ function PaginaPlano({ dados }: { dados: DadosPdf }) {
           <div style={{ display: "flex", gap: 2, background: "#242424", border: "1px solid #242424" }}>
             {cartoes.map((c) => (
               <div key={c.label} style={{ flex: "1 1 0", background: c.solid ? AZUL : "#0A0A0A", padding: pad, minWidth: 0 }}>
-                <div style={{ fontSize: fLabel, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 24, color: c.solid ? "rgba(255,255,255,0.75)" : CINZA, fontFamily: "var(--font-mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontSize: fLabel, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 24, color: c.solid ? "rgba(255,255,255,0.75)" : c.red ? VERMELHO : CINZA, fontFamily: "var(--font-mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {c.label}
                 </div>
-                <div style={{ fontSize: fPct, fontWeight: 300, color: c.solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", minHeight: "1.2em" }}>
+                <div style={{ fontSize: fPct, fontWeight: 300, color: c.solid ? "rgba(255,255,255,0.85)" : c.red ? VERMELHO : "#B3B3B3", minHeight: "1.2em" }}>
                   {c.pct}
                 </div>
-                <div style={{ fontSize: fValor, fontWeight: 400, color: "#FFFFFF", letterSpacing: "-0.01em", marginTop: 8, whiteSpace: "nowrap" }}>
-                  {formatCurrency(c.value)}
+                <div style={{ fontSize: fValor, fontWeight: 400, color: c.red ? VERMELHO : c.strike ? CINZA : "#FFFFFF", letterSpacing: "-0.01em", marginTop: 8, whiteSpace: "nowrap", textDecoration: c.strike ? "line-through" : undefined }}>
+                  {c.red ? `−${formatCurrency(c.value)}` : formatCurrency(c.value)}
                 </div>
               </div>
             ))}
