@@ -410,7 +410,7 @@ function gerarFluxoPNG(
 ): Promise<string> {
   return new Promise((resolve) => {
     const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-    const cols: { header: string; sub: string; value: string; isGreen?: boolean; isViolet?: boolean; isRed?: boolean }[] = [];
+    const cols: { header: string; sub: string; value: string; isGreen?: boolean; isViolet?: boolean }[] = [];
     fluxo.ato.forEach((p) => cols.push({ header: p.label, sub: p.mes, value: fmt(p.valor) }));
     cols.push({ header: `${fluxo.numMensais} MENSAIS`, sub: "por parcela", value: fmt(fluxo.valorMensal) });
     (fluxo.semestrais ?? []).forEach((s, i) => cols.push({ header: `SEMESTRAL ${i + 1}`, sub: s.mes, value: fmt(s.valor), isViolet: true }));
@@ -418,15 +418,7 @@ function gerarFluxoPNG(
     if (incluirDecoracao) cols.push({ header: "+DECORACAO", sub: "opcional", value: fmt(decoracao) });
     cols.push({ header: "TOTAL INVESTIDO", sub: `${pctInvestido.toFixed(1)}%`, value: fmt(results.totalInvestido), isGreen: true });
     cols.push({ header: "FINANCIAMENTO", sub: `${pctFinanciamento.toFixed(1)}%`, value: fmt(results.financiamento) });
-    const desconto = fluxo.desconto ?? 0;
-    if (desconto > 0) {
-      const tabela = valorImovel + desconto;
-      cols.push({ header: "VALOR DE TABELA", sub: "sem desconto", value: fmt(tabela) });
-      cols.push({ header: "DESCONTO", sub: tabela > 0 ? `${((desconto / tabela) * 100).toFixed(1)}%` : "", value: `-${fmt(desconto)}`, isRed: true });
-      cols.push({ header: "VALOR DO IMOVEL", sub: "com desconto", value: fmt(valorImovel) });
-    } else {
-      cols.push({ header: "VALOR DO IMOVEL", sub: "", value: fmt(valorImovel) });
-    }
+    cols.push({ header: "VALOR DO IMOVEL", sub: (fluxo.desconto ?? 0) > 0 ? "com desconto" : "", value: fmt(valorImovel) });
 
     // Paleta de cores por tema — identidade Vitacon (azul elétrico #2800FF)
     const isDarkTheme = exportTheme === "dark";
@@ -437,20 +429,16 @@ function gerarFluxoPNG(
       headerBlue: isDarkTheme ? "#3d2bb8" : "#2800ff",
       headerGreen: "#0e8a4a",
       headerViolet: isDarkTheme ? "#3d2bb8" : "#2800ff",
-      headerRed: "#c02418",
       headerTextColor: "#ffffff",
       headerSubBlue: isDarkTheme ? "#cfc8ff" : "#dcd6ff",
       headerSubGreen: isDarkTheme ? "#bbf7d0" : "#dcfce7",
       headerSubViolet: isDarkTheme ? "#cfc8ff" : "#dcd6ff",
-      headerSubRed: isDarkTheme ? "#fecaca" : "#fee2e2",
       cellBlueBg: isDarkTheme ? "#16141f" : "#f4f2ff",
       cellGreenBg: isDarkTheme ? "#dcfce7" : "#f0fdf4",
       cellVioletBg: isDarkTheme ? "#16141f" : "#f4f2ff",
-      cellRedBg: isDarkTheme ? "#241211" : "#fef2f2",
       cellBlueText: isDarkTheme ? "#e6e2ff" : "#1b1263",
       cellGreenText: "#15803d",
       cellVioletText: isDarkTheme ? "#e6e2ff" : "#1b1263",
-      cellRedText: isDarkTheme ? "#ff8a75" : "#c02418",
       divider: isDarkTheme ? "#262626" : "#e5e5e5",
       colDivider: isDarkTheme ? "#3a3a3a" : "#c9c9c9",
     };
@@ -490,9 +478,8 @@ function gerarFluxoPNG(
         const x = tableX + i * COL_W;
         const isGreen = col.isGreen;
         const isViolet = col.isViolet;
-        const isRed = col.isRed;
         // Header background
-        ctx.fillStyle = isGreen ? palette.headerGreen : isRed ? palette.headerRed : isViolet ? palette.headerViolet : palette.headerBlue;
+        ctx.fillStyle = isGreen ? palette.headerGreen : isViolet ? palette.headerViolet : palette.headerBlue;
         ctx.fillRect(x, tableY, COL_W, HEADER_H);
         // Header text
         ctx.fillStyle = palette.headerTextColor;
@@ -500,15 +487,15 @@ function gerarFluxoPNG(
         ctx.textAlign = "center";
         ctx.fillText(col.header, x + COL_W / 2, tableY + 26);
         if (col.sub) {
-          ctx.fillStyle = isGreen ? palette.headerSubGreen : isRed ? palette.headerSubRed : isViolet ? palette.headerSubViolet : palette.headerSubBlue;
+          ctx.fillStyle = isGreen ? palette.headerSubGreen : isViolet ? palette.headerSubViolet : palette.headerSubBlue;
           ctx.font = "10px system-ui, sans-serif";
           ctx.fillText("(" + col.sub + ")", x + COL_W / 2, tableY + 46);
         }
         // Cell background
-        ctx.fillStyle = isGreen ? palette.cellGreenBg : isRed ? palette.cellRedBg : isViolet ? palette.cellVioletBg : palette.cellBlueBg;
+        ctx.fillStyle = isGreen ? palette.cellGreenBg : isViolet ? palette.cellVioletBg : palette.cellBlueBg;
         ctx.fillRect(x, tableY + HEADER_H, COL_W, ROW_H);
         // Cell text
-        ctx.fillStyle = isGreen ? palette.cellGreenText : isRed ? palette.cellRedText : isViolet ? palette.cellVioletText : palette.cellBlueText;
+        ctx.fillStyle = isGreen ? palette.cellGreenText : isViolet ? palette.cellVioletText : palette.cellBlueText;
         ctx.font = "bold 13px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(col.value, x + COL_W / 2, tableY + HEADER_H + ROW_H / 2 + 5);
@@ -800,52 +787,60 @@ export default function FluxoPage() {
               })),
               ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia, total: calc.mobilia }] : []),
             ];
-            const resumo: { label: string; pct: string; value: number; total?: number; solid?: boolean; red?: boolean; strike?: boolean }[] = [
+            const resumo: { label: string; pct: string; value: number; total?: number; solid?: boolean }[] = [
               { label: "Total Investido", pct: vi > 0 ? `${((totalSeries / vi) * 100).toFixed(0)}%` : "", value: totalSeries, solid: true },
               ...(fluxo.financiamentoExcluido ? [] : [{ label: "Financiamento", pct: pctDe(results.financiamento), value: results.financiamento }]),
-              ...(desconto > 0
-                ? [
-                    { label: "Valor de Tabela", pct: "", value: valorTabela, strike: true },
-                    { label: "Desconto", pct: `−${pctDesconto.toFixed(pctDesconto % 1 ? 1 : 0)}%`, value: desconto, red: true },
-                    { label: "Valor do Imóvel", pct: "", value: vi },
-                  ]
-                : [{ label: "Valor do Imóvel", pct: "", value: vi }]),
+              { label: "Valor do Imóvel", pct: "", value: vi },
             ];
-            const Cartao = ({ label, pct, value, solid, red, strike }: { label: string; pct: string; value: number; solid?: boolean; red?: boolean; strike?: boolean }) => (
+            const Cartao = ({ label, pct, value, solid }: { label: string; pct: string; value: number; solid?: boolean }) => (
               <div className="rise p-5 md:p-6" style={{ background: solid ? "#2800FF" : "#0A0A0A" }}>
                 <div className="text-[11px] tracking-[0.25em] uppercase mb-3"
-                  style={{ color: solid ? "rgba(255,255,255,0.75)" : red ? "#FF6B57" : "#898A8E", fontFamily: "var(--font-mono)" }}>
+                  style={{ color: solid ? "rgba(255,255,255,0.75)" : "#898A8E", fontFamily: "var(--font-mono)" }}>
                   {label}
                 </div>
-                <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : red ? "#FF6B57" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
+                <div className="text-xl md:text-2xl mb-1" style={{ color: solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", fontFamily: "var(--font-sans)", fontWeight: 300, minHeight: "1.2em" }}>
                   {pct}
                 </div>
-                <div className="text-2xl md:text-3xl" style={{
-                  color: red ? "#FF6B57" : strike ? "#898A8E" : "#FFFFFF",
-                  fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em",
-                  textDecoration: strike ? "line-through" : undefined,
-                  whiteSpace: red || strike ? "nowrap" : undefined,
-                }}>
-                  {red ? `−${formatCurrency(value)}` : formatCurrency(value)}
+                <div className="text-2xl md:text-3xl" style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)", fontWeight: 400, letterSpacing: "-0.01em" }}>
+                  {formatCurrency(value)}
                 </div>
               </div>
             );
             return (
-              /* Na tela: cartões quebram em linhas (sem scroll horizontal), bem espaçados.
-                 No export (.exporting): forçados a uma única linha horizontal (ver index.css). */
-              <div className="plano-cards flex flex-wrap"
-                style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
-                {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total.
-                    Nesse caso o bloco mostra o total da série (é o "Total Investido"), não o valor da parcela. */}
-                {(series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
-                  ? [{ ...series[0], value: series[0].total, solid: true }, ...resumo.slice(1)]
-                  : [...series, ...resumo]
-                ).map((c) => (
-                  <div key={c.label} className="plano-card" style={{ flex: "1 1 170px", minWidth: 150 }}>
-                    <Cartao {...c} />
+              <>
+                {/* Na tela: cartões quebram em linhas (sem scroll horizontal), bem espaçados.
+                   No export (.exporting): forçados a uma única linha horizontal (ver index.css). */}
+                <div className="plano-cards flex flex-wrap"
+                  style={{ gap: 1, background: "#242424", border: "1px solid #242424" }}>
+                  {/* Série única (ex.: só Ato + Financiamento): a própria série vira o bloco azul, sem duplicar o Total.
+                      Nesse caso o bloco mostra o total da série (é o "Total Investido"), não o valor da parcela. */}
+                  {(series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
+                    ? [{ ...series[0], value: series[0].total, solid: true }, ...resumo.slice(1)]
+                    : [...series, ...resumo]
+                  ).map((c) => (
+                    <div key={c.label} className="plano-card" style={{ flex: "1 1 170px", minWidth: 150 }}>
+                      <Cartao {...c} />
+                    </div>
+                  ))}
+                </div>
+                {/* Desconto em linha única: valor de tabela riscado + desconto em vermelho */}
+                {desconto > 0 && (
+                  <div className="flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1 mt-4">
+                    <span className="text-[11px] tracking-[0.25em] uppercase" style={{ color: "#898A8E", fontFamily: "var(--font-mono)" }}>
+                      Valor de tabela
+                    </span>
+                    <span className="text-lg md:text-xl" style={{ color: "#898A8E", fontFamily: "var(--font-sans)", fontWeight: 400, textDecoration: "line-through", whiteSpace: "nowrap" }}>
+                      {formatCurrency(valorTabela)}
+                    </span>
+                    <span className="text-[11px] tracking-[0.25em] uppercase ml-3" style={{ color: "#FF6B57", fontFamily: "var(--font-mono)" }}>
+                      Desconto
+                    </span>
+                    <span className="text-lg md:text-xl" style={{ color: "#FF6B57", fontFamily: "var(--font-sans)", fontWeight: 400, whiteSpace: "nowrap" }}>
+                      −{formatCurrency(desconto)} ({`−${pctDesconto.toFixed(pctDesconto % 1 ? 1 : 0)}%`})
+                    </span>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             );
           })()}
 

@@ -255,12 +255,6 @@ function PaginaPlano({ dados }: { dados: DadosPdf }) {
   const resumo: typeof series = [
     { label: "Total Investido", pct: vi > 0 ? `${pctInvestido.toFixed(0)}%` : "", value: totalSeries, total: totalSeries, solid: true },
     ...(fluxo.financiamentoExcluido ? [] : [{ label: "Financiamento", pct: pctDe(r.financiamento), value: r.financiamento, total: r.financiamento }]),
-    ...(desconto > 0
-      ? [
-          { label: "Valor de Tabela", pct: "", value: tabela, total: tabela, strike: true },
-          { label: "Desconto", pct: tabela > 0 ? `−${((desconto / tabela) * 100).toFixed(0)}%` : "", value: desconto, total: desconto, red: true },
-        ]
-      : []),
     { label: "Valor do Imóvel", pct: "", value: vi, total: vi },
   ];
   const cartoes = series.length === 1 && Math.abs(series[0].total - totalSeries) < 1
@@ -287,20 +281,37 @@ function PaginaPlano({ dados }: { dados: DadosPdf }) {
           <div style={{ display: "flex", gap: 2, background: "#242424", border: "1px solid #242424" }}>
             {cartoes.map((c) => (
               <div key={c.label} style={{ flex: "1 1 0", background: c.solid ? AZUL : "#0A0A0A", padding: pad, minWidth: 0 }}>
-                <div style={{ fontSize: fLabel, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 24, color: c.solid ? "rgba(255,255,255,0.75)" : c.red ? VERMELHO : CINZA, fontFamily: "var(--font-mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontSize: fLabel, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 24, color: c.solid ? "rgba(255,255,255,0.75)" : CINZA, fontFamily: "var(--font-mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {c.label}
                 </div>
-                <div style={{ fontSize: fPct, fontWeight: 300, color: c.solid ? "rgba(255,255,255,0.85)" : c.red ? VERMELHO : "#B3B3B3", minHeight: "1.2em" }}>
+                <div style={{ fontSize: fPct, fontWeight: 300, color: c.solid ? "rgba(255,255,255,0.85)" : "#B3B3B3", minHeight: "1.2em" }}>
                   {c.pct}
                 </div>
-                <div style={{ fontSize: fValor, fontWeight: 400, color: c.red ? VERMELHO : c.strike ? CINZA : "#FFFFFF", letterSpacing: "-0.01em", marginTop: 8, whiteSpace: "nowrap", textDecoration: c.strike ? "line-through" : undefined }}>
-                  {c.red ? `−${formatCurrency(c.value)}` : formatCurrency(c.value)}
+                <div style={{ fontSize: fValor, fontWeight: 400, color: "#FFFFFF", letterSpacing: "-0.01em", marginTop: 8, whiteSpace: "nowrap" }}>
+                  {formatCurrency(c.value)}
                 </div>
               </div>
             ))}
           </div>
         );
       })()}
+      {/* Desconto em linha única: valor de tabela riscado + desconto em vermelho */}
+      {desconto > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: 18, marginTop: 40 }}>
+          <span style={{ fontSize: 17, letterSpacing: "0.25em", textTransform: "uppercase", color: CINZA, fontFamily: "var(--font-mono)" }}>
+            Valor de tabela
+          </span>
+          <span style={{ fontSize: 32, fontWeight: 400, color: CINZA, textDecoration: "line-through", whiteSpace: "nowrap" }}>
+            {formatCurrency(tabela)}
+          </span>
+          <span style={{ fontSize: 17, letterSpacing: "0.25em", textTransform: "uppercase", color: VERMELHO, fontFamily: "var(--font-mono)", marginLeft: 14 }}>
+            Desconto
+          </span>
+          <span style={{ fontSize: 32, fontWeight: 400, color: VERMELHO, whiteSpace: "nowrap" }}>
+            −{formatCurrency(desconto)} ({tabela > 0 ? `−${((desconto / tabela) * 100).toFixed(0)}%` : ""})
+          </span>
+        </div>
+      )}
       <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 17, letterSpacing: "0.25em", textTransform: "uppercase", color: "#5C5C5C", fontFamily: "var(--font-mono)" }}>
           Valores de referência · Sujeito a alteração
