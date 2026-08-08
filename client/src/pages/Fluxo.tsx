@@ -611,19 +611,13 @@ export default function FluxoPage() {
   const desconto = fluxo.desconto ?? 0;
   const temDesconto = fluxo.desconto !== undefined;
   const pctDesconto = valorTabela > 0 ? (desconto / valorTabela) * 100 : 0;
-  // Aceita R$ (ex.: 50.000) ou % do valor de tabela (ex.: 5%)
-  const pedirDesconto = () => {
-    const raw = window.prompt("Desconto sobre o valor de tabela — em R$ (ex.: 50.000) ou % (ex.: 5%):");
-    if (raw == null) return;
-    const s = raw.trim();
-    if (!s) return;
-    if (s.includes("%")) {
-      const p = parseFloat(s.replace("%", "").replace(",", "."));
-      if (!isNaN(p) && p > 0) aplicarDesconto((p / 100) * valorTabela);
-    } else {
-      const v = fParse(s);
-      if (v > 0) aplicarDesconto(v);
-    }
+  // Mostra a linha de desconto (zerada, se ainda não havia) e leva o cursor
+  // direto para o campo de valor — edição inline, sem prompt do navegador
+  const abrirDesconto = () => {
+    if (!temDesconto) aplicarDesconto(0);
+    setTimeout(() => {
+      document.querySelector<HTMLInputElement>("#desconto-valor-input input")?.focus();
+    }, 60);
   };
 
   const handleExport = useCallback(async (incluirDecoracao = true) => {
@@ -981,19 +975,22 @@ export default function FluxoPage() {
                     <EditableValue value={valorTabela} onChange={(v) => setValorTabela(v)} colors={colors} />
                   </div>
                 </div>
-                <div className="flex justify-between items-center gap-4 px-5 py-3"
+                <div className="flex justify-between items-center gap-3 px-5 py-3"
                   style={{ background: "rgba(255,107,87,0.10)", border: "1px solid rgba(255,107,87,0.35)", borderBottom: "none" }}>
-                  <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#FF6B57", fontFamily: "var(--font-sans)" }}>
+                  <span className="flex items-center gap-2 text-sm font-semibold shrink-0" style={{ color: "#FF6B57", fontFamily: "var(--font-sans)" }}>
                     <BadgePercent size={14} />
                     Desconto
-                    {pctDesconto > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,107,87,0.15)", fontFamily: "var(--font-mono)" }}>
-                        −{pctDesconto.toFixed(pctDesconto % 1 ? 1 : 0)}%
-                      </span>
-                    )}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-44 text-right">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-1 rounded-lg px-2 py-1" title="Desconto em % do valor de tabela"
+                      style={{ border: "1px solid rgba(255,107,87,0.35)" }}>
+                      <div className="w-12">
+                        <EditableValue value={Math.round(pctDesconto)} onChange={(p) => aplicarDesconto((Math.min(100, p) / 100) * valorTabela)}
+                          prefix="" colors={{ ...colors, mono: "#FF6B57" }} />
+                      </div>
+                      <span className="text-xs shrink-0" style={{ color: "#FF6B57" }}>%</span>
+                    </div>
+                    <div className="w-36 md:w-44 text-right" id="desconto-valor-input" title="Desconto em R$">
                       <EditableValue value={desconto} onChange={(v) => aplicarDesconto(v)} prefix="−R$"
                         colors={{ ...colors, mono: "#FF6B57" }} />
                     </div>
@@ -1019,7 +1016,7 @@ export default function FluxoPage() {
                   <button className="press flex items-center gap-1.5 text-[10px] px-2 py-1 rounded uppercase tracking-wider"
                     title="Aplicar desconto sobre o valor de tabela"
                     style={{ background: "rgba(255,255,255,0.16)", color: "#FFFFFF", fontFamily: "var(--font-mono)" }}
-                    onClick={pedirDesconto}>
+                    onClick={abrirDesconto}>
                     <BadgePercent size={11} /> Desconto
                   </button>
                 )}
@@ -1067,7 +1064,7 @@ export default function FluxoPage() {
                             fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : (tipo === "SINAL" ? 2 : 1));
                           return;
                         }
-                        if (tipo === "DESCONTO") { pedirDesconto(); return; }
+                        if (tipo === "DESCONTO") { abrirDesconto(); return; }
                         if (tipo === "FINANCIAMENTO") { setFluxo((p) => ({ ...p, financiamentoExcluido: false, financiamentoManual: undefined })); return; }
                         if (tipo === "MENSAL") { setFluxo((p) => ({ ...p, numMensais: p.numMensais > 0 ? p.numMensais : 37 })); return; }
                         if (tipo === "DECOR") { if (calc.mobilia === 0) setCalcField("mobilia", 30000); return; }
