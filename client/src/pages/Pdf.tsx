@@ -429,15 +429,19 @@ function PaginaPlano({ dados }: { dados: DadosPdf }) {
   const desconto = fluxo.desconto ?? 0;
   const tabela = vi + desconto;
 
-  const series: { label: string; pct: string; value: number; total: number; solid?: boolean; red?: boolean; strike?: boolean }[] = [
+  const extraCard = (e: NonNullable<typeof fluxo.extras>[number]) => ({
+    label: e.parcelas > 1 ? `${e.tipo} ${e.parcelas}×` : e.tipo,
+    pct: pctDe(e.valor * e.parcelas), value: e.parcelas > 1 ? e.valor : e.valor * e.parcelas, total: e.valor * e.parcelas,
+  });
+  const extrasAtivos = (fluxo.extras ?? []).filter((e) => e.valor * e.parcelas > 0);
+  const series: { label: string; pct: string; value: number; total: number; solid?: boolean }[] = [
     ...(r.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(r.totalAto), value: fluxo.parcelasAto > 1 ? Math.round(r.totalAto / fluxo.parcelasAto) : r.totalAto, total: r.totalAto }] : []),
+    // SINAL vem sempre logo após o Ato
+    ...extrasAtivos.filter((e) => e.tipo === "SINAL").map(extraCard),
     ...(r.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(r.totalMensais), value: fluxo.numMensais > 1 ? fluxo.valorMensal : r.totalMensais, total: r.totalMensais }] : []),
     ...(r.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(r.totalSemestrais), value: semestrais.length > 1 ? (semestrais[0]?.valor ?? 0) : r.totalSemestrais, total: r.totalSemestrais }] : []),
     ...(r.totalAnuais > 0 ? [{ label: `Anuais ${fluxo.anuais.length}×`, pct: pctDe(r.totalAnuais), value: fluxo.anuais.length > 1 ? (fluxo.anuais[0]?.valor ?? 0) : r.totalAnuais, total: r.totalAnuais }] : []),
-    ...(fluxo.extras ?? []).filter((e) => e.valor * e.parcelas > 0).map((e) => ({
-      label: e.parcelas > 1 ? `${e.tipo} ${e.parcelas}×` : e.tipo,
-      pct: pctDe(e.valor * e.parcelas), value: e.parcelas > 1 ? e.valor : e.valor * e.parcelas, total: e.valor * e.parcelas,
-    })),
+    ...extrasAtivos.filter((e) => e.tipo !== "SINAL").map(extraCard),
     ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia, total: calc.mobilia }] : []),
   ];
   const resumo: typeof series = [

@@ -63,14 +63,22 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
       inputRef.current.value = fFormat(value);
     }
   }, [value, editing]);
+  // Seleciona tudo já no focus (sem setTimeout: a primeira tecla nunca é perdida);
+  // o preventDefault no mouseup impede o clique de desfazer a seleção
+  const justFocused = useRef(false);
   const handleFocus = () => {
     setEditing(true);
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.value = fFormat(value);
-        inputRef.current.select();
-      }
-    }, 0);
+    if (inputRef.current) {
+      inputRef.current.value = fFormat(value);
+      inputRef.current.select();
+    }
+    justFocused.current = true;
+  };
+  const handleMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
+    if (justFocused.current) {
+      e.preventDefault();
+      justFocused.current = false;
+    }
   };
   const handleBlur = () => {
     setEditing(false);
@@ -104,6 +112,7 @@ function EditableValue({ value, onChange, prefix = "R$", colors }: {
           inputMode="numeric"
           defaultValue={fFormat(value)}
           onFocus={handleFocus}
+          onMouseUp={handleMouseUp}
           onBlur={handleBlur}
           onInput={handleInput}
           onKeyDown={(e) => { if (e.key === "Enter") inputRef.current?.blur(); }}
@@ -770,15 +779,19 @@ export default function FluxoPage() {
             const totalSeries = results.totalInvestido + calc.mobilia;
             // Séries com mais de uma parcela mostram o valor de CADA parcela (o "N×" indica a quantidade);
             // `total` guarda a soma da série (usado para % e para a lógica do bloco azul de série única).
+            const extraCard = (e: NonNullable<typeof fluxo.extras>[number]) => ({
+              label: e.parcelas > 1 ? `${e.tipo} ${e.parcelas}×` : e.tipo,
+              pct: pctDe(e.valor * e.parcelas), value: e.parcelas > 1 ? e.valor : e.valor * e.parcelas, total: e.valor * e.parcelas,
+            });
+            const extrasAtivos = (fluxo.extras ?? []).filter((e) => e.valor * e.parcelas > 0);
             const series: { label: string; pct: string; value: number; total: number }[] = [
               ...(results.totalAto > 0 ? [{ label: `Ato ${fluxo.parcelasAto}×`, pct: pctDe(results.totalAto), value: fluxo.parcelasAto > 1 ? Math.round(results.totalAto / fluxo.parcelasAto) : results.totalAto, total: results.totalAto }] : []),
+              // SINAL vem sempre logo após o Ato
+              ...extrasAtivos.filter((e) => e.tipo === "SINAL").map(extraCard),
               ...(results.totalMensais > 0 ? [{ label: `Mensais ${fluxo.numMensais}×`, pct: pctDe(results.totalMensais), value: fluxo.numMensais > 1 ? fluxo.valorMensal : results.totalMensais, total: results.totalMensais }] : []),
               ...(results.totalSemestrais > 0 ? [{ label: `Semestrais ${semestrais.length}×`, pct: pctDe(results.totalSemestrais), value: semestrais.length > 1 ? (semestrais[0]?.valor ?? 0) : results.totalSemestrais, total: results.totalSemestrais }] : []),
               ...(results.totalAnuais > 0 ? [{ label: `Anuais ${fluxo.anuais.length}×`, pct: pctDe(results.totalAnuais), value: fluxo.anuais.length > 1 ? (fluxo.anuais[0]?.valor ?? 0) : results.totalAnuais, total: results.totalAnuais }] : []),
-              ...(fluxo.extras ?? []).filter((e) => e.valor * e.parcelas > 0).map((e) => ({
-                label: e.parcelas > 1 ? `${e.tipo} ${e.parcelas}×` : e.tipo,
-                pct: pctDe(e.valor * e.parcelas), value: e.parcelas > 1 ? e.valor : e.valor * e.parcelas, total: e.valor * e.parcelas,
-              })),
+              ...extrasAtivos.filter((e) => e.tipo !== "SINAL").map(extraCard),
               ...(calc.mobilia > 0 ? [{ label: "Decoração", pct: pctDe(calc.mobilia), value: calc.mobilia, total: calc.mobilia }] : []),
             ];
             const resumo: { label: string; pct: string; value: number; total?: number; solid?: boolean }[] = [
@@ -857,6 +870,19 @@ export default function FluxoPage() {
             {/* Linha genérica */}
             {(() => {
               const num = (v: number, onChange: (n: number) => void) => <EditableValue value={v} onChange={onChange} colors={colors} />;
+              const renderExtra = (ex: NonNullable<typeof fluxo.extras>[number]) => (
+                <SerieRow colors={colors} key={ex.id} serie={ex.tipo.toLowerCase()} parcelas={ex.parcelas}
+                  onParcelas={(n) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, parcelas: n } : e) }))}
+                  valorNode={num(ex.valor, (v) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: v } : e) })))}
+                  venc={ex.mes} onVenc={(m) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, mes: m } : e) }))}
+                  total={formatCurrency(ex.valor * ex.parcelas)}
+                  pct={calc.valorImovel > 0 ? ((ex.valor * ex.parcelas) / calc.valorImovel) * 100 : undefined}
+                  onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / Math.max(1, e.parcelas)) } : e) })) : undefined}
+                  onPctParcela={calc.valorImovel > 0 ? (pp) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round((pp / 100) * calc.valorImovel) } : e) })) : undefined}
+                  onDesconto={(pp) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor * (1 - pp / 100)) } : e) }))}
+                  onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor + results.financiamento / Math.max(1, e.parcelas)) } : e) })) : undefined}
+                  onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
+              );
               return (
                 <div style={{ border: "1px solid #242424", borderBottom: "none" }}>
                   {fluxo.percentualAto > 0 && (
@@ -877,6 +903,8 @@ export default function FluxoPage() {
                       onAbsorver={calc.valorImovel > 0 && results.financiamento > 0 ? () => updateAto(((results.totalAto + results.financiamento) / calc.valorImovel) * 100, fluxo.parcelasAto) : undefined}
                       onDelete={() => updateAto(0, 1)} />
                   )}
+                  {/* SINAL vem sempre logo após o Ato */}
+                  {(fluxo.extras ?? []).filter((e) => e.tipo === "SINAL").map(renderExtra)}
                   {fluxo.numMensais > 0 && (
                     <SerieRow colors={colors} serie="Mensal" parcelas={fluxo.numMensais}
                       onParcelas={(n) => setFluxo((p) => ({ ...p, numMensais: Math.min(120, n) }))}
@@ -933,19 +961,7 @@ export default function FluxoPage() {
                       onAbsorver={results.financiamento > 0 ? () => setCalcField("mobilia", Math.round(calc.mobilia + results.financiamento)) : undefined}
                       onDelete={() => setCalcField("mobilia", 0)} />
                   )}
-                  {(fluxo.extras ?? []).map((ex) => (
-                    <SerieRow colors={colors} key={ex.id} serie={ex.tipo.toLowerCase()} parcelas={ex.parcelas}
-                      onParcelas={(n) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, parcelas: n } : e) }))}
-                      valorNode={num(ex.valor, (v) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: v } : e) })))}
-                      venc={ex.mes} onVenc={(m) => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).map((e) => e.id === ex.id ? { ...e, mes: m } : e) }))}
-                      total={formatCurrency(ex.valor * ex.parcelas)}
-                      pct={calc.valorImovel > 0 ? ((ex.valor * ex.parcelas) / calc.valorImovel) * 100 : undefined}
-                      onPct={calc.valorImovel > 0 ? (p) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(((Math.min(100, p) / 100) * calc.valorImovel) / Math.max(1, e.parcelas)) } : e) })) : undefined}
-                      onPctParcela={calc.valorImovel > 0 ? (pp) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round((pp / 100) * calc.valorImovel) } : e) })) : undefined}
-                      onDesconto={(pp) => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor * (1 - pp / 100)) } : e) }))}
-                      onAbsorver={results.financiamento > 0 ? () => setFluxo((prev) => ({ ...prev, extras: (prev.extras ?? []).map((e) => e.id === ex.id ? { ...e, valor: Math.round(e.valor + results.financiamento / Math.max(1, e.parcelas)) } : e) })) : undefined}
-                      onDelete={() => setFluxo((p) => ({ ...p, extras: (p.extras ?? []).filter((e) => e.id !== ex.id) }))} />
-                  ))}
+                  {(fluxo.extras ?? []).filter((e) => e.tipo !== "SINAL").map(renderExtra)}
                   {!fluxo.financiamentoExcluido && (
                     <SerieRow colors={colors} serie="Financiamento"
                       parcelas={calc.prazoMeses}
@@ -1052,27 +1068,30 @@ export default function FluxoPage() {
               {serieMenuOpen && (
                 <div className="absolute right-0 bottom-12 z-30 rounded-xl overflow-hidden"
                   style={{ background: "#1A1A1A", border: "1px solid #2A2A2A", boxShadow: "0 16px 48px rgba(0,0,0,0.6)", minWidth: 240 }}>
-                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "DESCONTO", "FINANCIAMENTO", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
+                  {["ADIMPLÊNCIA PREMIADA", "ANUAL", "ATO", "DAÇÃO IMÓVEL", "DECOR", "FINANCIAMENTO", "MENSAL", "PERIODICIDADE", "SINAL", "ÚNICA"].map((tipo) => (
                     <button key={tipo}
                       className="block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-black/40"
                       style={{ color: "#FFFFFF", fontFamily: "var(--font-sans)" }}
                       onClick={() => {
                         setSerieMenuOpen(false);
                         if (tipo === "ANUAL") { addAnual(); return; }
-                        if (tipo === "ATO" || tipo === "SINAL") {
+                        if (tipo === "ATO") {
                           updateAto(fluxo.percentualAto > 0 ? fluxo.percentualAto : 10,
-                            fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : (tipo === "SINAL" ? 2 : 1));
+                            fluxo.percentualAto > 0 ? Math.min(6, fluxo.parcelasAto + 1) : 1);
                           return;
                         }
-                        if (tipo === "DESCONTO") { abrirDesconto(); return; }
                         if (tipo === "FINANCIAMENTO") { setFluxo((p) => ({ ...p, financiamentoExcluido: false, financiamentoManual: undefined })); return; }
                         if (tipo === "MENSAL") { setFluxo((p) => ({ ...p, numMensais: p.numMensais > 0 ? p.numMensais : 37 })); return; }
                         if (tipo === "DECOR") { if (calc.mobilia === 0) setCalcField("mobilia", 30000); return; }
+                        // SINAL entra como série própria, logo após o Ato (1º venc. no mês seguinte à última parcela do ato)
                         setFluxo((p) => ({
                           ...p,
                           extras: [...(p.extras ?? []), {
                             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                            tipo, parcelas: 1, valor: 0, mes: mesAtualFn(),
+                            tipo, parcelas: 1, valor: 0,
+                            mes: tipo === "SINAL"
+                              ? proximoMes(p.ato[p.ato.length - 1]?.mes ?? mesAtualFn(), 1)
+                              : mesAtualFn(),
                           }],
                         }));
                       }}>
